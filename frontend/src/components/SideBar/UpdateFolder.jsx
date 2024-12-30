@@ -1,4 +1,4 @@
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material'
+import { Box, Menu, MenuItem, Typography } from '@mui/material'
 import React, { useState } from 'react'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
@@ -7,7 +7,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ClearIcon from '@mui/icons-material/Clear';
 
 
-function UpdateFolder({ objUpdate, actionFunctions }) {
+function UpdateFolder({ actionFunctions }) {
     const updateItems = [
         { title: "Rename", icon: <EditIcon />, func: actionFunctions.handleClickRename },
         { title: "Up", icon: <ArrowUpwardIcon />, func: actionFunctions.handleIncrementOrder },

@@ -1,10 +1,12 @@
-import { Box, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import Search from '../../components/Sorting/Search'
 import Movie from '../../components/Movie/Movie';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
 import MainButton from '../../components/Buttons/MainButton';
+import FoldersDialog from '../../components/Movie/FoldersDialog';
+import DescriptionDialog from '../../components/Movie/DescriptionDialog';
 
 const API_KEY = "87a25607799e5d9eea1f25a49eb8063e"
 
@@ -22,7 +24,16 @@ const MovieGrid = React.memo(({ searchMovieItems }) => (
 ));
 
 
-function GeneralMovieList() {
+function GeneralMovieList({
+    folders,
+    curFolderName,
+    curFolderToRename,
+    handleUpdateFolderName,
+    handleInputChange,
+    handleAddFolder,
+    setCurFolderToRename,
+    setCurFolderName
+}) {
     const [isLoadedSearchMovies, setIsLoadedSearchMovies] = useState(true);
     const [inputText, setInputText] = useState(""); // відповідає за відображення тексту в input
     const [searchValue, setSearchValue] = useState(""); // загружається кінцеве значення після debounce для запроса
@@ -109,6 +120,28 @@ function GeneralMovieList() {
         }
     };
 
+    const [openDialogFolder, setOpenDialogFolder] = useState(false);
+    const [openDialogDescription, setOpenDialogDescription] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState(false);
+
+    const handleClickOpen = () => {
+        setOpenDialogFolder(true);
+    };
+
+    const handleCloseDialogFolder = (value) => {
+        setOpenDialogFolder(false);
+        setSelectedFolder(value);
+        setCurFolderToRename(false)
+        setCurFolderName(false)
+
+        setOpenDialogDescription(true);
+
+    };
+
+    const handleCloseDialogDescription = (value) => {
+        setOpenDialogDescription(false)
+    };
+
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 4 }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -117,6 +150,38 @@ function GeneralMovieList() {
             </Box>
 
             {searchMovieItems.length > 0 && <MovieGrid searchMovieItems={getMaxObjectsDivisibleBy12(searchMovieItems)} />}
+
+            <Box>
+                <Typography variant="subtitle1" component="div">
+                    Selected: {selectedFolder.name}
+                </Typography>
+                <br />
+                <Button variant="outlined" onClick={handleClickOpen}>
+                    Open simple dialog
+                </Button>
+                <FoldersDialog
+                    selectedFolder={selectedFolder}
+                    open={openDialogFolder}
+                    onClose={handleCloseDialogFolder}
+                    folders={folders}
+                    curFolderName={curFolderName}
+                    curFolderToRename={curFolderToRename}
+                    handleUpdateFolderName={handleUpdateFolderName}
+                    handleInputChange={handleInputChange}
+                    handleAddFolder={handleAddFolder}
+                />
+                <DescriptionDialog
+                    selectedFolder={selectedFolder}
+                    open={openDialogDescription}
+                    onClose={handleCloseDialogDescription}
+                    folders={folders}
+                    curFolderName={curFolderName}
+                    curFolderToRename={curFolderToRename}
+                    handleUpdateFolderName={handleUpdateFolderName}
+                    handleInputChange={handleInputChange}
+                    handleAddFolder={handleAddFolder}
+                />
+            </Box>
 
             <Box sx={{ mb: 2 }}>
                 {

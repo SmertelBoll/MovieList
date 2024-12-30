@@ -13,4 +13,7 @@ export const getTheme = (mode) =>
       ...createTheme({}).shadows.map((shadow, i) => (i === 0 ? "4px 4px 24px rgba(0, 0, 0, 0.25)" : shadow)),
     ],
     breakpoints,
+    zIndex: {
+      modal: 1000, // Знижуємо для Dialog
+    },
   });

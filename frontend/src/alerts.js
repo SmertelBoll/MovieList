@@ -17,6 +17,7 @@ export const alertError = (err, title, msg) => {
     title: finishTitle,
     text: finishMsg,
   });
+
 };
 
 export const alertSuccess = (title) => {
