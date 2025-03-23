@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const jwt_key = "ilove";
+const jwt_key = process.env.JWT_KEY;
 
 export const checkAuth = (req, res, next) => {
   const token = (req.headers.authorization || "").replace(/Bearer\s?/, "");

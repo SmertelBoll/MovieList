@@ -2,8 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import multer from "multer";
 import cors from "cors";
-// import * as dotenv from "dotenv";
-// dotenv.config();
+import * as dotenv from "dotenv";
+dotenv.config();
 
 import { loginValidation, registerValidation } from "./validations/auth.js";
 import { checkValidationError } from "./utils/checkValidationError.js";
@@ -29,8 +29,7 @@ import { folderCreateValidation } from "./validations/folder.js";
 import { addMovieToFolder, createFolder, getAllFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
 
 // підключаємось до бази даних
-const MONGO_CONNECTION = "mongodb+srv://sholop2113:dOwtBpssGI5lHTXV@movielist.fl7yk.mongodb.net/"
-const mongoConnection = MONGO_CONNECTION;
+const mongoConnection = process.env.MONGO_CONNECTION;
 mongoose
   .connect(mongoConnection)
   // перевіряємо підключення

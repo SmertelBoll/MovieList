@@ -1,14 +1,12 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-// import * as dotenv from "dotenv";
-// dotenv.config();
+import * as dotenv from "dotenv";
+dotenv.config();
 
 import UserModel from "../models/user.js";
 
-// const bcrypt_salt = process.env.BCRYPT_SALT;
-// const jwt_key = process.env.JWT_KEY;
-const bcrypt_salt = 10;
-const jwt_key = "ilove";
+const bcrypt_salt = process.env.BCRYPT_SALT;
+const jwt_key = process.env.JWT_KEY;
 
 export const registerUser = async (req, res) => {
   try {
