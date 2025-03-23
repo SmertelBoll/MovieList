@@ -26,7 +26,7 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
-import { createFolder, getAllFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
+import { addMovieToFolder, createFolder, getAllFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
 
 // підключаємось до бази даних
 const MONGO_CONNECTION = "mongodb+srv://sholop2113:dOwtBpssGI5lHTXV@movielist.fl7yk.mongodb.net/"
@@ -93,6 +93,8 @@ app.patch("/folders/rename/:order", checkAuth, folderCreateValidation, checkVali
 app.delete("/folders/:order", checkAuth, removeFolder);
 app.patch("/folders/orderIncrement/:order", checkAuth, orderIncrement);
 app.patch("/folders/orderDecrement/:order", checkAuth, orderDecrement);
+
+app.patch("/folders/addmovie", checkAuth, addMovieToFolder)
 
 
 

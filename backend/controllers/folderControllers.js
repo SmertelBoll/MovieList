@@ -198,6 +198,49 @@ export const orderDecrement = async (req, res) => {
   }
 }
 
+export const addMovieToFolder = async (req, res) => {
+  try {
+    const currentUserId = req.userId;
+    const folderName = req.body.folderName;
+
+    const movieId = req.body.movieId;
+    const dateAdded = req.body.dateAdded;
+    const rating = req.body.rating;
+    const comment = req.body.comment;
+
+    if (!folderName) {
+      return res.status(400).json({ title: "Folder error", message: "no folder selected" });
+    }
+    if (!movieId) {
+      return res.status(400).json({ title: "Folder error", message: "no movie selected" });
+    }
+
+    const newElement = {
+      movieId,
+      dateAdded,
+      rating,
+      comment
+    }
+
+    const updatedFolder = await FolderModel.findOneAndUpdate(
+      { name: folderName, user: currentUserId }, // Шукаємо папку за ім'ям
+      { $push: { folderElements: newElement } }, // Додаємо новий фільм у масив
+      { new: true } // Повертаємо оновлену папку
+    );
+
+    if (!updatedFolder) {
+      return res.status(404).json({ title: "Folder error", message: "folder not found" });
+    }
+
+    res.json({
+      success: updatedFolder,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Folder error", message: "failed to add movie" });
+  }
+};
+
 
 
 

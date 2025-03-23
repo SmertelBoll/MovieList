@@ -12,8 +12,10 @@ const FolderSchema = new mongoose.Schema(
         },
         folderElements: [
             {
-                type: mongoose.Schema.Types.ObjectId, // Тип даних - ObjectId
-                ref: "FolderElement", // Посилання на модель FolderElement
+                movieId: { type: Number, required: true },
+                dateAdded: { type: Date },
+                rating: { type: Number },
+                comment: { type: String }
             }
         ],
         user: {
