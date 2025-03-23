@@ -3,9 +3,10 @@ import React from 'react'
 import MainButton from '../Buttons/MainButton';
 import AddIcon from '@mui/icons-material/Add';
 
-const defaultPhoto = "https://via.placeholder.com/342x513?text=No+Image"
+// const defaultPhoto = "https://res.cloudinary.com/dw0qzruxp/image/upload/fl_preserve_transparency/v1733693499/depositphotos_247872612-stock-illustration-no-image-available-icon-vector_wckhll.jpg?_s=public-apps"
 
-function Movie({ movie }) {
+const defaultPhoto = "https://res-console.cloudinary.com/dw0qzruxp/thumbnails/v1/image/upload/v1740604718/cGxhY2Vob2xkZXJfYXl5YWg0/drilldown"
+function MovieCart({ movie, handleOpenDialogFolder }) {
     const imageBaseUrl = "https://image.tmdb.org/t/p/w342"; // базовий URL для отримання зображень
     // const movie = {
     //     "adult": false,
@@ -29,7 +30,8 @@ function Movie({ movie }) {
             <Card sx={{ borderRadius: 2, minHeight: "100%", position: "relative" }}>
 
                 <IconButton
-                    aria-label="delete"
+                    aria-label="added"
+                    onClick={() => handleOpenDialogFolder(movie.id)} // Виклик функції при натисканні
                     sx={{
                         position: "absolute",
                         right: 5,
@@ -90,4 +92,4 @@ function Movie({ movie }) {
     )
 }
 
-export default Movie
+export default MovieCart

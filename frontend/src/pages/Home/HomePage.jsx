@@ -5,7 +5,7 @@ import SideBar from '../../components/SideBar/SideBar'
 import GeneralMovieList from './GeneralMovieList'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
-import axiosInstance from '../../axios';
+import instance from '../../axios';
 import { alertConfirm, alertError } from '../../alerts'
 
 
@@ -22,7 +22,7 @@ function HomePage() {
   // Отримати назви папок
   useEffect(() => {
     if (isGetFolders && isAuth) {
-      axiosInstance
+      instance
         .get(`/folders`)
         .then((res) => {
           setFolders(res.data)
@@ -43,7 +43,7 @@ function HomePage() {
       const timestamp = Date.now();
       const newFolderName = `${timestamp}`; // Назва нової папки
 
-      axiosInstance
+      instance
         .post(`/folders/create`, { name: newFolderName })
         .then((res) => {
           setFolders(prev => [...prev, res.data])
@@ -66,13 +66,13 @@ function HomePage() {
 
   // Відслідковує input при зміні назви папки
   const handleInputChange = (event) => {
-    const { name, value } = event.target;
+    const { _, value } = event.target;
     setCurFolderName(value);
   };
 
   // Міняє назву папки у базі даних, оновлюємо state
   const handleUpdateFolderName = (order, newFolderName) => {
-    axiosInstance
+    instance
       .patch(`/folders/rename/${order}`, { name: newFolderName })
       .then((res) => {
         setFolders((prevFolders) =>
@@ -96,7 +96,7 @@ function HomePage() {
 
   // Видалення папки
   const deleteFolder = (order) => {
-    axiosInstance
+    instance
       .delete(`/folders/${order}`)
       .then((res) => {
         setFolders((prevFolders) =>
@@ -114,7 +114,7 @@ function HomePage() {
   //-- CHANGE ORDER -- //
   // Перемістити вверх по черзі
   const handleIncrementOrder = (order) => {
-    axiosInstance
+    instance
       .patch(`/folders/orderIncrement/${order}`)
       .then((res) => {
         if (res.data.success) { setIsGetFolders(true) }
@@ -127,7 +127,7 @@ function HomePage() {
 
   // Перемістити вниз по черзі
   const handleDecrementOrder = (order) => {
-    axiosInstance
+    instance
       .patch(`/folders/orderDecrement/${order}`)
       .then((res) => {
         if (res.data.success) setIsGetFolders(true)

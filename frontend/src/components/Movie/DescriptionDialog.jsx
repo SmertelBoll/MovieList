@@ -1,5 +1,5 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Input, InputAdornment, List, ListItem, ListItemAvatar, ListItemButton, ListItemText, Slider, TextField, Typography, useTheme } from '@mui/material';
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add';
 import FolderIcon from '@mui/icons-material/Folder';
 import TextFieldCustom from '../customMUI/TextFieldCustom';
@@ -11,13 +11,19 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { Grid } from '@mui/system';
 import MainButton from '../Buttons/MainButton';
+import instance from '../../axios';
+import { alertError, alertSuccess } from '../../alerts';
 
 
+const DEFAULT_RATE = 0
+const DEFAULT_DATE = new Date()
+const DEFAULT_TEXT = ""
 
 function DescriptionDialog({
-    onClose,
+    handleCloseDialogDescription,
     selectedFolder,
-    open,
+    selectedMovieId,
+    openDialogDescription,
     folders,
     curFolderName,
     curFolderToRename,
@@ -26,9 +32,9 @@ function DescriptionDialog({
     handleAddFolder
 
 }) {
-    const [rating, setRating] = useState(5); // Початкова оцінка
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [text, setText] = useState("");
+    const [rating, setRating] = useState(DEFAULT_RATE); // Початкова оцінка
+    const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE);
+    const [text, setText] = useState(DEFAULT_TEXT);
 
     const theme = useTheme();
     const InputBox = useMemo(
@@ -36,8 +42,14 @@ function DescriptionDialog({
         [theme.palette.mode]
     );
 
+    useEffect(() => {
+        setRating(DEFAULT_RATE)
+        setSelectedDate(DEFAULT_DATE)
+        setText(DEFAULT_TEXT)
+    }, [openDialogDescription]);
+
     const handleClose = () => {
-        onClose(selectedFolder);
+        handleCloseDialogDescription(selectedFolder);
         setText("")
     };
 
@@ -50,12 +62,28 @@ function DescriptionDialog({
     // Надсилання даних
     const handleSubmit = () => {
         // onSubmit({ rating, selectedDate, text });
+        instance
+            .patch(`/folders/addmovie`, {
+                folderName: selectedFolder.name,
+                movieId: selectedMovieId,
+                dateAdded: selectedDate,
+                rating: rating,
+                comment: text
+            })
+            .then((res) => {
+
+                alertSuccess("Movie successfully added")
+            })
+            .catch((err) => {
+                console.warn(err);
+                alertError(err);
+            });
         handleClose();
     };
 
     const marks = Array.from({ length: 11 }, (_, index) => ({
-        value: index,
-        label: index,
+        value: 10 * index,
+        label: 10 * index,
     }));
 
 
@@ -70,15 +98,15 @@ function DescriptionDialog({
     const handleBlur = () => {
         if (rating < 0) {
             setRating(0);
-        } else if (rating > 10) {
-            setRating(10);
+        } else if (rating > 100) {
+            setRating(100);
         }
     };
 
     return (
         <Dialog
-            open={open}
-            onClose={onClose}
+            open={openDialogDescription}
+            onClose={handleCloseDialogDescription}
             fullWidth
             sx={{
                 display: 'flex',
@@ -102,8 +130,8 @@ function DescriptionDialog({
                     <Slider
                         value={typeof rating === 'number' ? rating : 0}
                         onChange={handleSliderChange}
-                        min={1}
-                        max={10}
+                        min={0}
+                        max={100}
                         step={1}
                         marks={marks}
                         valueLabelDisplay="auto"
@@ -163,7 +191,7 @@ function DescriptionDialog({
             </DialogContent>
 
             <DialogActions sx={{ px: 3, pb: 3 }}>
-                <MainButton onClick={onClose}>
+                <MainButton onClick={handleCloseDialogDescription}>
                     Cancel
                 </MainButton>
                 <MainButton onClick={handleSubmit}>

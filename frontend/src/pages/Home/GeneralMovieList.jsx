@@ -1,7 +1,7 @@
 import { Box, Button, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import Search from '../../components/Sorting/Search'
-import Movie from '../../components/Movie/Movie';
+import MovieCart from '../../components/Movie/MovieCart';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
 import MainButton from '../../components/Buttons/MainButton';
@@ -11,14 +11,18 @@ import DescriptionDialog from '../../components/Movie/DescriptionDialog';
 const API_KEY = "87a25607799e5d9eea1f25a49eb8063e"
 
 
-const MovieGrid = React.memo(({ searchMovieItems }) => (
+const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder }) => (
     <Grid2
         container
         spacing={2}
         justifyContent="center"
     >
         {searchMovieItems.map((obj, i) => (
-            <Movie movie={obj} key={`${obj?.title}_${i}`} />
+            <MovieCart
+                key={`${obj?.title}_${i}`}
+                movie={obj}
+                handleOpenDialogFolder={handleOpenDialogFolder}
+            />
         ))}
     </Grid2>
 ));
@@ -39,6 +43,11 @@ function GeneralMovieList({
     const [searchValue, setSearchValue] = useState(""); // загружається кінцеве значення після debounce для запроса
     const [searchMovieItems, setSearchMovieItems] = useState([])  // об'єкти фільму
     const [page, setPage] = useState(1) // сторінка для запросу фільмів
+
+    const [openDialogFolder, setOpenDialogFolder] = useState(false);
+    const [openDialogDescription, setOpenDialogDescription] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState(false);
+    const [selectedMovieId, setSelectedMovieId] = useState(false);
 
     // Кількість фільмів повинна бути кратна 12
     const getMaxObjectsDivisibleBy12 = useCallback(
@@ -120,26 +129,30 @@ function GeneralMovieList({
         }
     };
 
-    const [openDialogFolder, setOpenDialogFolder] = useState(false);
-    const [openDialogDescription, setOpenDialogDescription] = useState(false);
-    const [selectedFolder, setSelectedFolder] = useState(false);
 
-    const handleClickOpen = () => {
+    // Відкривання вибору папки прии додаванні фільму
+    const handleOpenDialogFolder = (movieId) => {
+        setSelectedMovieId(movieId)
         setOpenDialogFolder(true);
     };
 
+    // Закривання вибору папки прии додаванні фільму. Відкривання оцінювання фільму
     const handleCloseDialogFolder = (value) => {
         setOpenDialogFolder(false);
         setSelectedFolder(value);
         setCurFolderToRename(false)
         setCurFolderName(false)
 
-        setOpenDialogDescription(true);
+        if (value) {
+            setOpenDialogDescription(true);
+        }
 
     };
 
+    // Закривання блоку оцінювання фільму
     const handleCloseDialogDescription = (value) => {
         setOpenDialogDescription(false)
+        setSelectedFolder(false)
     };
 
     return (
@@ -149,14 +162,17 @@ function GeneralMovieList({
                 <Search inputText={inputText} onChangeInput={onChangeInput} />
             </Box>
 
-            {searchMovieItems.length > 0 && <MovieGrid searchMovieItems={getMaxObjectsDivisibleBy12(searchMovieItems)} />}
+            {searchMovieItems.length > 0 && <MovieGrid
+                searchMovieItems={getMaxObjectsDivisibleBy12(searchMovieItems)}
+                handleOpenDialogFolder={handleOpenDialogFolder}
+            />}
 
             <Box>
                 <Typography variant="subtitle1" component="div">
                     Selected: {selectedFolder.name}
                 </Typography>
                 <br />
-                <Button variant="outlined" onClick={handleClickOpen}>
+                <Button variant="outlined" onClick={handleOpenDialogFolder}>
                     Open simple dialog
                 </Button>
                 <FoldersDialog
@@ -172,8 +188,9 @@ function GeneralMovieList({
                 />
                 <DescriptionDialog
                     selectedFolder={selectedFolder}
-                    open={openDialogDescription}
-                    onClose={handleCloseDialogDescription}
+                    selectedMovieId={selectedMovieId}
+                    openDialogDescription={openDialogDescription}
+                    handleCloseDialogDescription={handleCloseDialogDescription}
                     folders={folders}
                     curFolderName={curFolderName}
                     curFolderToRename={curFolderToRename}
