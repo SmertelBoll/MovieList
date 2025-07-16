@@ -27,6 +27,19 @@ function Search({ inputText, onChangeInput }) {
                 width: "100%",
                 "& .Mui-focused .MuiIconButton-root": { color: "text.main" },
                 "& .MuiOutlinedInput-notchedOutline": { borderRadius: "30px" },
+                // Прибираємо синій колір автозаповнювача
+                "& .MuiInputBase-input": {
+                    "&:-webkit-autofill": {
+                        WebkitBoxShadow: `0 0 0 1000px ${theme.palette.bg.second} inset`,
+                        WebkitTextFillColor: theme.palette.text.main,
+                    },
+                    "&:-webkit-autofill:hover": {
+                        WebkitBoxShadow: `0 0 0 1000px ${theme.palette.bg.second} inset`,
+                    },
+                    "&:-webkit-autofill:focus": {
+                        WebkitBoxShadow: `0 0 0 1000px ${theme.palette.bg.second} inset`,
+                    },
+                },
             }}
             slotProps={{
                 input: {

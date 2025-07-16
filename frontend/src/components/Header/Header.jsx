@@ -54,7 +54,7 @@ function Header({ colorMode, mode }) {
             <>
               <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, alignItems: "center" }}>
                 <Link to="/register">
-                  <MainButton>Sing up</MainButton>
+                  <MainButton>Sign up</MainButton>
                 </Link>
                 <Link to="/login">
                   <MainButton>Log in</MainButton>

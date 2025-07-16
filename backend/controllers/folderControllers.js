@@ -64,7 +64,7 @@ export const renameFolderByOrder = async (req, res) => {
     const userFolders = await getAllFoldersByUserHelper(userId);
     const folderNames = userFolders.map(folder => folder.name);
 
-    if (folderNames.includes(newFolderName) && folder.name !== newFolderName) {
+    if (folderNames.includes(newFolderName) && currentFolder.name !== newFolderName) {
       return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
     }
 

@@ -5,7 +5,8 @@ import AddIcon from '@mui/icons-material/Add';
 
 // const defaultPhoto = "https://res.cloudinary.com/dw0qzruxp/image/upload/fl_preserve_transparency/v1733693499/depositphotos_247872612-stock-illustration-no-image-available-icon-vector_wckhll.jpg?_s=public-apps"
 
-const defaultPhoto = "https://res-console.cloudinary.com/dw0qzruxp/thumbnails/v1/image/upload/v1740604718/cGxhY2Vob2xkZXJfYXl5YWg0/drilldown"
+const defaultPhoto = "https://res.cloudinary.com/dw0qzruxp/image/upload/v1740604718/placeholder_ayyah4.png"
+
 function MovieCart({ movie, handleOpenDialogFolder }) {
     const imageBaseUrl = "https://image.tmdb.org/t/p/w342"; // базовий URL для отримання зображень
     // const movie = {
@@ -42,7 +43,7 @@ function MovieCart({ movie, handleOpenDialogFolder }) {
                             opacity: 1,
                             backgroundColor: "yellow.main", // Колір при наведенні
                             '& svg': {
-                                color: "text.main", // Колір іконки при наведенні на IconButton
+                                color: "text.dark", // Колір іконки при наведенні на IconButton
                             },
                         }
                     }}>

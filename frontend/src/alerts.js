@@ -8,8 +8,8 @@ const defaultProp = {
 };
 
 export const alertError = (err, title, msg) => {
-  let finishTitle = title || err.response.data.title || "Validation error"
-  let finishMsg = msg || err.response.data.message || err.response.data[0].msg
+  let finishTitle = title || err?.response?.data?.title || "Validation error"
+  let finishMsg = msg || err?.response?.data?.message || err?.response?.data[0]?.msg
 
   Swal.fire({
     ...defaultProp,

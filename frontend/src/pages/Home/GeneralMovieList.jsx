@@ -5,8 +5,7 @@ import MovieCart from '../../components/Movie/MovieCart';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
 import MainButton from '../../components/Buttons/MainButton';
-import FoldersDialog from '../../components/Movie/FoldersDialog';
-import DescriptionDialog from '../../components/Movie/DescriptionDialog';
+import MovieSaveDialog from '../../components/Movie/MovieSaveDialog';
 
 const API_KEY = "87a25607799e5d9eea1f25a49eb8063e"
 
@@ -30,13 +29,8 @@ const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder }) => (
 
 function GeneralMovieList({
     folders,
-    curFolderName,
-    curFolderToRename,
-    handleUpdateFolderName,
-    handleInputChange,
-    handleAddFolder,
-    setCurFolderToRename,
-    setCurFolderName
+    setFolders,
+    setIsGetFolders
 }) {
     const [isLoadedSearchMovies, setIsLoadedSearchMovies] = useState(true);
     const [inputText, setInputText] = useState(""); // відповідає за відображення тексту в input
@@ -44,8 +38,7 @@ function GeneralMovieList({
     const [searchMovieItems, setSearchMovieItems] = useState([])  // об'єкти фільму
     const [page, setPage] = useState(1) // сторінка для запросу фільмів
 
-    const [openDialogFolder, setOpenDialogFolder] = useState(false);
-    const [openDialogDescription, setOpenDialogDescription] = useState(false);
+    const [openMovieSaveDialog, setOpenMovieSaveDialog] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState(false);
     const [selectedMovieId, setSelectedMovieId] = useState(false);
 
@@ -130,29 +123,14 @@ function GeneralMovieList({
     };
 
 
-    // Відкривання вибору папки прии додаванні фільму
+    // Відкривання діалогу з MovieSaveDialog
     const handleOpenDialogFolder = (movieId) => {
-        setSelectedMovieId(movieId)
-        setOpenDialogFolder(true);
+        setSelectedMovieId(movieId);
+        setOpenMovieSaveDialog(true);
     };
-
-    // Закривання вибору папки прии додаванні фільму. Відкривання оцінювання фільму
-    const handleCloseDialogFolder = (value) => {
-        setOpenDialogFolder(false);
-        setSelectedFolder(value);
-        setCurFolderToRename(false)
-        setCurFolderName(false)
-
-        if (value) {
-            setOpenDialogDescription(true);
-        }
-
-    };
-
-    // Закривання блоку оцінювання фільму
-    const handleCloseDialogDescription = (value) => {
-        setOpenDialogDescription(false)
-        setSelectedFolder(false)
+    const handleCloseMovieSaveDialog = () => {
+        setOpenMovieSaveDialog(false);
+        setSelectedFolder(false);
     };
 
     return (
@@ -167,38 +145,16 @@ function GeneralMovieList({
                 handleOpenDialogFolder={handleOpenDialogFolder}
             />}
 
-            <Box>
-                <Typography variant="subtitle1" component="div">
-                    Selected: {selectedFolder.name}
-                </Typography>
-                <br />
-                <Button variant="outlined" onClick={handleOpenDialogFolder}>
-                    Open simple dialog
-                </Button>
-                <FoldersDialog
-                    selectedFolder={selectedFolder}
-                    open={openDialogFolder}
-                    onClose={handleCloseDialogFolder}
-                    folders={folders}
-                    curFolderName={curFolderName}
-                    curFolderToRename={curFolderToRename}
-                    handleUpdateFolderName={handleUpdateFolderName}
-                    handleInputChange={handleInputChange}
-                    handleAddFolder={handleAddFolder}
-                />
-                <DescriptionDialog
-                    selectedFolder={selectedFolder}
-                    selectedMovieId={selectedMovieId}
-                    openDialogDescription={openDialogDescription}
-                    handleCloseDialogDescription={handleCloseDialogDescription}
-                    folders={folders}
-                    curFolderName={curFolderName}
-                    curFolderToRename={curFolderToRename}
-                    handleUpdateFolderName={handleUpdateFolderName}
-                    handleInputChange={handleInputChange}
-                    handleAddFolder={handleAddFolder}
-                />
-            </Box>
+            <MovieSaveDialog
+                open={openMovieSaveDialog}
+                onClose={handleCloseMovieSaveDialog}
+                folders={folders}
+                selectedFolder={selectedFolder}
+                setSelectedFolder={setSelectedFolder}
+                setFolders={setFolders}
+                setIsGetFolders={setIsGetFolders}
+                selectedMovieId={selectedMovieId}
+            />
 
             <Box sx={{ mb: 2 }}>
                 {
