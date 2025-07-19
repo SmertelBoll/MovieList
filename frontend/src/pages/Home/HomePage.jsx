@@ -16,6 +16,37 @@ function HomePage() {
 
   const [folders, setFolders] = useState([])                  // Папки
   const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [sidebarHeight, setSidebarHeight] = useState(0);
+  const sidebarRef = React.useRef(null);
+
+  // Логіка для показу/приховування SideBar при прокручуванні
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Приховуємо SideBar коли прокручуємо вниз більше ніж на висоту SideBar
+      if (currentScrollY > sidebarHeight + 300) {
+        setShowSidebar(false);
+      } else {
+        setShowSidebar(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [sidebarHeight]);
+
+  // Вимірюємо висоту SideBar після рендеру
+  useEffect(() => {
+    if (sidebarRef.current) {
+      const height = sidebarRef.current.offsetHeight;
+      setSidebarHeight(height);
+    }
+  }, [folders]); // Перераховуємо висоту коли змінюються папки
 
 
   //-- GET -- //
@@ -43,9 +74,20 @@ function HomePage() {
 
 
   return (
-    <ContainerCustom paddingY bgcolor="bg.main" sx={{ display: "flex", gap: 3, width: "100%" }}>
-      {isAuth
-        ? <Box sx={{ flexBasis: "30%", flexGrow: 1, maxWidth: "280px" }}>
+    <Box sx={{ display: "flex", gap: 3, width: "100%" }}>
+      <Box
+        ref={sidebarRef}
+        sx={{
+          flexBasis: isAuth && showSidebar ? "30%" : "0%",
+          flexGrow: isAuth && showSidebar ? 1 : 0,
+          maxWidth: isAuth && showSidebar ? "280px" : "0px",
+          overflow: "hidden",
+          transition: "all 0.7s ease-in-out",
+          opacity: isAuth && showSidebar ? 1 : 0,
+          transform: isAuth && showSidebar ? "translateX(0)" : "translateX(-100%)"
+        }}
+      >
+        {isAuth && (
           <SideBar
             folders={folders}
             setFolders={setFolders}
@@ -53,18 +95,21 @@ function HomePage() {
             handleClickToFolder={handleOpenFolder}
             selectedFolder={false}
           />
-        </Box>
-        : null
-      }
+        )}
+      </Box>
 
-      <Box sx={{ flexBasis: isAuth ? "70%" : "100%", flexGrow: 1 }}>
+      <Box sx={{
+        flexBasis: isAuth && showSidebar ? "70%" : "100%",
+        flexGrow: 1,
+        transition: "flex-basis 0.7s ease-in-out"
+      }}>
         <GeneralMovieList
           folders={folders}
           setFolders={setFolders}
           setIsGetFolders={setIsGetFolders}
         />
       </Box>
-    </ContainerCustom>
+    </Box>
   )
 }
 

@@ -126,7 +126,17 @@ function LoginForm() {
             autoComplete={isSavePassword ? 'on' : 'off'}
           />
 
-          <FormControlLabel sx={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "start", mt: "-15px" }}
+          <FormControlLabel
+            sx={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "start",
+              mt: "-15px",
+              "& .MuiFormControlLabel-label": {
+                color: "text.main"
+              }
+            }}
             control={
               <Checkbox
                 checked={isSavePassword}

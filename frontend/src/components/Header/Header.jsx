@@ -1,5 +1,5 @@
 import { Box, IconButton } from "@mui/material";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useTheme } from "@mui/material/styles";
@@ -22,6 +22,31 @@ function Header({ colorMode, mode }) {
   const isAuth = useSelector(selectIsAuth);
   // const isAuth = true
 
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Показуємо хедер коли прокручуємо вгору або на початку сторінки
+      if (currentScrollY < lastScrollY || currentScrollY < 100) {
+        setIsVisible(true);
+      } else {
+        // Ховаємо хедер коли прокручуємо вниз
+        setIsVisible(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY]);
+
   const logOutFunc = () => {
     window.localStorage.removeItem("MovieList-token");
     dispatch(logout());
@@ -34,7 +59,20 @@ function Header({ colorMode, mode }) {
   };
 
   return (
-    <Box component="header" bgcolor="bg.second" sx={{ boxShadow: 0 }}>
+    <Box
+      component="header"
+      bgcolor="bg.second"
+      sx={{
+        boxShadow: 0,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        transform: isVisible ? 'translateY(0)' : 'translateY(-100%)',
+        transition: 'transform 0.3s ease-in-out'
+      }}
+    >
       <ContainerCustom sx={{ py: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Link to="/">
