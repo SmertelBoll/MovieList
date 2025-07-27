@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material/styles";
 
 import { logout, selectIsAuth } from "../../redux/slices/AuthSlice";
 import { alertConfirm } from "../../alerts";
-import ContainerCustom from "../customMUI/ContainerCustom";
+import ContainerCustom from "../_customMUI/ContainerCustom";
 import MainButton from "../Buttons/MainButton";
 import BurgerMenu from "./BurgerMenu";
 

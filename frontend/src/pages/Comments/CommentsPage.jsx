@@ -4,7 +4,7 @@ import axios from "../../axios";
 
 import { alertError } from "../../alerts";
 import Comments from "./Comments";
-import ContainerCustom from "../../components/customMUI/ContainerCustom";
+import ContainerCustom from "../../components/_customMUI/ContainerCustom";
 import MainButton from "../../components/Buttons/MainButton";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";

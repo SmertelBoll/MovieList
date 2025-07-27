@@ -17,6 +17,11 @@ const palette = (mode) => {
         main: "#F9F919",
         dark: "#F2DB0B",
       },
+      primary: {
+        main: "#ffeb3b", // Використовуємо жовтий колір
+        dark: "#F2DB0B",
+        light: "#ffef62",
+      },
     };
 
   return {
@@ -35,6 +40,11 @@ const palette = (mode) => {
     yellow: {
       main: "#F9F919",
       dark: "#F2DB0B",
+    },
+    primary: {
+      main: "#ffeb3b", // Використовуємо жовтий колір
+      dark: "#F2DB0B",
+      light: "#ffef62",
     },
   };
 };

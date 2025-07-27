@@ -6,6 +6,7 @@ import instance from '../../axios';
 import { alertError } from '../../alerts';
 import MainButton from '../../components/Buttons/MainButton';
 import MovieSaveDialog from '../../components/Movie/MovieSaveDialog';
+import Sort from '../../components/Sorting/Sort';
 
 const API_KEY = "87a25607799e5d9eea1f25a49eb8063e"
 
@@ -134,10 +135,15 @@ function GeneralMovieList({
     };
 
     return (
-        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 4 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Typography variant="p" color="text.main" >Movies</Typography>
-                <Search inputText={inputText} onChangeInput={onChangeInput} />
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
+            <Typography variant="p" color="text.main" >Movies</Typography>
+            <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
+                <Box sx={{ flex: "75%" }}>
+                    <Search inputText={inputText} onChangeInput={onChangeInput} />
+                </Box>
+                <Box sx={{ flex: "25%" }}>
+                    <Sort />
+                </Box>
             </Box>
 
             {searchMovieItems.length > 0 && <MovieGrid

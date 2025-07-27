@@ -1,6 +1,6 @@
 import React from "react";
 import { Typography } from "@mui/material";
-import ContainerCustom from "../components/customMUI/ContainerCustom";
+import ContainerCustom from "../components/_customMUI/ContainerCustom";
 
 function NotFound() {
   return (

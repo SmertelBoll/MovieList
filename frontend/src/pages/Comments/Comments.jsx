@@ -5,7 +5,7 @@ import axios from "../../axios";
 import { useTheme } from "@mui/material/styles";
 
 import { alertError } from "../../alerts";
-import TextFieldCustom from "../../components/customMUI/TextFieldCustom";
+import TextFieldCustom from "../../components/_customMUI/TextFieldCustom";
 import MainButton from "../../components/Buttons/MainButton";
 import CommentBlock from "./CommentBlock";
 import CommentSkeleton from "./CommentSkeleton";

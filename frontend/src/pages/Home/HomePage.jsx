@@ -1,13 +1,13 @@
 import { Box } from '@mui/material'
 import React, { useEffect, useState } from 'react'
-import ContainerCustom from '../../components/customMUI/ContainerCustom'
+import ContainerCustom from '../../components/_customMUI/ContainerCustom'
 import SideBar from '../../components/SideBar/SideBar'
-import GeneralMovieList from './GeneralMovieList'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios';
 import { alertConfirm, alertError } from '../../alerts'
 import { useNavigate } from 'react-router-dom'
+import GeneralMovieList from '../../components/GereralMovieList/GeneralMovieList'
 
 
 function HomePage() {

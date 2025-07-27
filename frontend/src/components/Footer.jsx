@@ -1,6 +1,6 @@
 import { Box } from '@mui/material';
 import React from 'react'
-import ContainerCustom from './customMUI/ContainerCustom';
+import ContainerCustom from './_customMUI/ContainerCustom';
 
 function Footer() {
 

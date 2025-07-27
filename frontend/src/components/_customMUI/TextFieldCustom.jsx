@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { TextField } from "@mui/material";
 
-const TextFieldCustom = (bgcolor, fontColor, isSmallPadding) => {
+const TextFieldCustom = (bgcolor, fontColor, isSmallPadding = false) => {
   return styled(TextField)(() => ({
     "& input": {
       padding: isSmallPadding ? "8px 14px" : "", // Налаштовуємо padding для меншої висоти

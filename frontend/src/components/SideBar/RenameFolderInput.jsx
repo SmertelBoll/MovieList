@@ -2,7 +2,7 @@ import { Box, InputAdornment, useTheme } from '@mui/material';
 import React from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import TextFieldCustom from '../customMUI/TextFieldCustom';
+import TextFieldCustom from '../_customMUI/TextFieldCustom';
 
 function RenameFolderInput({
     curFolderName,

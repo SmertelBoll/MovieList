@@ -12,7 +12,7 @@ import LoginForm from "./pages/Auth/LoginForm";
 import NotFound from "./pages/NotFound";
 import { useDispatch } from 'react-redux';
 import { fetchAuthMe } from './redux/slices/AuthSlice';
-import ContainerCustom from './components/customMUI/ContainerCustom';
+import ContainerCustom from './components/_customMUI/ContainerCustom';
 
 function App() {
   const dispatch = useDispatch();

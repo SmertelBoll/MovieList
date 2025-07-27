@@ -6,7 +6,7 @@ import axios from "../axios";
 
 import { alertConfirm, alertError, alertSuccess } from "../alerts";
 import { deletePost } from "../redux/slices/PostsSlice";
-import ContainerCustom from "../components/customMUI/ContainerCustom";
+import ContainerCustom from "../components/_customMUI/ContainerCustom";
 import ArticleInfoBlock from "../components/Article/ArticleInfoBlock";
 import Comments from "./Comments/Comments";
 import MainButton from "../components/Buttons/MainButton";
