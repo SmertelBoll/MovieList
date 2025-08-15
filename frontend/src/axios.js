@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "http://localhost:4444", //https://movielist-8qi5.onrender.com    http://localhost:4444
+  baseURL: process.env.REACT_APP_BACKEND_URL
 });
 
 // При кожному запросі вшивати токен
