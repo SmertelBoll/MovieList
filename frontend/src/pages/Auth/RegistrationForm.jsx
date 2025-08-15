@@ -117,7 +117,7 @@ function RegistrationForm() {
       else alertError(err);
     } else {
       if (resData?.payload?.data?.token) {
-        window.localStorage.setItem(process.env.REACT_APP_TOKEN_KEY, resData.payload.data.token);
+        window.localStorage.setItem(process.env.TOKEN_KEY, resData.payload.data.token);
       } else {
         alertError({ title: "Ooops..", msg: "something went wrong, please try again later" });
       }
