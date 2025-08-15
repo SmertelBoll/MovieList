@@ -1,29 +1,29 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { FormControl, MenuItem, InputLabel, Select, Box } from '@mui/material'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
-const categories = [
-    {
-        name: 'Popularity',
-        key: 'popularity',
-        order: 'desc'
-    },
-    {
-        name: 'Views',
-        key: 'views',
-        order: 'desc'
-    },
-    {
-        name: 'Date',
-        key: 'release_date',
-        order: 'desc'
-    }
-]
+// const categories = [
+//     {
+//         name: 'Popularity',
+//         key: 'popularity',
+//         order: 'desc'
+//     },
+//     {
+//         name: 'Rating',
+//         key: 'vote_average',
+//         order: 'desc'
+//     },
+//     {
+//         name: 'Date',
+//         key: 'release_date',
+//         order: 'desc'
+//     }
+// ]
 
-function Sort() {
-    const [sortBy, setSortBy] = useState(categories[0].key);
-    const [currentOrder, setCurrentOrder] = useState(categories[0].order);
+function Sort({ sortBy, setSortBy, currentOrder, setCurrentOrder, categories }) {
+    // const [sortBy, setSortBy] = useState(categories[0].key);
+    // const [currentOrder, setCurrentOrder] = useState(categories[0].order);
 
     const handleChange = (event) => {
         const newKey = event.target.value;

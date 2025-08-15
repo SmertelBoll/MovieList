@@ -6,7 +6,7 @@ const instance = axios.create({
 
 // При кожному запросі вшивати токен
 instance.interceptors.request.use((config) => {
-  config.headers.Authorization = window.localStorage.getItem("MovieList-token");
+  config.headers.Authorization = window.localStorage.getItem(process.env.REACT_APP_TOKEN_KEY);
 
   return config;
 });

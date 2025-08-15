@@ -48,7 +48,7 @@ function Header({ colorMode, mode }) {
   }, [lastScrollY]);
 
   const logOutFunc = () => {
-    window.localStorage.removeItem("MovieList-token");
+    window.localStorage.removeItem(process.env.REACT_APP_TOKEN_KEY);
     dispatch(logout());
     navigate("/");
     window.location.reload()

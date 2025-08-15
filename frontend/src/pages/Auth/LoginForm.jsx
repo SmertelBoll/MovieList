@@ -65,7 +65,7 @@ function LoginForm() {
     const data = await dispatch(fetchAuth(formData));
 
     if (data?.payload?.token) {
-      window.localStorage.setItem("MovieList-token", data.payload.token);
+      window.localStorage.setItem(process.env.REACT_APP_TOKEN_KEY, data.payload.token);
     } else {
       alertError({ title: "Authorization error", msg: "Incorrect login or password" });
     }
