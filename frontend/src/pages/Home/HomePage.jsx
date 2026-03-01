@@ -1,14 +1,18 @@
 import { Box } from '@mui/material'
 import React, { useEffect, useState } from 'react'
-import ContainerCustom from '../../components/_customMUI/ContainerCustom'
 import SideBar from '../../components/SideBar/SideBar'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios';
-import { alertConfirm, alertError } from '../../alerts'
+import { alertError } from '../../alerts'
 import { useNavigate } from 'react-router-dom'
 import GeneralMovieList from '../../components/GereralMovieList/GeneralMovieList'
 
+
+const url = {
+  main: `https://api.themoviedb.org/3/discover/movie`,
+  search: `https://api.themoviedb.org/3/search/movie`
+}
 
 function HomePage() {
   const isAuth = useSelector(selectIsAuth);
@@ -107,6 +111,8 @@ function HomePage() {
           folders={folders}
           setFolders={setFolders}
           setIsGetFolders={setIsGetFolders}
+          url={url}
+          dbType="tmdb"
         />
       </Box>
     </Box>

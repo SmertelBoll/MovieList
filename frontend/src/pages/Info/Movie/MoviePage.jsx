@@ -1,13 +1,14 @@
 import { Box, Typography, CircularProgress, Chip, Grid, Card, CardMedia, CardContent, IconButton } from '@mui/material'
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../../redux/slices/AuthSlice'
 import instance from '../../../axios'
 import { alertError } from '../../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MovieSaveDialog from '../../../components/Movie/MovieSaveDialog'
-import ActorCart from './ActorCart'
+import ActorCart from '../Actor/ActorCart'
+import MainButton from '../../../components/Buttons/MainButton'
 
 const API_KEY = process.env.REACT_APP_MOVIE_API_KEY
 
@@ -22,6 +23,8 @@ function MoviePage() {
     const [selectedFolder, setSelectedFolder] = useState(false)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
+
+    const navigate = useNavigate()
 
     useEffect(() => {
         setIsLoading(true)
@@ -65,7 +68,6 @@ function MoviePage() {
     const handleOpenDialogFolder = () => {
         setOpenMovieSaveDialog(true)
     }
-
     const handleCloseMovieSaveDialog = () => {
         setOpenMovieSaveDialog(false)
         setSelectedFolder(false)
@@ -168,11 +170,15 @@ function MoviePage() {
                                     key={genre.id}
                                     label={genre.name}
                                     size="small"
+                                    onClick={() => navigate(`/genre/${genre.id}`)}
                                     sx={{
+                                        cursor: 'pointer',
                                         backgroundColor: "rgba(255,255,255,0.2)",
                                         color: "white",
-                                        "&:hover": {
-                                            backgroundColor: "rgba(255,255,255,0.3)"
+                                        '&.MuiChip-root:hover': {
+                                            backgroundColor: 'yellow.main',
+                                            color: 'text.dark',
+                                            borderColor: 'text.dark',
                                         }
                                     }}
                                 />
@@ -221,7 +227,7 @@ function MoviePage() {
                             },
                         },
                     }}>
-                        {movie.credits.cast.slice(0, 20).map((actor) => (
+                        {movie.credits.cast.map((actor) => (
                             <ActorCart
                                 key={actor.id}
                                 person={actor}
@@ -260,7 +266,6 @@ function MoviePage() {
                     }}>
                         {movie.credits.crew
                             .filter(member => ['Director', 'Producer', 'Writer', 'Screenplay'].includes(member.job))
-                            .slice(0, 15)
                             .map((member) => (
                                 <ActorCart
                                     key={member.id}
@@ -284,7 +289,17 @@ function MoviePage() {
                                 key={company.id}
                                 label={company.name}
                                 variant="outlined"
+                                onClick={() => navigate(`/company/${company.id}`)}
+                                sx={{
+                                    cursor: 'pointer',
+                                    '&.MuiChip-root:hover': {
+                                        backgroundColor: 'yellow.main',
+                                        color: 'text.dark',
+                                        borderColor: 'text.dark',
+                                    }
+                                }}
                             />
+
                         ))}
                     </Box>
                 </Box>
@@ -299,7 +314,7 @@ function MoviePage() {
                 setSelectedFolder={setSelectedFolder}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}
-                selectedMovieId={parseInt(id)}
+                selectedMovie={movie}
             />
         </Box>
     )

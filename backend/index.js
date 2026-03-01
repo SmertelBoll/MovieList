@@ -26,7 +26,8 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
-import { addMovieToFolder, createFolder, getAllFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
+import { addMovieToFolder, getMoviesFromFolder, getMovieById } from "./controllers/movieControllers.js";
 
 // підключаємось до бази даних
 const mongoConnection = process.env.MONGO_CONNECTION;
@@ -87,13 +88,15 @@ app.get("/auth/me", checkAuth, getMe);
 
 app.post("/folders/create", checkAuth, folderCreateValidation, checkValidationError, createFolder);
 
-app.get("/folders", checkAuth, getAllFoldersByUser);
+app.get("/folders", checkAuth, getFoldersByUser);
 app.patch("/folders/rename/:order", checkAuth, folderCreateValidation, checkValidationError, renameFolderByOrder);
 app.delete("/folders/:order", checkAuth, removeFolder);
 app.patch("/folders/orderIncrement/:order", checkAuth, orderIncrement);
 app.patch("/folders/orderDecrement/:order", checkAuth, orderDecrement);
 
 app.patch("/folders/addmovie", checkAuth, addMovieToFolder)
+app.get("/folders/:name", checkAuth, getMoviesFromFolder)
+app.get("/movies/:movieId", checkAuth, getMovieById)
 
 
 

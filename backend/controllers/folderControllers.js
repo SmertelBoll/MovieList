@@ -1,24 +1,16 @@
 import PostModel from "../models/post.js";
 import UserModel from "../models/user.js";
 import FolderModel from "../models/folder.js";
+import MovieModel from "../models/movie.js";
 
 
-// Виділяємо логіку отримання назв папок у окрему функцію
-const getAllFoldersByUserHelper = async (userId) => {
-  try {
-    const foldersByUser = await FolderModel.find({ user: userId }).exec();
-    return foldersByUser;
-  } catch (error) {
-    console.log(error);
-    throw new Error("Failed to get folders");
-  }
-};
-
-// Використовуємо допоміжну функцію у API-функції
-export const getAllFoldersByUser = async (req, res) => {
+export const getFoldersByUser = async (req, res) => {
   try {
     const userId = req.userId;
-    const foldersByUser = await getAllFoldersByUserHelper(userId);
+    const foldersByUser = await FolderModel
+      .find({ user: userId })
+      .select("name order -_id")
+      .exec();
     res.send(foldersByUser);
   } catch (error) {
     res.status(500).json({ title: "Folders error", message: "could not get folders" });
@@ -30,9 +22,7 @@ export const createFolder = async (req, res) => {
     const name = req.body.name;
     const userId = req.userId;
 
-    const userFolders = await getAllFoldersByUserHelper(userId);
-
-    const order = userFolders.length
+    const order = await FolderModel.countDocuments({ user: userId })
 
     const doc = new FolderModel({
       name: name,
@@ -61,8 +51,10 @@ export const renameFolderByOrder = async (req, res) => {
       return res.status(404).json({ title: "Folder not found", message: "no folder found" });
     }
 
-    const userFolders = await getAllFoldersByUserHelper(userId);
-    const folderNames = userFolders.map(folder => folder.name);
+    const folderNames = await FolderModel
+      .find({ user: userId })
+      .select("name -_id")
+      .exec();
 
     if (folderNames.includes(newFolderName) && currentFolder.name !== newFolderName) {
       return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
@@ -107,7 +99,9 @@ export const removeFolder = async (req, res) => {
       });
     }
 
-    const foldersByUser = await getAllFoldersByUserHelper(userId);
+    const foldersByUser = await FolderModel
+      .find({ user: userId })
+      .exec();
 
     const orders = foldersByUser.map(folder => folder.order);                                 // Отримуємо масив значень order
     const sortedOrders = [...orders].sort((a, b) => a - b);                                   // Сортуємо масив order
@@ -197,50 +191,6 @@ export const orderDecrement = async (req, res) => {
     res.status(500).json({ title: "Folder error", message: "failed to change folder order" });
   }
 }
-
-export const addMovieToFolder = async (req, res) => {
-  try {
-    const currentUserId = req.userId;
-    const folderName = req.body.folderName;
-
-    const movieId = req.body.movieId;
-    const dateAdded = req.body.dateAdded;
-    const rating = req.body.rating;
-    const comment = req.body.comment;
-
-    if (!folderName) {
-      return res.status(400).json({ title: "Folder error", message: "no folder selected" });
-    }
-    if (!movieId) {
-      return res.status(400).json({ title: "Folder error", message: "no movie selected" });
-    }
-
-    const newElement = {
-      movieId,
-      dateAdded,
-      rating,
-      comment
-    }
-
-    const updatedFolder = await FolderModel.findOneAndUpdate(
-      { name: folderName, user: currentUserId }, // Шукаємо папку за ім'ям
-      { $push: { folderElements: newElement } }, // Додаємо новий фільм у масив
-      { new: true } // Повертаємо оновлену папку
-    );
-
-    if (!updatedFolder) {
-      return res.status(404).json({ title: "Folder error", message: "folder not found" });
-    }
-
-    res.json({
-      success: updatedFolder,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ title: "Folder error", message: "failed to add movie" });
-  }
-};
-
 
 
 

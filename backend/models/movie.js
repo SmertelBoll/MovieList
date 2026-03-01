@@ -2,54 +2,15 @@ import mongoose from "mongoose";
 
 const MovieSchema = new mongoose.Schema(
     {
-        adult: {
-            type: Boolean,
+        movieId: { type: Number, required: true },
+        movieTitle: { type: String, required: true },
+        dateAdded: { type: Date },
+        rating: { type: Number },
+        comment: { type: String },
+        user: {
+            type: mongoose.Schema.Types.ObjectId, // бо це користучав
+            ref: "User", // з UserController
             required: true,
-        },
-        backdrop_path: {
-            type: String,
-        },
-        genre_ids: {
-            type: [Number],
-        },
-        tmdb_id: {
-            type: Number,
-            required: true,
-            unique: true,
-        },
-        original_language: {
-            type: String,
-            required: true,
-        },
-        original_title: {
-            type: String,
-            required: true,
-        },
-        overview: {
-            type: String,
-        },
-        popularity: {
-            type: Number,
-        },
-        poster_path: {
-            type: String,
-        },
-        release_date: {
-            type: Date,
-        },
-        title: {
-            type: String,
-            required: true,
-        },
-        video: {
-            type: Boolean,
-            required: true,
-        },
-        vote_average: {
-            type: Number,
-        },
-        vote_count: {
-            type: Number,
         },
     },
     {

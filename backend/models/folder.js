@@ -12,11 +12,9 @@ const FolderSchema = new mongoose.Schema(
         },
         folderElements: [
             {
-                movieId: { type: Number, required: true },
-                dateAdded: { type: Date },
-                rating: { type: Number },
-                comment: { type: String }
-            }
+                type: mongoose.Schema.Types.ObjectId, // бо це користучав
+                ref: "Movie", // з UserController
+            },
         ],
         user: {
             type: mongoose.Schema.Types.ObjectId, // бо це користучав

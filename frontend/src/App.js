@@ -13,6 +13,9 @@ import NotFound from "./pages/NotFound";
 import MoviePage from "./pages/Info/Movie/MoviePage";
 import ActorPage from "./pages/Info/Actor/ActorPage";
 import CrewPage from "./pages/Info/Crew/CrewPage";
+import CompanyPage from "./pages/Info/Company/CompanyPage";
+import GenrePage from "./pages/Info/Genre/GenrePage";
+import FolderPage from "./pages/Folder/FolderPage";
 import { useDispatch } from 'react-redux';
 import { fetchAuthMe } from './redux/slices/AuthSlice';
 import ContainerCustom from './components/_customMUI/ContainerCustom';
@@ -23,7 +26,7 @@ function App() {
 
   useEffect(() => {
     dispatch(fetchAuthMe())
-  }, []);
+  }, [dispatch]);
 
   // Логіка для кнопки "Scroll to top"
   useEffect(() => {
@@ -56,7 +59,7 @@ function App() {
         setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
       },
     }),
-    []
+    [mode]
   );
   const theme = React.useMemo(() => getTheme(mode), [mode]);
 
@@ -71,6 +74,9 @@ function App() {
               <Route path="/movie/:id" element={<MoviePage />} />
               <Route path="/actor/:id" element={<ActorPage />} />
               <Route path="/crew/:id" element={<CrewPage />} />
+              <Route path="/company/:id" element={<CompanyPage />} />
+              <Route path="/genre/:id" element={<GenrePage />} />
+              <Route path="/user/folders/:folderName" element={<FolderPage />} />
               <Route path="/register" element={<RegistrationForm />} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="*" element={<NotFound />} />

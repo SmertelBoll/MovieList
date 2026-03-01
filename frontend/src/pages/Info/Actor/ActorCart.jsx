@@ -56,7 +56,7 @@ function ActorCart({ person, role }) {
                         fontSize: "0.75rem",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
+                        whiteSpace: "wrap"
                     }}
                 >
                     {person.name}
@@ -68,7 +68,7 @@ function ActorCart({ person, role }) {
                         fontSize: "0.7rem",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
+                        whiteSpace: "wrap"
                     }}
                 >
                     {role}

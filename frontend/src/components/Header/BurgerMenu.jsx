@@ -51,6 +51,12 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
     setIsOpenChangeAvatar(false);
   };
 
+  React.useEffect(() => {
+    if (isAuth) {
+      console.log(`isAuth: ${isAuth}`);
+    }
+  }, [isAuth]);
+
   return (
     <Box sx={{ display: "flex", ...sx }}>
       <Button

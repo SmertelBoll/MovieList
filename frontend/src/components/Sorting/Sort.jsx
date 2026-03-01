@@ -1,40 +1,21 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { FormControl, MenuItem, InputLabel, Select, Box } from '@mui/material'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
-// const categories = [
-//     {
-//         name: 'Popularity',
-//         key: 'popularity',
-//         order: 'desc'
-//     },
-//     {
-//         name: 'Rating',
-//         key: 'vote_average',
-//         order: 'desc'
-//     },
-//     {
-//         name: 'Date',
-//         key: 'release_date',
-//         order: 'desc'
-//     }
-// ]
 
-function Sort({ sortBy, setSortBy, currentOrder, setCurrentOrder, categories }) {
-    // const [sortBy, setSortBy] = useState(categories[0].key);
-    // const [currentOrder, setCurrentOrder] = useState(categories[0].order);
+function Sort({ sortBy, setSortBy, sortDirection, setSortDirection, categories }) {
 
     const handleChange = (event) => {
         const newKey = event.target.value;
 
         if (newKey === sortBy) {
             // Якщо вибираємо той самий елемент - змінюємо order
-            setCurrentOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         } else {
             // Якщо вибираємо новий елемент - встановлюємо його order за замовчуванням
             const selectedCategory = categories.find(cat => cat.key === newKey);
-            setCurrentOrder(selectedCategory.order);
+            setSortDirection(selectedCategory.order);
             setSortBy(newKey);
         }
     };
@@ -42,7 +23,7 @@ function Sort({ sortBy, setSortBy, currentOrder, setCurrentOrder, categories }) 
     const handleMenuItemClick = (categoryKey) => {
         if (categoryKey === sortBy) {
             // Якщо клікаємо на вже обраний елемент - змінюємо order
-            setCurrentOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         }
     };
 
@@ -138,7 +119,7 @@ function Sort({ sortBy, setSortBy, currentOrder, setCurrentOrder, categories }) 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <span>{category.name}</span>
                             {category.key === sortBy && (
-                                currentOrder === 'asc' ? (
+                                sortDirection === 'asc' ? (
                                     <ArrowUpwardIcon sx={{ fontSize: 16 }} />
                                 ) : (
                                     <ArrowDownwardIcon sx={{ fontSize: 16 }} />

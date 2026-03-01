@@ -9,7 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import { Link, useNavigate } from 'react-router-dom';
 import { alertConfirm, alertError } from '../../alerts';
-import axiosInstance from '../../axios';
+
 import UpdateFolder from './UpdateFolder';
 import RenameFolderInput from './RenameFolderInput';
 import { useSelector } from 'react-redux';

@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
+import { Box, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import Search from '../../components/Sorting/Search'
 import MovieCart from '../../components/Movie/MovieCart';
@@ -38,7 +38,7 @@ const categories = [
     }
 ]
 
-const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder }) => (
+const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder, dbType }) => (
     <Grid2
         container
         spacing={2}
@@ -50,6 +50,23 @@ const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder }) => (
                     key={`${obj?.title}_${i}`}
                     movie={obj}
                     handleOpenDialogFolder={handleOpenDialogFolder}
+                    dbType={dbType}
+                    isImage={true}
+                    isTitle={true}
+                    isDate={true}
+                    isRating={true}
+                    isDescription={
+                        {
+                            tmdb: true,
+                            mongo: false
+                        }[dbType] || false
+                    }
+                    isComment={
+                        {
+                            tmdb: false,
+                            mongo: true
+                        }[dbType] || false
+                    }
                 />
             </Grid2>
         ))}
@@ -60,30 +77,25 @@ const MovieGrid = React.memo(({ searchMovieItems, handleOpenDialogFolder }) => (
 function GeneralMovieList({
     folders,
     setFolders,
-    setIsGetFolders
+    setIsGetFolders,
+    url,
+    dbType,
+    pageTitle = "Movies"
 }) {
     const [isLoadedSearchMovies, setIsLoadedSearchMovies] = useState(true);
     const [inputText, setInputText] = useState(""); // відповідає за відображення тексту в input
     const [searchValue, setSearchValue] = useState(""); // загружається кінцеве значення після debounce для запроса
     const [searchMovieItems, setSearchMovieItems] = useState([])  // об'єкти фільму
     const [page, setPage] = useState(1) // сторінка для запросу фільмів
+    const [totalPages, setTotalPages] = useState(1) // загальна кількість сторінок
 
     const [openMovieSaveDialog, setOpenMovieSaveDialog] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState(false);
-    const [selectedMovieId, setSelectedMovieId] = useState(false);
+    const [selectedMovie, setselectedMovie] = useState(false);
 
     // робота з сортуванням
     const [sortBy, setSortBy] = useState(categories[0].key);
-    const [currentOrder, setCurrentOrder] = useState(categories[0].order);
-
-    // Кількість фільмів повинна бути кратна 12
-    const getMaxObjectsDivisibleBy12 = useCallback(
-        (array) => {
-            const remainder = array.length % 12;
-            return remainder === 0 ? array : array.slice(0, array.length - remainder);
-        },
-        []
-    );
+    const [sortDirection, setSortDirection] = useState(categories[0].order);
 
     // Функція для сортування фільмів на клієнті
     const sortMovies = useCallback((movies, sortBy, order) => {
@@ -111,21 +123,40 @@ function GeneralMovieList({
         });
     }, []);
 
-    // search
+    // Отримання даних про фільм з TMDB
+    const getMovieById = useCallback(async (id) => {
+        const params = {
+            api_key: API_KEY,
+            language: "en-US",
+        };
+
+        try {
+            const res = await instance.get(`https://api.themoviedb.org/3/movie/${id}`, { params });
+            return res.data;
+        } catch (err) {
+            console.warn(err);
+            if (err.response?.data) {
+                alertError(err.response.data.title, err.response.data.message);
+            }
+            return null;
+        }
+    }, []);
+
+    // search і перша загрузка
     useEffect(() => {
         setIsLoadedSearchMovies(false);
         setPage(1)
 
         // Якщо пошуковий запит порожній, використовуємо популярні фільми
         const endpoint = searchValue.trim() === ""
-            ? `https://api.themoviedb.org/3/discover/movie`
-            : `https://api.themoviedb.org/3/search/movie`;
+            ? url['main']   //`https://api.themoviedb.org/3/discover/movie`
+            : url['search'] //`https://api.themoviedb.org/3/search/movie`;
 
         const params = {
             api_key: API_KEY,
             language: "en-US",
             page: 1,
-            sort_by: `${sortBy}.${currentOrder}`,
+            sort_by: `${sortBy}.${sortDirection}`,
         };
 
         // Додаємо query тільки для пошукового запиту
@@ -133,47 +164,85 @@ function GeneralMovieList({
             params.query = searchValue;
         }
 
-        instance
-            .get(endpoint, { params })
-            .then((res) => {
-                setSearchMovieItems(res.data.results)
-                setIsLoadedSearchMovies(true);
+        if (dbType === "tmdb") {
+            instance
+                .get(endpoint, { params })
+                .then((res) => {
+                    console.log(res)
+                    setSearchMovieItems(res.data.results)
+                    setTotalPages(res.data.results.total_pages)
+                    setIsLoadedSearchMovies(true);
 
-            })
-            .catch((err) => {
-                setSearchMovieItems([]);
-                setIsLoadedSearchMovies(true);
-                console.warn(err);
-                alertError(err.response.data.title, err.response.data.message);
-            });
-    }, [searchValue, sortBy, currentOrder]);
+                })
+                .catch((err) => {
+                    setSearchMovieItems([]);
+                    setIsLoadedSearchMovies(true);
+                    console.warn(err);
+                    alertError(err.response.data.title, err.response.data.message);
+                });
+        }
+        else if (dbType === "mongo") {
+            instance
+                .get(endpoint, { params })
+                .then(async (res) => {
+                    // Створюємо масив промісів для паралельного завантаження даних з TMDB
+                    // Припускаємо, що ID фільму в базі TMDB зберігається в полі `movieId` у Mongo
+                    let results = res.data.results;
+
+                    const resultsWithTmdb = await Promise.all(
+                        results.map(async (movie) => {
+                            // Якщо ID фільму збережено під іншою назвою (не movieId), змініть тут
+                            const tmdbData = await getMovieById(movie.movieId);
+
+                            // Повертаємо новий об'єкт: старі дані Mongo + нове поле tmdbMovie
+                            return {
+                                ...movie,
+                                ...tmdbData // Це буде null, якщо getMovieById впаде з помилкою
+                            };
+                        })
+                    );
+
+                    setSearchMovieItems(resultsWithTmdb);
+                    setTotalPages(res.data.pagination.totalPages)
+                    setIsLoadedSearchMovies(true);
+                })
+                .catch((err) => {
+                    setSearchMovieItems([]);
+                    setIsLoadedSearchMovies(true);
+                    console.warn(err);
+                    alertError(err.response.data.title, err.response.data.message);
+                });
+        }
+    }, [searchValue, sortBy, sortDirection]);
 
     // newPage
     useEffect(() => {
+        if (page === 1) return
+
         setIsLoadedSearchMovies(false);
 
-        if (page !== 1) {
-            // Якщо пошуковий запит порожній, використовуємо популярні фільми
-            const endpoint = searchValue.trim() === ""
-                ? `https://api.themoviedb.org/3/discover/movie`
-                : `https://api.themoviedb.org/3/search/movie`;
+        const endpoint = searchValue.trim() === ""
+            ? url['main']   //`https://api.themoviedb.org/3/discover/movie`
+            : url['search'] //`https://api.themoviedb.org/3/search/movie`;
 
-            const params = {
-                api_key: API_KEY,
-                language: "en-US",
-                page: page,
-            };
+        const params = {
+            api_key: API_KEY,
+            language: "en-US",
+            page: page,
+            sort_by: `${sortBy}.${sortDirection}`,
+        };
 
-            // Додаємо sort_by тільки для discover endpoint
-            if (searchValue.trim() === "") {
-                params.sort_by = `${sortBy}.${currentOrder}`;
-            }
+        // Додаємо sort_by тільки для discover endpoint
+        if (searchValue.trim() === "") {
+            params.sort_by = `${sortBy}.${sortDirection}`;
+        }
 
-            // Додаємо query тільки для пошукового запиту
-            if (searchValue.trim() !== "") {
-                params.query = searchValue;
-            }
+        // Додаємо query тільки для пошукового запиту
+        if (searchValue.trim() !== "") {
+            params.query = searchValue;
+        }
 
+        if (dbType === "tmdb") {
             instance
                 .get(endpoint, { params })
                 .then((res) => {
@@ -181,10 +250,11 @@ function GeneralMovieList({
 
                     // Сортуємо результати на клієнті для пошукових запитах
                     if (searchValue.trim() !== "") {
-                        results = sortMovies(results, sortBy, currentOrder);
+                        results = sortMovies(results, sortBy, sortDirection);
                     }
 
                     setSearchMovieItems(prev => [...prev, ...results])
+                    setTotalPages(res.data.results.total_pages)
                     setIsLoadedSearchMovies(true);
 
                 })
@@ -193,14 +263,51 @@ function GeneralMovieList({
                     alertError(err.response.data.title, err.response.data.message);
                 });
         }
-    }, [page, sortBy, currentOrder, searchValue]);
+        else if (dbType === "mongo") {
+            instance
+                .get(endpoint, { params })
+                .then(async (res) => {
+                    // Створюємо масив промісів для паралельного завантаження даних з TMDB
+                    // Припускаємо, що ID фільму в базі TMDB зберігається в полі `movieId` у Mongo
+                    let results = res.data.results;
+
+                    // Сортуємо результати на клієнті для пошукових запитах
+                    if (searchValue.trim() !== "") {
+                        results = sortMovies(results, sortBy, sortDirection);
+                    }
+
+                    const resultsWithTmdb = await Promise.all(
+                        results.map(async (movie) => {
+                            // Якщо ID фільму збережено під іншою назвою (не movieId), змініть тут
+                            const tmdbData = await getMovieById(movie.movieId);
+
+                            // Повертаємо новий об'єкт: старі дані Mongo + нове поле tmdbMovie
+                            return {
+                                ...movie,
+                                ...tmdbData // Це буде null, якщо getMovieById впаде з помилкою
+                            };
+                        })
+                    );
+
+                    setSearchMovieItems(prev => [...prev, ...resultsWithTmdb])
+                    setTotalPages(res.data.pagination.totalPages)
+                    setIsLoadedSearchMovies(true);
+                })
+                .catch((err) => {
+                    setSearchMovieItems([]);
+                    setIsLoadedSearchMovies(true);
+                    console.warn(err);
+                    alertError(err.response.data.title, err.response.data.message);
+                });
+        }
+    }, [page, searchValue]);
 
     // робота з пошуком
     const updateSearchValue = useCallback(
         debounce((str) => {
             setSearchValue(str);
         }, 500),
-        []
+        [setSearchValue]
     );
     const onChangeInput = (e, empty = false) => {
         if (empty) {
@@ -214,8 +321,8 @@ function GeneralMovieList({
     };
 
     // Відкривання діалогу з MovieSaveDialog
-    const handleOpenDialogFolder = (movieId) => {
-        setSelectedMovieId(movieId);
+    const handleOpenDialogFolder = (movie) => {
+        setselectedMovie(movie);
         setOpenMovieSaveDialog(true);
     };
     const handleCloseMovieSaveDialog = () => {
@@ -225,7 +332,7 @@ function GeneralMovieList({
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
-            <Typography variant="p" color="text.main" >Movies</Typography>
+            <Typography variant="p" color="text.main" >{pageTitle}</Typography>
             <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
                 <Box sx={{ flex: "75%" }}>
                     <Search inputText={inputText} onChangeInput={onChangeInput} />
@@ -238,16 +345,17 @@ function GeneralMovieList({
                     <Sort
                         sortBy={sortBy}
                         setSortBy={setSortBy}
-                        currentOrder={currentOrder}
-                        setCurrentOrder={setCurrentOrder}
+                        sortDirection={sortDirection}
+                        setSortDirection={setSortDirection}
                         categories={categories}
                     />
                 </Box>
             </Box>
 
             {searchMovieItems.length > 0 && <MovieGrid
-                searchMovieItems={getMaxObjectsDivisibleBy12(searchMovieItems)}
+                searchMovieItems={searchMovieItems}
                 handleOpenDialogFolder={handleOpenDialogFolder}
+                dbType={dbType}
             />}
 
             <MovieSaveDialog
@@ -258,7 +366,7 @@ function GeneralMovieList({
                 setSelectedFolder={setSelectedFolder}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}
-                selectedMovieId={selectedMovieId}
+                selectedMovie={selectedMovie}
             />
 
             <Box sx={{ mb: 2 }}>
@@ -267,7 +375,7 @@ function GeneralMovieList({
                         ? <Box width="100%" textAlign="center">
                             <CircularProgress color="test.main" />
                         </Box>
-                        : isLoadedSearchMovies && searchMovieItems.length > 0
+                        : totalPages > page && searchMovieItems.length > 0
                             ? <Box display="flex" justifyContent="center" >
                                 <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
                             </Box>

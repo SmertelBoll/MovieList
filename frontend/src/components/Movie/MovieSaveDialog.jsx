@@ -1,8 +1,5 @@
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemButton, ListItemText, InputAdornment, Slider, useTheme, Typography } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, Typography } from '@mui/material';
 import React, { useMemo, useState, useEffect } from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import FolderIcon from '@mui/icons-material/Folder';
-import CheckIcon from '@mui/icons-material/Check';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -10,7 +7,6 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import instance from '../../axios';
 import { alertError, alertSuccess } from '../../alerts';
-import RenameFolderInput from '../SideBar/RenameFolderInput';
 import SideBar from '../SideBar/SideBar';
 
 const DEFAULT_RATE = 0;
@@ -23,7 +19,7 @@ function MovieSaveDialog({
     folders,
     selectedFolder,
     setSelectedFolder,
-    selectedMovieId,
+    selectedMovie,
     setFolders,
     setIsGetFolders
 }) {
@@ -34,7 +30,7 @@ function MovieSaveDialog({
     const theme = useTheme();
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.mode]
+        [theme.palette.bg.second, theme.palette.text.main]
     );
 
     useEffect(() => {
@@ -60,7 +56,8 @@ function MovieSaveDialog({
         instance
             .patch(`/folders/addmovie`, {
                 folderName: selectedFolder.name,
-                movieId: selectedMovieId,
+                movieId: selectedMovie.id,
+                movieTitle: selectedMovie.title,
                 dateAdded: selectedDate,
                 rating: rating,
                 comment: text
