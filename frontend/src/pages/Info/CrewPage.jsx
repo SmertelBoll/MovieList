@@ -1,37 +1,41 @@
 import { Box, Typography, CircularProgress, Chip, Grid2, Card, CardMedia, CardContent } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { selectIsAuth } from '../../../redux/slices/AuthSlice'
-import instance from '../../../axios'
-import { alertError } from '../../../alerts'
-import MovieSaveDialog from '../../../components/Movie/MovieSaveDialog'
-import MovieCart from '../../../components/Movie/MovieCart'
+import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import instance from '../../axios'
+import { alertError } from '../../alerts'
+import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 
-const API_KEY = process.env.REACT_APP_MOVIE_API_KEY
+const API_KEY = process.env.REACT_APP_TMDB_API_KEY
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
+const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function CrewPage() {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
+    const { typeTMDB } = useSelector((state) => state.config);
+
+    // Дані про людину
     const [crew, setCrew] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Стани для діалогу додавання до папки
-    const [openMovieSaveDialog, setOpenMovieSaveDialog] = useState(false)
-    const [selectedFolder, setSelectedFolder] = useState(false)
-    const [folders, setFolders] = useState([])
-    const [isGetFolders, setIsGetFolders] = useState(true)
-    const [selectedMovie, setselectedMovie] = useState(null)
+    // Дані про папки користувача
+    const [folders, setFolders] = useState([])                  // Папки
+    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
 
+
+    // Загрузка даних про людину
     useEffect(() => {
         setIsLoading(true)
 
         instance
-            .get(`https://api.themoviedb.org/3/person/${id}`, {
+            .get(`${process.env.REACT_APP_URL_TMDB}/person/${id}`, {
                 params: {
                     api_key: API_KEY,
                     language: "en-US",
-                    append_to_response: "movie_credits,images"
+                    append_to_response: "combined_credits"
                 }
             })
             .then((res) => {
@@ -40,7 +44,7 @@ function CrewPage() {
             })
             .catch((err) => {
                 console.warn(err)
-                alertError(err.response?.data?.status_message || "Failed to load crew member")
+                alertError(err, "Failed to load crew member")
                 setIsLoading(false)
             })
     }, [id])
@@ -51,7 +55,7 @@ function CrewPage() {
             instance
                 .get(`/folders`)
                 .then((res) => {
-                    setFolders(res.data)
+                    setFolders(res.data.results)
                 })
                 .catch((err) => {
                     console.warn(err)
@@ -59,44 +63,33 @@ function CrewPage() {
                 })
             setIsGetFolders(false)
         }
-    }, [isGetFolders, isAuth])
-
-    // Функції для роботи з діалогом
-    const handleOpenDialogFolder = (movie) => {
-        setselectedMovie(movie)
-        setOpenMovieSaveDialog(true)
-    }
-
-    const handleCloseMovieSaveDialog = () => {
-        setOpenMovieSaveDialog(false)
-        setSelectedFolder(false)
-    }
+    }, [isGetFolders])
 
     // Фільтруємо тільки crew ролі (без акторських ролей)
-    const crewCredits = crew?.movie_credits?.crew || []
+    const crewCredits = crew?.combined_credits?.crew || []
 
     // Групуємо фільми за ID та об'єднуємо ролі
-    const groupedMovies = crewCredits.reduce((acc, movie) => {
-        if (!acc[movie.id]) {
+    const groupedItems = crewCredits.reduce((acc, item) => {
+        if (!acc[item.id]) {
             // Створюємо новий об'єкт фільму з об'єднаними ролями
-            acc[movie.id] = {
-                ...movie,
-                job: movie.job,
-                department: movie.department
+            acc[item.id] = {
+                ...item,
+                job: item.job,
+                department: item.department
             };
         } else {
             // Додаємо роль до існуючого фільму
-            acc[movie.id].job = acc[movie.id].job + ', ' + movie.job;
+            acc[item.id].job = acc[item.id].job + ', ' + item.job;
             // Якщо відділи різні, додаємо їх теж
-            if (acc[movie.id].department !== movie.department) {
-                acc[movie.id].department = acc[movie.id].department + ', ' + movie.department;
+            if (acc[item.id].department !== item.department) {
+                acc[item.id].department = acc[item.id].department + ', ' + item.department;
             }
         }
         return acc;
     }, {});
 
     // Конвертуємо об'єкт назад в масив
-    const uniqueMovies = Object.values(groupedMovies);
+    const uniqueItems = Object.values(groupedItems).filter(item => typeTMDB.includes(item.media_type));
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -118,7 +111,7 @@ function CrewPage() {
                         height: "400px",
                         borderRadius: 2,
                         overflow: "hidden",
-                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(https://image.tmdb.org/t/p/original${crew.profile_path})`,
+                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${crew.profile_path})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         display: "flex",
@@ -144,19 +137,22 @@ function CrewPage() {
                                 <CardMedia
                                     component="img"
                                     height="300"
-                                    image={`https://image.tmdb.org/t/p/w500${crew.profile_path}`}
+                                    image={crew.profile_path
+                                        ? `${IMAGE_BASE_URL_W500}${crew.profile_path}`
+                                        : IMAGE_DEFAULT
+                                    }
                                     alt={crew.name}
                                 />
                             </Card>
 
                             {/* Crew Info */}
-                            <Box sx={{ color: "white", flex: 1 }}>
-                                <Typography variant="h3" sx={{ mb: 2, fontWeight: "bold" }}>
+                            <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                                <Typography variant="h3" sx={{ fontWeight: "bold" }}>
                                     {crew.name}
                                 </Typography>
 
                                 {crew.birthday && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Born: {new Date(crew.birthday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -164,15 +160,13 @@ function CrewPage() {
                                         })}
                                     </Typography>
                                 )}
-
                                 {crew.place_of_birth && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         {crew.place_of_birth}
                                     </Typography>
                                 )}
-
                                 {crew.deathday && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Died: {new Date(crew.deathday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -180,9 +174,8 @@ function CrewPage() {
                                         })}
                                     </Typography>
                                 )}
-
                                 {crew.known_for_department && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Known for: {crew.known_for_department}
                                     </Typography>
                                 )}
@@ -191,10 +184,10 @@ function CrewPage() {
                                 <Box sx={{ mt: 3, display: "flex", gap: 4 }}>
                                     <Box sx={{ textAlign: "center" }}>
                                         <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
-                                            {uniqueMovies.length}
+                                            {uniqueItems.length}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                            Total Movies
+                                            Total
                                         </Typography>
                                     </Box>
                                     <Box sx={{ textAlign: "center" }}>
@@ -238,55 +231,21 @@ function CrewPage() {
                     </Box>
 
                     {/* Filmography Section */}
-                    {crew.movie_credits?.crew && crew.movie_credits.crew.length > 0 && (
-                        <Card sx={{
-                            borderRadius: 2,
-                            p: 2,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 3,
-                            backgroundColor: 'bg.second'
-                        }}>
-                            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-                                Filmography
-                            </Typography>
-
-                            {uniqueMovies.length > 0 ? (
-                                <Grid2 container spacing={2}>
-                                    {uniqueMovies.map((movie) => (
-                                        <Grid2 item size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={movie.id}>
-                                            <MovieCart
-                                                movie={movie}
-                                                dbType="tmdb"
-                                                handleOpenDialogFolder={handleOpenDialogFolder}
-                                                isJob={true}
-                                                isImage={true}
-                                                isTitle={true}
-                                                isDate={true}
-                                                isRating={true}
-                                                isDescription={true}
-                                            />
-                                        </Grid2>
-                                    ))}
-                                </Grid2>
-                            ) : (
-                                <Typography variant="body1" color="text.secondary">
-                                    No movies found for this actor.
-                                </Typography>
-                            )}
-                        </Card>
-                    )}
-
-                    {/* Діалог додавання до папки */}
-                    <MovieSaveDialog
-                        open={openMovieSaveDialog}
-                        onClose={handleCloseMovieSaveDialog}
+                    <GeneralItemList
+                        // Бокова панель
                         folders={folders}
-                        selectedFolder={selectedFolder}
-                        setSelectedFolder={setSelectedFolder}
                         setFolders={setFolders}
                         setIsGetFolders={setIsGetFolders}
-                        selectedMovie={selectedMovie}
+                        // Робота з базами даних
+                        dbType="tmdb"
+                        urlParams={false}
+                        isPreperedData={true}
+                        preperedData={uniqueItems}
+                        // Інформація сторінки
+                        pageType="crew"
+                        pageTitle="Filmography"
+                        isSearch={true}
+                        isSort={true}
                     />
                 </>
             )}

@@ -12,9 +12,17 @@ const FolderSchema = new mongoose.Schema(
         },
         folderElements: [
             {
-                type: mongoose.Schema.Types.ObjectId, // бо це користучав
-                ref: "Movie", // з UserController
-            },
+                itemId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    required: true,
+                    refPath: "folderElements.itemModel"
+                },
+                itemModel: {
+                    type: String,
+                    required: true,
+                    enum: ["Movie", "Tv"]
+                }
+            }
         ],
         user: {
             type: mongoose.Schema.Types.ObjectId, // бо це користучав

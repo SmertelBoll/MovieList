@@ -119,7 +119,7 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
           {navLinks.map((obj) => (
             <React.Fragment key={obj.title}>
               {/* choose which buttons to show depending on authorization */}
-              {(obj.auth === -1 || obj.auth == isAuth) && (
+              {(obj.auth === -1 || obj.auth === isAuth) && (
                 <>
                   {/* check if you need to forward to another page */}
                   {obj.link ? (

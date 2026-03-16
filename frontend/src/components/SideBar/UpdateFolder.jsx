@@ -70,7 +70,13 @@ function UpdateFolder({ actionFunctions }) {
                             obj.func();
                             setUpdateElement(null);
                         }}
-                        sx={{ display: "flex", gap: 1 }}>
+                        sx={{
+                            display: "flex", gap: 1,
+                            '&:hover': {
+                                backgroundColor: 'yellow.main',
+                                color: 'text.dark'
+                            }
+                        }}>
                         {obj.icon}
                         <Typography>{obj.title}</Typography>
                     </MenuItem>

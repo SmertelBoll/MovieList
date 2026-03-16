@@ -1,9 +1,9 @@
 import FolderModel from "../models/folder.js";
-import MovieModel from "../models/movie.js";
+import TvModel from "../models/tv.js";
 import mongoose from "mongoose";
 
 
-export const addMovieToFolder = async (req, res) => {
+export const addTvToFolder = async (req, res) => {
   try {
     const userId = req.userId;
 
@@ -14,7 +14,10 @@ export const addMovieToFolder = async (req, res) => {
       dateAdded,
       rating,
       comment,
-      customType
+      customType,
+      level,
+      season,
+      episode
     } = req.body;
 
     if (!folderName) {
@@ -24,13 +27,16 @@ export const addMovieToFolder = async (req, res) => {
       return res.status(400).json({ title: "Folder error", message: "no item selected" });
     }
 
-    const doc = new MovieModel({
+    const doc = new TvModel({
       tmdbId,
       tmdbTitle,
       dateAdded,
       rating,
       comment,
       customType,
+      level,
+      season,
+      episode,
       user: userId
     });
 
@@ -38,7 +44,7 @@ export const addMovieToFolder = async (req, res) => {
 
     const updatedFolder = await FolderModel.findOneAndUpdate(
       { name: folderName, user: userId },
-      { $push: { folderElements: { itemId: item._id, itemModel: "Movie" } } },
+      { $push: { folderElements: { itemId: item._id, itemModel: "Tv" } } },
       { new: true }
     );
 
@@ -56,7 +62,7 @@ export const addMovieToFolder = async (req, res) => {
   }
 };
 
-export const updateMovieByMongoId = async (req, res) => {
+export const updateTvByMongoId = async (req, res) => {
   try {
     const userId = req.userId;
     const mongoId = req.params.mongoId;
@@ -66,13 +72,16 @@ export const updateMovieByMongoId = async (req, res) => {
       dateAdded,
       rating,
       comment,
-      customType
+      customType,
+      level,
+      season,
+      episode
     } = req.body;
 
     // Оновлюємо дані
-    let updatedItem = await MovieModel.findOneAndUpdate(
+    let updatedItem = await TvModel.findOneAndUpdate(
       { _id: mongoId, user: userId },
-      { rating, comment, dateAdded, customType },
+      { rating, comment, dateAdded, customType, level, season, episode },
       { new: true }
     );
 
@@ -116,10 +125,12 @@ export const updateMovieByMongoId = async (req, res) => {
   }
 };
 
-export const removeMovieFromFolder = async (req, res) => {
+export const removeTvFromFolder = async (req, res) => {
   try {
     const userId = req.userId;
     const { mongoId, folderName } = req.body;
+
+    console.log(mongoId, folderName)
 
     if (!mongoId || !folderName) {
       return res.status(400).json({ title: "Delete error", message: "insufficient data" });
@@ -137,7 +148,7 @@ export const removeMovieFromFolder = async (req, res) => {
     }
 
     // Видаляємо документ з відповідної колекції
-    const deleteItemResult = await MovieModel.findOneAndDelete({ _id: mongoId, user: userId });
+    const deleteItemResult = await TvModel.findOneAndDelete({ _id: mongoId, user: userId });
 
     res.json({
       success: true,
@@ -148,12 +159,12 @@ export const removeMovieFromFolder = async (req, res) => {
   }
 };
 
-export const getMovieByTmdbId = async (req, res) => {
+export const getTvByTmdbId = async (req, res) => {
   try {
     const tmdbId = req.params.tmdbId;
     const userId = req.userId;
 
-    let item = await MovieModel.findOne({ tmdbId, user: userId });
+    let item = await TvModel.findOne({ tmdbId, user: userId });
 
     if (!item) {
       return res.status(404).json({ title: "Not found", message: "Item not found in your database" });

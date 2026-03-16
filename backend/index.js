@@ -7,7 +7,7 @@ dotenv.config();
 
 import { loginValidation, registerValidation } from "./validations/auth.js";
 import { checkValidationError } from "./utils/checkValidationError.js";
-import { getMe, loginUser, registerUser } from "./controllers/userControllers.js";
+import { getMe, loginUser, registerUser, updateSettings } from "./controllers/userControllers.js";
 import { checkAuth } from "./utils/checkAuth.js";
 import {
   createPost,
@@ -26,8 +26,9 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
-import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolderByOrder } from "./controllers/folderControllers.js";
-import { addMovieToFolder, getMoviesFromFolder, getMovieById } from "./controllers/movieControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getItemsFromFolder } from "./controllers/folderControllers.js";
+import { addMovieToFolder, getMovieByTmdbId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
+import { addTvToFolder, getTvByTmdbId, removeTvFromFolder, updateTvByMongoId } from "./controllers/tvControllers.js";
 
 // підключаємось до бази даних
 const mongoConnection = process.env.MONGO_CONNECTION;
@@ -70,6 +71,7 @@ app.get("/", (req, res) => {
 app.post("/auth/register", registerValidation, checkValidationError, registerUser);
 app.post("/auth/login", loginValidation, checkValidationError, loginUser);
 app.get("/auth/me", checkAuth, getMe);
+app.patch("/auth/settings", checkAuth, updateSettings);
 
 // // app.post("/upload", upload.single("image"), uploadFile);
 // // app.get("/image/:fileId", download);
@@ -86,18 +88,25 @@ app.get("/auth/me", checkAuth, getMe);
 // app.post("/comments", checkAuth, commentCreateValidation, checkValidationError, createComment);
 // app.delete("/comments/:id", checkAuth, removeComment);
 
-app.post("/folders/create", checkAuth, folderCreateValidation, checkValidationError, createFolder);
+app.get("/movie/:tmdbId", checkAuth, getMovieByTmdbId)
+app.post("/movie", checkAuth, addMovieToFolder)
+app.patch("/movie/:mongoId", checkAuth, updateMovieByMongoId)
+app.delete("/movie", checkAuth, removeMovieFromFolder)
+
+app.get("/tv/:tmdbId", checkAuth, getTvByTmdbId)
+app.post("/tv", checkAuth, addTvToFolder)
+app.patch("/tv/:mongoId", checkAuth, updateTvByMongoId)
+app.delete("/tv", checkAuth, removeTvFromFolder)
+
+app.get("/folders/:name", checkAuth, getItemsFromFolder)
+app.get("/folders/movie/:tmdbId", checkAuth, getFoldersByMovie)
 
 app.get("/folders", checkAuth, getFoldersByUser);
-app.patch("/folders/rename/:order", checkAuth, folderCreateValidation, checkValidationError, renameFolderByOrder);
-app.delete("/folders/:order", checkAuth, removeFolder);
-app.patch("/folders/orderIncrement/:order", checkAuth, orderIncrement);
-app.patch("/folders/orderDecrement/:order", checkAuth, orderDecrement);
-
-app.patch("/folders/addmovie", checkAuth, addMovieToFolder)
-app.get("/folders/:name", checkAuth, getMoviesFromFolder)
-app.get("/movies/:movieId", checkAuth, getMovieById)
-
+app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);
+app.patch("/folders/:oldName", checkAuth, folderCreateValidation, checkValidationError, renameFolder);
+app.patch("/folders/orderIncrement/:name", checkAuth, orderIncrement);
+app.patch("/folders/orderDecrement/:name", checkAuth, orderDecrement);
+app.delete("/folders/:name", checkAuth, removeFolder);
 
 
 

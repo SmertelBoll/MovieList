@@ -22,7 +22,7 @@ function Search({ inputText, onChangeInput }) {
     };
     return (
         <SearchBox
-            autoFocus
+            // autoFocus
             label="Search"
             value={inputText}
             onChange={handleChange}

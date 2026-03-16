@@ -4,24 +4,24 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 
-function Sort({ sortBy, setSortBy, sortDirection, setSortDirection, categories }) {
+function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, categoriesSortBy }) {
 
     const handleChange = (event) => {
-        const newKey = event.target.value;
+        const newName = event.target.value;
 
-        if (newKey === sortBy) {
+        if (newName === nameSortBy) {
             // Якщо вибираємо той самий елемент - змінюємо order
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         } else {
             // Якщо вибираємо новий елемент - встановлюємо його order за замовчуванням
-            const selectedCategory = categories.find(cat => cat.key === newKey);
+            const selectedCategory = categoriesSortBy.find(cat => cat.name === newName);
             setSortDirection(selectedCategory.order);
-            setSortBy(newKey);
+            setNameSortBy(newName);
         }
     };
 
-    const handleMenuItemClick = (categoryKey) => {
-        if (categoryKey === sortBy) {
+    const handleMenuItemClick = (categoryName) => {
+        if (categoryName === nameSortBy) {
             // Якщо клікаємо на вже обраний елемент - змінюємо order
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         }
@@ -49,7 +49,7 @@ function Sort({ sortBy, setSortBy, sortDirection, setSortDirection, categories }
             <Select
                 labelId="sort-select-label"
                 id="sort-select"
-                value={sortBy}
+                value={nameSortBy}
                 label="Sorting"
                 onChange={handleChange}
                 MenuProps={{
@@ -90,11 +90,11 @@ function Sort({ sortBy, setSortBy, sortDirection, setSortDirection, categories }
                     },
                 }}
             >
-                {categories.map((category) => (
+                {categoriesSortBy.map((category) => (
                     <MenuItem
-                        key={category.key}
-                        value={category.key}
-                        onClick={() => handleMenuItemClick(category.key)}
+                        key={category.name}
+                        value={category.name}
+                        onClick={() => handleMenuItemClick(category.name)}
                         sx={{
                             '&:hover': {
                                 backgroundColor: "yellow.main",
@@ -118,7 +118,7 @@ function Sort({ sortBy, setSortBy, sortDirection, setSortDirection, categories }
                     >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <span>{category.name}</span>
-                            {category.key === sortBy && (
+                            {category.name === nameSortBy && (
                                 sortDirection === 'asc' ? (
                                     <ArrowUpwardIcon sx={{ fontSize: 16 }} />
                                 ) : (

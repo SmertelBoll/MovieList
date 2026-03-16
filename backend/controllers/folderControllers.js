@@ -1,7 +1,8 @@
-import PostModel from "../models/post.js";
 import UserModel from "../models/user.js";
 import FolderModel from "../models/folder.js";
 import MovieModel from "../models/movie.js";
+import TvModel from "../models/tv.js";
+import mongoose from "mongoose";
 
 
 export const getFoldersByUser = async (req, res) => {
@@ -11,7 +12,10 @@ export const getFoldersByUser = async (req, res) => {
       .find({ user: userId })
       .select("name order -_id")
       .exec();
-    res.send(foldersByUser);
+    res.json({
+      success: true,
+      results: foldersByUser
+    });
   } catch (error) {
     res.status(500).json({ title: "Folders error", message: "could not get folders" });
   }
@@ -32,7 +36,10 @@ export const createFolder = async (req, res) => {
 
     const folder = await doc.save();
 
-    res.json(folder);
+    res.json({
+      success: true,
+      results: folder
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Folders error", message: "failed to create folder" });
@@ -51,10 +58,12 @@ export const renameFolderByOrder = async (req, res) => {
       return res.status(404).json({ title: "Folder not found", message: "no folder found" });
     }
 
-    const folderNames = await FolderModel
+    let folderNames = await FolderModel
       .find({ user: userId })
       .select("name -_id")
-      .exec();
+      .exec()
+
+    folderNames = folderNames.map(obj => obj.name)
 
     if (folderNames.includes(newFolderName) && currentFolder.name !== newFolderName) {
       return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
@@ -67,19 +76,66 @@ export const renameFolderByOrder = async (req, res) => {
     await currentFolder.save();
 
     // Відповідь з оновленою папкою
-    res.json(currentFolder);
+    res.json({
+      success: true,
+      results: currentFolder
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Folders error", message: "failed to get folders" });
   }
 }
 
-export const removeFolder = async (req, res) => {
+export const renameFolder = async (req, res) => {
   try {
-    const folderOrder = req.params.order;
+    const oldFolderName = req.params.oldName;
+    const newFolderName = req.body.name;
     const userId = req.userId;
 
-    const currentFolder = await FolderModel.find({ order: folderOrder, user: userId }).populate("user").exec();
+    const currentFolder = await FolderModel.findOne({ name: oldFolderName, user: userId });
+
+    if (!currentFolder) {
+      return res.status(404).json({ title: "Folder not found", message: "no folder found" });
+    }
+
+    let folderNames = await FolderModel
+      .find({ user: userId })
+      .select("name -_id")
+      .exec();
+
+    folderNames = folderNames.map(obj => obj.name)
+
+    if (folderNames.includes(newFolderName) && oldFolderName !== newFolderName) {
+      return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
+    }
+
+    // Оновити поле name
+    currentFolder.name = newFolderName;
+
+    // Зберегти зміни
+    await currentFolder.save();
+
+    // Відповідь з оновленою папкою
+    res.json({
+      success: true,
+      results: currentFolder
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      title: "Folders error", message: "failed to get folders"
+    });
+  }
+}
+
+export const removeFolder = async (req, res) => {
+  try {
+    const folderName = req.params.name;
+    const userId = req.userId;
+
+    console.log(folderName, userId, req.params)
+
+    const currentFolder = await FolderModel.find({ name: folderName, user: userId }).populate("user").exec();
     const currentUser = await UserModel.findById(userId);
 
     if (userId !== currentFolder[0].user._id.toString() && currentUser.accessLevel !== "admin") {
@@ -88,15 +144,12 @@ export const removeFolder = async (req, res) => {
     }
 
     const folder = await FolderModel.findOneAndDelete({
-      order: folderOrder,
+      order: currentFolder[0].order,
       user: userId
     });
 
     if (!folder) {
-      return res.status(404).json({
-        title: "Folder error",
-        message: "folder not found",
-      });
+      return res.status(404).json({ title: "Folder error", message: "folder not found", });
     }
 
     const foldersByUser = await FolderModel
@@ -137,29 +190,26 @@ export const removeFolder = async (req, res) => {
 };
 
 // Виділяємо логіку змінити черги у окрему функцію
-export const changeOrder = async (upOrDown, folderOrder, userId) => {
+export const changeOrder = async (upOrDown, folderName, userId) => {
   try {
-    const elseOrder = folderOrder + upOrDown;
+    const currentFolder = await FolderModel.findOne({ name: folderName, user: userId });
+    const currentOrder = currentFolder.order;
+    const elseOrder = currentOrder + upOrDown;
 
-    const currentFolder = await FolderModel.findOne({ order: folderOrder, user: userId });
     const elseFolder = await FolderModel.findOne({ order: elseOrder, user: userId });
 
     if (!elseFolder) {
-      return {
-        success: false,
-      };
+      return false
     }
 
 
     currentFolder.order = elseOrder;
-    elseFolder.order = folderOrder;
+    elseFolder.order = currentOrder;
 
     await currentFolder.save();
     await elseFolder.save();
 
-    return {
-      success: true,
-    };
+    return true
   } catch (error) {
     console.log(error);
     throw new Error("Failed to change order");
@@ -168,11 +218,18 @@ export const changeOrder = async (upOrDown, folderOrder, userId) => {
 
 export const orderIncrement = async (req, res) => {
   try {
-    const folderOrder = Number(req.params.order);
+    const folderName = req.params.name;
     const userId = req.userId;
 
-    const success = await changeOrder(1, folderOrder, userId);
-    return res.json(success)
+    const success = await changeOrder(1, folderName, userId);
+
+    if (!success) {
+      res.status(500).json({ title: "Folder error", message: "failed to change folder order" });
+    }
+
+    return res.json({
+      success: success
+    })
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Folder error", message: "failed to change folder order" });
@@ -181,166 +238,180 @@ export const orderIncrement = async (req, res) => {
 
 export const orderDecrement = async (req, res) => {
   try {
-    const folderOrder = Number(req.params.order);
+    const folderName = req.params.name;
     const userId = req.userId;
 
-    const success = await changeOrder(-1, folderOrder, userId);
-    return res.json(success)
+    const success = await changeOrder(-1, folderName, userId);
+
+    if (!success) {
+      res.status(500).json({ title: "Folder error", message: "failed to change folder order" });
+    }
+
+    return res.json({
+      success: success
+    })
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Folder error", message: "failed to change folder order" });
   }
 }
 
-
-
-
-
-
-
-
-
-export const getAllPosts = async (req, res) => {
+export const getFoldersByMovie = async (req, res) => {
   try {
-    const filter = req.query.filter || "";
-    const regex = new RegExp(filter, "i");
+    const tmdbId = req.params.tmdbId;
+    const userId = req.userId;
 
-    const sortBy = req.query.sortBy;
-    const sortObj = {};
-
-    let posts = [];
-
-    if (sortBy) {
-      sortObj[sortBy] = -1;
-      posts = await PostModel.find({ title: regex }).sort(sortObj).populate("user").exec();
-    } else {
-      if (filter) {
-        posts = await PostModel.find({ title: regex }).sort({ viewsCount: -1 }).populate("user").exec();
-      } else {
-        posts = await PostModel.find({ title: regex }).sort({ createdAt: -1 }).populate("user").exec();
-      }
-    }
-
-    res.send(posts);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ title: "Article error", message: "failed to get articles" });
-  }
-};
-
-export const getOnePost = async (req, res) => {
-  try {
-    const postId = req.params.id;
-
-    const posts = await PostModel.findOneAndUpdate(
-      // filter
-      {
-        _id: postId, //по чому шукаємо
-      },
-      // update
-      {
-        $inc: { viewsCount: 1 }, // збільшити на 1
-      },
-      // return new or not
-      {
-        new: true,
-      }
-    ).populate("user");
-
-    res.send(posts);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ title: "Article error", message: "failed to get article" });
-  }
-};
-
-export const createPost = async (req, res) => {
-  try {
-    const image = req.body.image;
-
-    const doc = new PostModel({
-      title: req.body.title,
-      text: req.body.text,
-      tags: req.body.tags,
-      image: image ? image : "",
-      user: req.userId,
+    // Шукаємо всі фільми у базі MongoDB для цього користувача (їх може бути багато, по одному на кожну папку)
+    const movies = await MovieModel.find({
+      tmdbId: tmdbId,
+      user: userId
     });
 
-    const post = await doc.save();
-
-    res.json(post);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ title: "Article error", message: "failed to create article" });
-  }
-};
-
-export const removePost = async (req, res) => {
-  try {
-    const postId = req.params.id;
-    const currentUserId = req.userId;
-
-    const currentPost = await PostModel.find({ _id: postId }).populate("user").exec();
-    const currentUser = await UserModel.findById(currentUserId);
-
-    if (currentUserId !== currentPost[0].user._id.toString() && currentUser.accessLevel !== "admin") {
-      console.log("access is denied");
-      return res.status(500).json({ title: "Article error", message: "access is denied" });
-    }
-
-    const post = await PostModel.findOneAndDelete({
-      _id: postId,
-    });
-
-    if (!post) {
-      return res.status(404).json({
-        title: "Article error",
-        message: "article not found",
+    if (!movies || movies.length === 0) {
+      // Якщо фільма немає, то він і не доданий в жодну папку
+      return res.json({
+        success: true,
+        results: []
       });
     }
 
+    const tmdbIds = movies.map(movie => movie._id);
+
+    // Шукаємо всі папки користувача, де в масиві folderElements є _id хоча б одного з цих фільмів
+    const folders = await FolderModel.find({
+      user: userId,
+      "folderElements.itemId": { $in: tmdbIds }
+    }).select("name order -_id").exec();
+
     res.json({
       success: true,
+      results: folders
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ title: "Article error", message: "failed to delete article" });
+    res.status(500).json({ title: "Folder error", message: "Failed to get folders by movie ID" });
   }
 };
 
-export const updatePost = async (req, res) => {
+export const getItemsFromFolder = async (req, res) => {
   try {
-    const postId = req.params.id;
+    const folderName = req.params.name;
     const currentUserId = req.userId;
+    const filter = req.query.query || "";
+    // Розбиваємо sort_by на sortBy і sortDirection
+    const sortParam = req.query.sort_by || "";
+    const [sortBy, sortDirection = "desc"] = sortParam.split(".");
 
-    const post = await PostModel.find({ _id: postId }).populate("user").exec();
-    const currentUser = await UserModel.findById(currentUserId);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
 
-    if (currentUserId !== post[0].user._id.toString() && currentUser.accessLevel !== "admin") {
-      console.log("access is denied");
-      return res.status(500).json({ title: "Article error", message: "access is denied" });
-    }
+    // Конвертуємо currentUserId в ObjectId
+    const userId = new mongoose.Types.ObjectId(currentUserId);
 
-    const image = req.body.image;
-
-    await PostModel.updateOne(
+    // Базовий pipeline з об'єднанням обох колекцій
+    const pipeline = [
+      { $match: { name: folderName, user: userId } },
+      { $unwind: { path: "$folderElements", preserveNullAndEmptyArrays: false } },
       {
-        _id: postId,
+        $lookup: {
+          from: "movies",
+          localField: "folderElements.itemId",
+          foreignField: "_id",
+          as: "movieDoc"
+        }
       },
       {
-        title: req.body.title,
-        text: req.body.text,
-        tags: req.body.tags,
-        image: req.body.image,
-        user: post[0].user._id,
+        $lookup: {
+          from: "tvs",
+          localField: "folderElements.itemId",
+          foreignField: "_id",
+          as: "tvDoc"
+        }
+      },
+      {
+        $addFields: {
+          item: {
+            $cond: [
+              { $gt: [{ $size: "$movieDoc" }, 0] },
+              {
+                $mergeObjects: [
+                  { $arrayElemAt: ["$movieDoc", 0] },
+                  { media_type: "movie" }
+                ]
+              },
+              {
+                $cond: [
+                  { $gt: [{ $size: "$tvDoc" }, 0] },
+                  {
+                    $mergeObjects: [
+                      { $arrayElemAt: ["$tvDoc", 0] },
+                      { media_type: "tv" }
+                    ]
+                  },
+                  null
+                ]
+              }
+            ]
+          }
+        }
+      },
+      { $match: { item: { $ne: null } } },
+      { $replaceRoot: { newRoot: "$item" } }
+    ];
+
+    // Додаємо фільтрацію
+    if (filter) {
+      pipeline.push({
+        $match: {
+          "tmdbTitle": { $regex: filter, $options: "i" }
+        }
+      });
+    }
+
+    // Додаємо сортування
+    if (sortBy) {
+      const sortOrder = sortDirection === 'asc' ? 1 : -1;
+      pipeline.push({
+        $sort: { [sortBy]: sortOrder }
+      });
+    }
+
+    // Додаємо пагінацію
+    pipeline.push({
+      $facet: {
+        items: [
+          { $skip: skip },
+          { $limit: limit }
+        ],
+        totalCount: [
+          { $count: "count" }
+        ]
       }
-    );
+    });
+
+    const result = await FolderModel.aggregate(pipeline).exec();
+
+    // Отримуємо результати
+    const items = result[0]?.items || [];
+    const totalCount = result[0]?.totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.json({
       success: true,
+      results: items,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
+
   } catch (error) {
     console.log(error);
-    res.status(500).json({ title: "Article error", message: "failed to update the article" });
+    res.status(500).json({ title: "Folder error", message: "failed to get items" });
   }
 };

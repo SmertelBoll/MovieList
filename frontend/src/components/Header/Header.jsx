@@ -1,21 +1,24 @@
 import { Box, IconButton } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useTheme } from "@mui/material/styles";
+import { toggleMode } from "../../redux/slices/ConfigSlice";
 
 import { logout, selectIsAuth } from "../../redux/slices/AuthSlice";
 import { alertConfirm } from "../../alerts";
 import ContainerCustom from "../_customMUI/ContainerCustom";
 import MainButton from "../Buttons/MainButton";
 import BurgerMenu from "./BurgerMenu";
+import LanguageSelector from "./LanguageSelector";
+import TypeTMDBSelector from "./TypeTMDBSelector";
 
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 
 
-function Header({ colorMode, mode }) {
+function Header({ mode }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -79,13 +82,22 @@ function Header({ colorMode, mode }) {
             logo
           </Link>
 
-          <IconButton sx={{ ml: 1 }} onClick={colorMode.toggleColorMode} color="inherit">
-            {mode === "light" ? (
-              <DarkModeIcon style={{ color: theme.palette.text.main }} />
-            ) : (
-              <LightModeIcon style={{ color: theme.palette.text.main }} />
-            )}
-          </IconButton>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Вибір мови */}
+            <LanguageSelector />
+
+            {/* Зміна теми */}
+            <IconButton onClick={() => dispatch(toggleMode())} color="inherit">
+              {mode === "light" ? (
+                <DarkModeIcon style={{ color: theme.palette.text.main }} />
+              ) : (
+                <LightModeIcon style={{ color: theme.palette.text.main }} />
+              )}
+            </IconButton>
+
+            {/* Вибір категорії */}
+            <TypeTMDBSelector />
+          </Box>
 
           {/* button menu */}
           {!isAuth ? (

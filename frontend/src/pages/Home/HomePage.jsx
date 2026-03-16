@@ -1,18 +1,13 @@
 import { Box } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import SideBar from '../../components/SideBar/SideBar'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios';
 import { alertError } from '../../alerts'
 import { useNavigate } from 'react-router-dom'
-import GeneralMovieList from '../../components/GereralMovieList/GeneralMovieList'
+import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 
-
-const url = {
-  main: `https://api.themoviedb.org/3/discover/movie`,
-  search: `https://api.themoviedb.org/3/search/movie`
-}
 
 function HomePage() {
   const isAuth = useSelector(selectIsAuth);
@@ -60,7 +55,7 @@ function HomePage() {
       instance
         .get(`/folders`)
         .then((res) => {
-          setFolders(res.data)
+          setFolders(res.data.results)
 
         })
         .catch((err) => {
@@ -76,6 +71,27 @@ function HomePage() {
     navigate(`user/folders/${folder.name}`);
   }
 
+
+  // Кешуємо GeneralItemList, щоб він не ререндерився кожен раз, 
+  // коли ми просто гортаємо сторінку і showSidebar змінюється
+  const generalItemList = useMemo(() => (
+    <GeneralItemList
+      // Бокова панель
+      folders={folders}
+      setFolders={setFolders}
+      setIsGetFolders={setIsGetFolders}
+      // Робота з базами даних
+      dbType="tmdb"
+      urlParams={false}
+      isPreperedData={false}
+      preperedData={false}
+      // Інформація сторінки
+      pageType="home"
+      pageTitle="Movies"
+      isSearch={true}
+      isSort={true}
+    />
+  ), [folders, isAuth]);
 
   return (
     <Box sx={{ display: "flex", gap: 3, width: "100%" }}>
@@ -107,13 +123,7 @@ function HomePage() {
         flexGrow: 1,
         transition: "flex-basis 0.7s ease-in-out"
       }}>
-        <GeneralMovieList
-          folders={folders}
-          setFolders={setFolders}
-          setIsGetFolders={setIsGetFolders}
-          url={url}
-          dbType="tmdb"
-        />
+        {generalItemList}
       </Box>
     </Box>
   )

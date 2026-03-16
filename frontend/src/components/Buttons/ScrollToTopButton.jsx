@@ -1,10 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Fab, Zoom } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useTheme } from '@mui/material/styles';
 
-function ScrollToTopButton({ isVisible }) {
+function ScrollToTopButton() {
     const theme = useTheme();
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 500) {
+                setIsVisible(true);
+            } else {
+                setIsVisible(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const scrollToTop = () => {
         window.scrollTo({
@@ -16,6 +30,7 @@ function ScrollToTopButton({ isVisible }) {
     return (
         <Zoom in={isVisible}>
             <Fab
+                // ... (rest of the code unchanged)
                 color="primary"
                 size="medium"
                 onClick={scrollToTop}

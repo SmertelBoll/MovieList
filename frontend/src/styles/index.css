@@ -18,6 +18,7 @@ a,
 a:visited {
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: none;
 }
@@ -26,14 +27,17 @@ a:hover {
 ::-webkit-scrollbar {
   width: 1.2em;
 }
+
 ::-webkit-scrollbar-track {
   background: #363636;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #f9f919;
   border-radius: 100vw;
   border: 0.25em solid #363636;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #f2db0b;
 }

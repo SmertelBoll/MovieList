@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { Route, Routes } from "react-router-dom";
 import Header from './components/Header/Header'
 import Footer from './components/Footer'
@@ -10,68 +10,41 @@ import HomePage from "./pages/Home/HomePage";
 import RegistrationForm from "./pages/Auth/RegistrationForm";
 import LoginForm from "./pages/Auth/LoginForm";
 import NotFound from "./pages/NotFound";
-import MoviePage from "./pages/Info/Movie/MoviePage";
-import ActorPage from "./pages/Info/Actor/ActorPage";
-import CrewPage from "./pages/Info/Crew/CrewPage";
-import CompanyPage from "./pages/Info/Company/CompanyPage";
-import GenrePage from "./pages/Info/Genre/GenrePage";
-import FolderPage from "./pages/Folder/FolderPage";
-import { useDispatch } from 'react-redux';
-import { fetchAuthMe } from './redux/slices/AuthSlice';
+import MoviePage from "./pages/Movie/MoviePage";
+import TVPage from "./pages/TV/TVPage";
+import ActorPage from "./pages/Info/ActorPage";
+import CrewPage from "./pages/Info/CrewPage";
+import CompanyPage from "./pages/Info/CompanyPage";
+import GenrePage from "./pages/Info/GenrePage";
+import FolderPage from "./pages/SingleFolder/FolderPage";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchAuthMe } from "./redux/slices/AuthSlice";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
 
 function App() {
   const dispatch = useDispatch();
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAuthMe())
   }, [dispatch]);
 
-  // Логіка для кнопки "Scroll to top"
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
 
-      // Показуємо кнопку "Scroll to top" коли прокручуємо вниз більше ніж на 500px
-      if (currentScrollY > 500) {
-        setShowScrollToTop(true);
-      } else {
-        setShowScrollToTop(false);
-      }
-    };
+  const { mode } = useSelector((state) => state.config);
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  const savedMode = window.localStorage.getItem("MovieList-mode");
-  const [mode, setMode] = React.useState(savedMode ? savedMode : "light");
-
-  const colorMode = React.useMemo(
-    () => ({
-      // The dark mode switch would invoke this method
-      toggleColorMode: () => {
-        window.localStorage.setItem("MovieList-mode", mode === "light" ? "dark" : "light");
-        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
-      },
-    }),
-    [mode]
-  );
   const theme = React.useMemo(() => getTheme(mode), [mode]);
 
   return (
     <ThemeProvider theme={theme}>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <Header colorMode={colorMode} mode={mode} />
+        <Header
+          mode={mode}
+        />
         <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "80px" }}>
           <ContainerCustom paddingY bgcolor="bg.main">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/movie/:id" element={<MoviePage />} />
+              <Route path="/tv/:id" element={<TVPage />} />
               <Route path="/actor/:id" element={<ActorPage />} />
               <Route path="/crew/:id" element={<CrewPage />} />
               <Route path="/company/:id" element={<CompanyPage />} />
@@ -84,7 +57,7 @@ function App() {
           </ContainerCustom>
         </main>
         <Footer />
-        <ScrollToTopButton isVisible={showScrollToTop} />
+        <ScrollToTopButton />
       </div>
     </ThemeProvider >
   )

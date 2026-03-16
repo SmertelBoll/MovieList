@@ -1,38 +1,41 @@
-import { Box, Typography, CircularProgress, Chip, Grid2, Card, CardMedia, CardContent, IconButton } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { Box, Typography, CircularProgress, Card, CardMedia } from '@mui/material'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { selectIsAuth } from '../../../redux/slices/AuthSlice'
-import instance from '../../../axios'
-import { alertError } from '../../../alerts'
-import AddIcon from '@mui/icons-material/Add'
-import MovieCart from '../../../components/Movie/MovieCart'
-import MovieSaveDialog from '../../../components/Movie/MovieSaveDialog'
+import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import instance from '../../axios'
+import { alertError } from '../../alerts'
+import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 
-const API_KEY = process.env.REACT_APP_MOVIE_API_KEY
+const API_KEY = process.env.REACT_APP_TMDB_API_KEY
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
+const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function ActorPage() {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
+    const { typeTMDB } = useSelector((state) => state.config);
+
+    // Дані про актора
     const [actor, setActor] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Стани для діалогу додавання до папки
-    const [openMovieSaveDialog, setOpenMovieSaveDialog] = useState(false)
-    const [selectedFolder, setSelectedFolder] = useState(false)
-    const [folders, setFolders] = useState([])
-    const [isGetFolders, setIsGetFolders] = useState(true)
-    const [selectedMovie, setselectedMovie] = useState(null)
+    // Дані про папки користувача
+    const [folders, setFolders] = useState([])                  // Папки
+    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
 
+
+    // Загрузка даних про актора
     useEffect(() => {
         setIsLoading(true)
 
         instance
-            .get(`https://api.themoviedb.org/3/person/${id}`, {
+            .get(`${process.env.REACT_APP_URL_TMDB}/person/${id}`, {
                 params: {
                     api_key: API_KEY,
                     language: "en-US",
-                    append_to_response: "movie_credits,images"
+                    append_to_response: "combined_credits"
                 }
             })
             .then((res) => {
@@ -41,7 +44,7 @@ function ActorPage() {
             })
             .catch((err) => {
                 console.warn(err)
-                alertError(err.response?.data?.status_message || "Failed to load actor")
+                alertError(err, "Failed to load actor")
                 setIsLoading(false)
             })
     }, [id])
@@ -52,7 +55,7 @@ function ActorPage() {
             instance
                 .get(`/folders`)
                 .then((res) => {
-                    setFolders(res.data)
+                    setFolders(res.data.results)
                 })
                 .catch((err) => {
                     console.warn(err)
@@ -62,19 +65,15 @@ function ActorPage() {
         }
     }, [isGetFolders, isAuth])
 
-    // Функції для роботи з діалогом
-    const handleOpenDialogFolder = (movie) => {
-        setselectedMovie(movie)
-        setOpenMovieSaveDialog(true)
-    }
-
-    const handleCloseMovieSaveDialog = () => {
-        setOpenMovieSaveDialog(false)
-        setSelectedFolder(false)
-    }
-
-    // Фільтруємо тільки акторські ролі (без crew ролей)
-    const actingCredits = actor?.movie_credits?.cast || []
+    // Масив фільмів, де актор грав
+    const actingCredits = actor?.combined_credits?.cast || []
+    const uniqueActingCredits = Object.values(
+        actingCredits.reduce((acc, item) => {
+            const key = `${item.media_type}_${item.id}`;
+            if (!acc[key]) acc[key] = item;
+            return acc;
+        }, {})
+    ).filter(item => typeTMDB.includes(item.media_type));
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -96,7 +95,7 @@ function ActorPage() {
                         height: "400px",
                         borderRadius: 2,
                         overflow: "hidden",
-                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(https://image.tmdb.org/t/p/original${actor.profile_path})`,
+                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${actor.profile_path})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         display: "flex",
@@ -122,19 +121,21 @@ function ActorPage() {
                                 <CardMedia
                                     component="img"
                                     height="300"
-                                    image={`https://image.tmdb.org/t/p/w500${actor.profile_path}`}
-                                    alt={actor.name}
+                                    image={actor.profile_path
+                                        ? `${IMAGE_BASE_URL_W500}${actor.profile_path}`
+                                        : IMAGE_DEFAULT
+                                    }
                                 />
                             </Card>
 
                             {/* Actor Info */}
-                            <Box sx={{ color: "white", flex: 1 }}>
-                                <Typography variant="h3" sx={{ mb: 2, fontWeight: "bold" }}>
+                            <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                                <Typography variant="h3" sx={{ fontWeight: "bold" }}>
                                     {actor.name}
                                 </Typography>
 
                                 {actor.birthday && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Born: {new Date(actor.birthday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -144,13 +145,13 @@ function ActorPage() {
                                 )}
 
                                 {actor.place_of_birth && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         {actor.place_of_birth}
                                     </Typography>
                                 )}
 
                                 {actor.deathday && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Died: {new Date(actor.deathday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -160,7 +161,7 @@ function ActorPage() {
                                 )}
 
                                 {actor.known_for_department && (
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
+                                    <Typography variant="h6">
                                         Known for: {actor.known_for_department}
                                     </Typography>
                                 )}
@@ -169,10 +170,10 @@ function ActorPage() {
                                 <Box sx={{ mt: 3, display: "flex", gap: 4 }}>
                                     <Box sx={{ textAlign: "center" }}>
                                         <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
-                                            {actingCredits.length}
+                                            {uniqueActingCredits.length}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                            Total Movies
+                                            Total
                                         </Typography>
                                     </Box>
                                     <Box sx={{ textAlign: "center" }}>
@@ -208,55 +209,21 @@ function ActorPage() {
                     </Box>
 
                     {/* Filmography Section */}
-                    {actor.movie_credits?.cast && actor.movie_credits.cast.length > 0 && (
-                        <Card sx={{
-                            borderRadius: 2,
-                            p: 2,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 3,
-                            backgroundColor: 'bg.second'
-                        }}>
-                            <Typography variant="h4" color="text.main" sx={{ fontWeight: "bold" }}>
-                                Filmography
-                            </Typography>
-
-                            {actingCredits.length > 0 ? (
-                                <Grid2 container spacing={2}>
-                                    {actingCredits.map((movie) => (
-                                        <Grid2 item size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={movie.id}>
-                                            <MovieCart
-                                                movie={movie}
-                                                dbType="tmdb"
-                                                handleOpenDialogFolder={handleOpenDialogFolder}
-                                                isImage={true}
-                                                isTitle={true}
-                                                isJob={false}
-                                                isDescription={true}
-                                                isDate={true}
-                                                isRating={false}
-                                            />
-                                        </Grid2>
-                                    ))}
-                                </Grid2>
-                            ) : (
-                                <Typography variant="body1" color="text.secondary">
-                                    No movies found for this actor.
-                                </Typography>
-                            )}
-                        </Card>
-                    )}
-
-                    {/* Діалог додавання до папки */}
-                    <MovieSaveDialog
-                        open={openMovieSaveDialog}
-                        onClose={handleCloseMovieSaveDialog}
+                    <GeneralItemList
+                        // Бокова панель
                         folders={folders}
-                        selectedFolder={selectedFolder}
-                        setSelectedFolder={setSelectedFolder}
                         setFolders={setFolders}
                         setIsGetFolders={setIsGetFolders}
-                        selectedMovie={selectedMovie}
+                        // Робота з базами даних
+                        dbType="tmdb"
+                        urlParams={false}
+                        isPreperedData={true}
+                        preperedData={uniqueActingCredits}
+                        // Інформація сторінки
+                        pageType="actor"
+                        pageTitle="Filmography"
+                        isSearch={true}
+                        isSort={true}
                     />
                 </>
             )}

@@ -21,6 +21,18 @@ const UserSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
+    },
+    themeMode: {
+      type: String,
+      default: "light",
+    },
+    language: {
+      type: String,
+      default: "en",
+    },
+    typeCustom: {
+      type: [String],
+      default: [],
     }
   },
   {

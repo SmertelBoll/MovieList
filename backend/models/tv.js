@@ -1,12 +1,21 @@
 import mongoose from "mongoose";
 
-const MovieSchema = new mongoose.Schema(
+const TvSchema = new mongoose.Schema(
     {
         tmdbId: { type: Number, required: true },
         tmdbTitle: { type: String, required: true },
+
+        level: {
+            type: String,
+            enum: ["tv", "season", "episode"],
+            required: true
+        },
         dateAdded: { type: Date },
         rating: { type: Number },
         comment: { type: String },
+        season: { type: Number },
+        episode: { type: Number },
+
         customType: { type: String },
         user: {
             type: mongoose.Schema.Types.ObjectId, // бо це користучав
@@ -19,4 +28,4 @@ const MovieSchema = new mongoose.Schema(
     }
 );
 
-export default mongoose.model("Movie", MovieSchema);
+export default mongoose.model("Tv", TvSchema);

@@ -5,7 +5,8 @@ const palette = (mode) => {
       bg: {
         main: "#e6e4da",
         second: "#FAF8FF",
-        selected: "#cccccc"
+        selected: "#cccccc",
+        reverseSecond: "#363636"
       },
       text: {
         main: "#0C1618",
@@ -29,7 +30,8 @@ const palette = (mode) => {
     bg: {
       main: "#363636",
       second: "#171717",
-      selected: "#595959"
+      selected: "#595959",
+      reverseSecond: "#FAF8FF"
     },
     text: {
       main: "#FAF8FF",

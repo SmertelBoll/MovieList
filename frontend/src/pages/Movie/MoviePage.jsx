@@ -1,16 +1,18 @@
 import { Box, Typography, CircularProgress, Chip, Grid, Card, CardMedia, CardContent, IconButton } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { selectIsAuth } from '../../../redux/slices/AuthSlice'
-import instance from '../../../axios'
-import { alertError } from '../../../alerts'
+import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import instance from '../../axios'
+import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
-import MovieSaveDialog from '../../../components/Movie/MovieSaveDialog'
-import ActorCart from '../Actor/ActorCart'
-import MainButton from '../../../components/Buttons/MainButton'
+import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
+import ActorCart from '../../components/Carts/ActorCart'
 
-const API_KEY = process.env.REACT_APP_MOVIE_API_KEY
+const API_KEY = process.env.REACT_APP_TMDB_API_KEY
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
+const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function MoviePage() {
     const { id } = useParams()
@@ -19,10 +21,13 @@ function MoviePage() {
     const [isLoading, setIsLoading] = useState(true)
 
     // Стани для діалогу додавання до папки
-    const [openMovieSaveDialog, setOpenMovieSaveDialog] = useState(false)
+    const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
+
+    const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей фільм
+    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей фільм
 
     const navigate = useNavigate()
 
@@ -30,20 +35,20 @@ function MoviePage() {
         setIsLoading(true)
 
         instance
-            .get(`https://api.themoviedb.org/3/movie/${id}`, {
+            .get(`${process.env.REACT_APP_URL_TMDB}/movie/${id}`, {
                 params: {
                     api_key: API_KEY,
                     language: "en-US",
-                    append_to_response: "credits,videos,images"
+                    append_to_response: "credits"
                 }
             })
             .then((res) => {
-                setMovie(res.data)
+                setMovie({ ...res.data, media_type: "movie" })
                 setIsLoading(false)
             })
             .catch((err) => {
                 console.warn(err)
-                alertError(err.response?.data?.status_message || "Failed to load movie")
+                alertError(err, "Failed to load movie")
                 setIsLoading(false)
             })
     }, [id])
@@ -54,7 +59,7 @@ function MoviePage() {
             instance
                 .get(`/folders`)
                 .then((res) => {
-                    setFolders(res.data)
+                    setFolders(res.data.results)
                 })
                 .catch((err) => {
                     console.warn(err)
@@ -64,12 +69,32 @@ function MoviePage() {
         }
     }, [isGetFolders, isAuth])
 
+    // Завантаження папок, де є цей фільм
+    useEffect(() => {
+        if (isAuth && id) {
+            setIsLoadingItemFolders(true)
+            instance
+                .get(`/folders/movie/${id}`)
+                .then((res) => {
+                    setItemFolders(res.data.results)
+                    setIsLoadingItemFolders(false)
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    setIsLoadingItemFolders(false)
+                })
+        } else {
+            setItemFolders([])
+            setIsLoadingItemFolders(false)
+        }
+    }, [id, isAuth, isGetFolders])
+
     // Функції для роботи з діалогом
     const handleOpenDialogFolder = () => {
-        setOpenMovieSaveDialog(true)
+        setIsOpenDialogAdd(true)
     }
-    const handleCloseMovieSaveDialog = () => {
-        setOpenMovieSaveDialog(false)
+    const handleCloseDialog = () => {
+        setIsOpenDialogAdd(false)
         setSelectedFolder(false)
     }
 
@@ -99,7 +124,7 @@ function MoviePage() {
                 height: "400px",
                 borderRadius: 2,
                 overflow: "hidden",
-                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`,
+                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${movie.backdrop_path})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 display: "flex",
@@ -153,18 +178,22 @@ function MoviePage() {
                         <CardMedia
                             component="img"
                             height="300"
-                            image={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                            alt={movie.title}
+                            image={movie.poster_path
+                                ? `${IMAGE_BASE_URL_W500}${movie.poster_path}`
+                                : IMAGE_DEFAULT
+                            }
                         />
                     </Card>
 
                     {/* Movie Info */}
-                    <Box sx={{ color: "white", flex: 1 }}>
-                        <Typography variant="h3" sx={{ mb: 2, fontWeight: "bold" }}>
+                    <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                        {/* Title */}
+                        <Typography variant="h3" sx={{ fontWeight: "bold" }}>
                             {movie.title}
                         </Typography>
 
-                        <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+                        {/* Genres */}
+                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                             {movie.genres?.map((genre) => (
                                 <Chip
                                     key={genre.id}
@@ -185,10 +214,12 @@ function MoviePage() {
                             ))}
                         </Box>
 
-                        <Typography variant="body1" sx={{ mb: 2, opacity: 0.9 }}>
+                        {/* Overview */}
+                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
                             {movie.overview}
                         </Typography>
 
+                        {/* Rating and Release Date */}
                         <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
                             <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                                 ⭐ {movie.vote_average?.toFixed(1)}
@@ -197,6 +228,36 @@ function MoviePage() {
                                 {movie.release_date} • {movie.runtime} min
                             </Typography>
                         </Box>
+
+                        {/* Block with saved folders */}
+                        {isAuth && !isLoadingItemFolders && itemFolders.length > 0 && (
+                            <Box>
+                                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+                                    <Typography variant="body1">
+                                        Saved in:
+                                    </Typography>
+                                    {itemFolders.map((folder) => (
+                                        <Chip
+                                            key={folder.name}
+                                            label={folder.name}
+                                            variant="outlined"
+                                            onClick={() => navigate(`/user/folders/${folder.name}?filter=${encodeURIComponent(movie.title)}`)}
+                                            sx={{
+                                                cursor: 'pointer',
+                                                backgroundColor: "rgba(255,255,255,0.05)",
+                                                color: "white",
+                                                borderColor: "rgba(255,255,255,0.2)",
+                                                '&.MuiChip-root:hover': {
+                                                    backgroundColor: 'yellow.main',
+                                                    color: 'text.dark',
+                                                    borderColor: 'text.dark',
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                </Box>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
             </Box>
@@ -306,15 +367,16 @@ function MoviePage() {
             )}
 
             {/* Діалог додавання до папки */}
-            <MovieSaveDialog
-                open={openMovieSaveDialog}
-                onClose={handleCloseMovieSaveDialog}
-                folders={folders}
+            <ItemSaveDialog
+                isOpenDialogAdd={isOpenDialogAdd}
+                handleCloseDialog={handleCloseDialog}
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
+                selectedItem={movie}
+                // sidebar props
+                folders={folders}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}
-                selectedMovie={movie}
             />
         </Box>
     )

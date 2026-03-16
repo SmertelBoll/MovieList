@@ -1,12 +1,11 @@
-import { Box, Typography, Chip } from '@mui/material'
-import React from 'react'
+import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 
-const defaultPhoto = "https://res.cloudinary.com/dw0qzruxp/image/upload/v1740604718/placeholder_ayyah4.png"
+const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
+const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`; // базовий URL для отримання зображень
 
 function ActorCart({ person, role }) {
     const navigate = useNavigate();
-    const imageBaseUrl = "https://image.tmdb.org/t/p/w185"
 
     const handleClick = () => {
         // Визначаємо, чи це актор чи член команди
@@ -38,7 +37,7 @@ function ActorCart({ person, role }) {
         >
             <Box
                 component="img"
-                src={person.profile_path ? imageBaseUrl + person.profile_path : defaultPhoto}
+                src={person.profile_path ? IMAGE_BASE_URL_W185 + person.profile_path : IMAGE_DEFAULT}
                 alt={person.name}
                 sx={{
                     width: 100,

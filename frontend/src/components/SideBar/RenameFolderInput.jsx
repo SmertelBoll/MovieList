@@ -8,9 +8,9 @@ function RenameFolderInput({
     curFolderName,
     handleInputChange,
     handleUpdateFolderName,
-    folderOrder,
+    folder,
     handleClickDelete,
-    isNewFolder
+    isInputNewFolder
 }) {
     const theme = useTheme();
     const InputBox = React.useMemo(
@@ -30,7 +30,7 @@ function RenameFolderInput({
                 autoFocus
                 onKeyDown={(event) => {
                     if (event.key === 'Enter') {
-                        handleUpdateFolderName(folderOrder, curFolderName);
+                        handleUpdateFolderName(folder, curFolderName);
                     }
                 }}
                 slotProps={{
@@ -39,15 +39,15 @@ function RenameFolderInput({
                             <InputAdornment position="end">
                                 <CheckIcon
                                     color="success"
-                                    onClick={() => handleUpdateFolderName(folderOrder, curFolderName)}
+                                    onClick={() => handleUpdateFolderName(folder, curFolderName)}
                                     style={{ cursor: 'pointer' }}
                                 />
                                 {
-                                    isNewFolder && (
+                                    isInputNewFolder && (
                                         <CloseIcon
                                             color="error"
                                             onClick={() => {
-                                                handleClickDelete(folderOrder, true);
+                                                handleClickDelete(folder, true);
                                             }}
                                             style={{ cursor: 'pointer' }}
                                         />

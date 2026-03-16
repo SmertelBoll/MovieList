@@ -18,14 +18,6 @@ export const registerUser = async (req, res) => {
     const hash = await bcrypt.hash(password, salt);
 
     const avatar = req.body.avatar;
-    console.log(123);
-
-    console.log({
-      email: req.body.email,
-      fullName: req.body.fullName,
-      avatar: avatar ? avatar : "",
-      passwordHash: hash,
-    });
 
     const doc = new UserModel({
       email: req.body.email,
@@ -62,8 +54,6 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    console.log(req.body);
-
     const user = await UserModel.findOne({ email: req.body.email }).exec();
     if (!user) {
       return res.status(404).json({ title: "Authorization error", message: "user not found" });
@@ -83,7 +73,6 @@ export const loginUser = async (req, res) => {
         expiresIn: "30d", // скільки токен буде існувати
       }
     );
-    console.log(token);
 
     // повертаємо дані
     res.json({
@@ -110,5 +99,36 @@ export const getMe = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Authorization error", message: "failed to get data" });
+  }
+};
+
+export const updateSettings = async (req, res) => {
+  try {
+    const { themeMode, language, typeCustom } = req.body;
+    const user = await UserModel.findByIdAndUpdate(
+      req.userId,
+      {
+        themeMode,
+        language,
+        typeCustom,
+      },
+      { new: true }
+    ).exec();
+
+    if (!user) {
+      return res.status(404).json({ title: "Settings error", message: "user not found" });
+    }
+
+    res.json({
+      success: true,
+      results: {
+        themeMode: user.themeMode,
+        language: user.language,
+        typeCustom: user.typeCustom,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Settings error", message: "failed to update settings" });
   }
 };

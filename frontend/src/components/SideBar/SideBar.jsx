@@ -1,13 +1,9 @@
-import { Box, Button, InputAdornment, Typography } from '@mui/material'
-import React, { useEffect, useMemo, useState } from 'react'
+import { Box, Typography } from '@mui/material'
+import React, { useState } from 'react'
 import SecondaryButton from '../Buttons/SecondaryButton'
 import FolderIcon from '@mui/icons-material/Folder';
-import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { useTheme } from '@emotion/react';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
-import { Link, useNavigate } from 'react-router-dom';
 import { alertConfirm, alertError } from '../../alerts';
 
 import UpdateFolder from './UpdateFolder';
@@ -30,9 +26,9 @@ function SideBar({
 
     const theme = useTheme();
 
-    const [curFolderToRename, setCurFolderToRename] = useState(false);  // order, якій папці міняємо назву
+    const [isInputNewFolder, setIsInputNewFolder] = useState(false)     // чи активовано поле інпуту для створення нової папки (T/F)
+    const [curFolderToRename, setCurFolderToRename] = useState(false);  // obj папки, якій міняємо назву
     const [curFolderName, setCurFolderName] = useState(false)           // значення в інпуті для папки, якій міняємо назву
-    const [isNewFolder, setIsNewFolder] = useState(false)
 
     //-- ADD -- //
     // Додаємо нову папку
@@ -42,11 +38,11 @@ function SideBar({
             const newFolderName = `${timestamp}`; // Назва нової папки
 
             instance
-                .post(`/folders/create`, { name: newFolderName })
+                .post(`/folders`, { name: newFolderName })
                 .then((res) => {
-                    setIsNewFolder(true)
-                    setFolders(prev => [...prev, res.data])
-                    setCurFolderToRename(res.data.order)
+                    setIsInputNewFolder(true)
+                    setFolders(prev => [...prev, res.data.results])
+                    setCurFolderToRename(res.data.results)
                     setCurFolderName("folder")
                 })
                 .catch((err) => {
@@ -58,10 +54,10 @@ function SideBar({
 
     //-- RENAME -- //
     // Натиснуто кнопку rename в панелі вибору дій. Перетворюємо папку на input
-    const handleClickRename = (order, name) => {
-        setIsNewFolder(false)
-        setCurFolderToRename(order)
-        setCurFolderName(name)
+    const handleClickRename = (folder) => {
+        setIsInputNewFolder(false)
+        setCurFolderToRename(folder)
+        setCurFolderName(folder.name)
     }
 
     // Відслідковує input при зміні назви папки
@@ -71,12 +67,12 @@ function SideBar({
     };
 
     // Міняє назву папки у базі даних, оновлюємо state
-    const handleUpdateFolderName = (order, newFolderName) => {
+    const handleUpdateFolderName = (folder, newFolderName) => {
         instance
-            .patch(`/folders/rename/${order}`, { name: newFolderName })
+            .patch(`/folders/${folder.name}`, { name: newFolderName })
             .then((res) => {
                 setFolders((prevFolders) =>
-                    [...prevFolders.filter((folder) => folder.order !== order), res.data]
+                    [...prevFolders.filter((el) => el.name !== folder.name), res.data.results]
                 );
                 setCurFolderToRename(false)
                 setCurFolderName(false)
@@ -90,21 +86,20 @@ function SideBar({
 
     //-- DELETE -- //
     // Натиснуто кнопку delete в панелі вибору дій. Запитуємо чи користувач впевнений
-    const handleClickDelete = (order, pressure = false) => {
+    const handleClickDelete = (folder, pressure = false) => {
         if (pressure) {
-            deleteFolder(order)
+            deleteFolder(folder)
         } else {
-            alertConfirm("Are you sure?", () => deleteFolder(order));
+            alertConfirm("Are you sure?", () => deleteFolder(folder));
         }
     };
-
     // Видалення папки
-    const deleteFolder = (order) => {
+    const deleteFolder = (folder) => {
         instance
-            .delete(`/folders/${order}`)
+            .delete(`/folders/${folder.name}`)
             .then((res) => {
                 setFolders((prevFolders) =>
-                    prevFolders.filter((folder) => folder.order !== order)
+                    prevFolders.filter((el) => el.name !== folder.name)
                 );
                 setIsGetFolders(true)
                 setCurFolderToRename(false)
@@ -119,9 +114,9 @@ function SideBar({
 
     //-- CHANGE ORDER -- //
     // Перемістити вверх по черзі
-    const handleIncrementOrder = (order) => {
+    const handleIncrementOrder = (folder) => {
         instance
-            .patch(`/folders/orderIncrement/${order}`)
+            .patch(`/folders/orderIncrement/${folder.name}`)
             .then((res) => {
                 if (res.data.success) { setIsGetFolders(true) }
             })
@@ -130,11 +125,10 @@ function SideBar({
                 alertError(err);
             });
     }
-
     // Перемістити вниз по черзі
-    const handleDecrementOrder = (order) => {
+    const handleDecrementOrder = (folder) => {
         instance
-            .patch(`/folders/orderDecrement/${order}`)
+            .patch(`/folders/orderDecrement/${folder.name}`)
             .then((res) => {
                 if (res.data.success) setIsGetFolders(true)
             })
@@ -170,14 +164,14 @@ function SideBar({
                 {folders.sort((a, b) => b.order - a.order).map(folder => (
                     <React.Fragment key={folder.order}>
                         {
-                            curFolderToRename === folder.order
+                            curFolderToRename?.order === folder.order
                                 ? <RenameFolderInput
                                     curFolderName={curFolderName}
                                     handleInputChange={handleInputChange}
                                     handleUpdateFolderName={handleUpdateFolderName}
-                                    folderOrder={folder.order}
+                                    folder={folder}
                                     handleClickDelete={handleClickDelete}
-                                    isNewFolder={isNewFolder}
+                                    isInputNewFolder={isInputNewFolder}
                                 />
                                 : <SecondaryButton
                                     startIcon={<FolderIcon />}
@@ -209,10 +203,10 @@ function SideBar({
                                     </Typography>
                                     <UpdateFolder
                                         actionFunctions={{
-                                            handleClickRename: () => handleClickRename(folder.order, folder.name),
-                                            handleClickDelete: () => handleClickDelete(folder.order),
-                                            handleIncrementOrder: () => handleIncrementOrder(folder.order),
-                                            handleDecrementOrder: () => handleDecrementOrder(folder.order),
+                                            handleClickRename: () => handleClickRename(folder),
+                                            handleClickDelete: () => handleClickDelete(folder),
+                                            handleIncrementOrder: () => handleIncrementOrder(folder),
+                                            handleDecrementOrder: () => handleDecrementOrder(folder),
                                         }}
                                     />
                                 </SecondaryButton>
