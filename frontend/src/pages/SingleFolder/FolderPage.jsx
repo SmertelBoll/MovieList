@@ -55,7 +55,7 @@ function FolderPage() {
                     dbType="mongo"
                     urlParams={{}}
                     isPreperedData={false}
-                    preperedData={[]}
+                    preperedData={false}
                     // Інформація сторінки
                     pageType="folder"
                     pageTitle={folderName}

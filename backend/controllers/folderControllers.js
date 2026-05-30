@@ -296,6 +296,9 @@ export const getItemsFromFolder = async (req, res) => {
     const sortParam = req.query.sort_by || "";
     const [sortBy, sortDirection = "desc"] = sortParam.split(".");
 
+    // Фільтр за типом (movie/tv). Може містити обидва значення через кому
+    const types = (req.query.type || "").split(",").filter(Boolean);
+
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 12;
     const skip = (page - 1) * limit;
@@ -354,6 +357,13 @@ export const getItemsFromFolder = async (req, res) => {
       { $replaceRoot: { newRoot: "$item" } }
     ];
 
+    // Фільтрація за типом (тільки movie або тільки tv)
+    if (types.length > 0) {
+      pipeline.push({
+        $match: { media_type: { $in: types } }
+      });
+    }
+
     // Додаємо фільтрацію
     if (filter) {
       pipeline.push({
@@ -390,6 +400,8 @@ export const getItemsFromFolder = async (req, res) => {
     const items = result[0]?.items || [];
     const totalCount = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
+
+    console.log(2, items)
 
     res.json({
       success: true,

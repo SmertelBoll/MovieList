@@ -255,6 +255,7 @@ function GeneralItemList({
                 page: page,
                 sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"]["movie"]}.${sortDirection}`,
                 limit: 24,
+                type: typeTMDB.join(","),
                 ...urlParams
             };
 
