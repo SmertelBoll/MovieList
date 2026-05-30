@@ -1,10 +1,10 @@
-import { Box, Card, CardContent, CardMedia, IconButton, Rating, Typography, Menu, MenuItem } from '@mui/material'
-import { useState } from 'react'
+import { Box, Card, CardContent, CardMedia, IconButton, Rating, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
+import DropdownMenu from '../_customMUI/DropdownMenu';
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // базовий URL для отримання зображень
@@ -30,28 +30,6 @@ function ItemCart({
 
     const isAuth = useSelector(selectIsAuth);
 
-    const [anchorEl, setAnchorEl] = useState(null);
-    const openMenu = Boolean(anchorEl);
-
-    // Спільний стиль для пунктів меню при наведенні
-    const menuItemSx = {
-        '&:hover': {
-            backgroundColor: 'yellow.main',
-            color: 'text.dark'
-        }
-    };
-
-    const handleMenuClick = (e) => {
-        // Зупиняємо сповіщення події, щоб не спрацьовувало при кліку на кнопку Add
-        e.stopPropagation();
-        setAnchorEl(e.currentTarget);
-    };
-
-    const handleMenuClose = (e) => {
-        e.stopPropagation();
-        setAnchorEl(null);
-    };
-
     const handleCardClick = (e) => {
         e.stopPropagation();
         if (item.media_type === "movie") {
@@ -63,13 +41,11 @@ function ItemCart({
 
     const handleAddClick = (e) => {
         e.stopPropagation();
-        handleMenuClose(e);
         onAddItem(item);
     };
 
     const handleEditClick = (e) => {
         e.stopPropagation();
-        handleMenuClose(e);
         onEditItem(item)
     };
 
@@ -77,6 +53,12 @@ function ItemCart({
         e.stopPropagation();
         onDeleteItem(item)
     };
+
+    const menuItems = [
+        { key: 'Add', label: 'Add', onClick: handleAddClick },
+        { key: 'Edit', label: 'Edit', onClick: handleEditClick },
+        { key: 'Delete', label: 'Delete', onClick: handleDeleteClick },
+    ];
 
     return (
         <Card
@@ -99,70 +81,39 @@ function ItemCart({
                 <>
                     {isFolderPage
                         ? (
-                            <>
-                                <IconButton
-                                    aria-label="choose"
-                                    onClick={handleMenuClick}
-                                    sx={{
-                                        position: "absolute",
-                                        right: 5,
-                                        top: 5,
-                                        backgroundColor: "text.main",
-                                        opacity: 0.8,
-                                        zIndex: 1,
-                                        borderRadius: 2,
-                                        '&:hover': {
+                            <DropdownMenu
+                                width={140}
+                                stopPropagation
+                                items={menuItems}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                renderTrigger={({ onClick }) => (
+                                    <IconButton
+                                        aria-label="choose"
+                                        onClick={onClick}
+                                        sx={{
+                                            position: "absolute",
+                                            right: 5,
+                                            top: 5,
+                                            backgroundColor: "text.main",
+                                            opacity: 0.8,
+                                            zIndex: 1,
+                                            borderRadius: 2,
+                                            '&:hover': {
+                                                opacity: 1,
+                                                backgroundColor: "yellow.main",
+                                                '& svg': {
+                                                    color: "text.dark",
+                                                },
+                                            }
+                                        }}>
+                                        <MoreVertIcon sx={{
                                             opacity: 1,
-                                            backgroundColor: "yellow.main",
-                                            '& svg': {
-                                                color: "text.dark",
-                                            },
-                                        }
-                                    }}>
-                                    <MoreVertIcon sx={{
-                                        opacity: 1,
-                                        color: "bg.second"
-                                    }} />
-                                </IconButton>
-                                <Menu
-                                    anchorEl={anchorEl}
-                                    open={openMenu}
-                                    onClose={handleMenuClose}
-                                    onClick={(e) => e.stopPropagation()}
-                                    anchorOrigin={{
-                                        vertical: 'bottom',
-                                        horizontal: 'right',
-                                    }}
-                                    transformOrigin={{
-                                        vertical: 'top',
-                                        horizontal: 'right',
-                                    }}
-                                    sx={{
-                                        '& .MuiPaper-root': {
-                                            mt: "7px",
-                                        }
-                                    }}
-                                >
-                                    <MenuItem onClick={handleAddClick} sx={{
-                                        '&:hover': {
-                                            backgroundColor: 'yellow.main',
-                                            color: 'text.dark'
-                                        }
-                                    }}>Add</MenuItem>
-                                    <MenuItem onClick={handleEditClick} sx={{
-                                        '&:hover': {
-                                            backgroundColor: 'yellow.main',
-                                            color: 'text.dark'
-                                        }
-                                    }}>Edit</MenuItem>
-                                    <MenuItem onClick={handleDeleteClick} sx={{
-                                        '&:hover': {
-                                            backgroundColor: 'yellow.main',
-                                            color: 'text.dark'
-                                        }
-                                    }}>Delete</MenuItem>
-                                </Menu>
-                            </>
+                                            color: "bg.second"
+                                        }} />
+                                    </IconButton>
+                                )}
+                            />
                         )
                         : (
                             <>

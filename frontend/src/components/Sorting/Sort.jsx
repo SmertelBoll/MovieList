@@ -100,9 +100,9 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                                 backgroundColor: "yellow.main",
                             },
                             '&.Mui-selected': {
-                                backgroundColor: "yellow.dark",
+                                backgroundColor: "yellow.main",
                                 '&:hover': {
-                                    backgroundColor: "yellow.main",
+                                    backgroundColor: "yellow.dark",
                                 },
                             },
                             '&.Mui-selected.Mui-focusVisible': {
