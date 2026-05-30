@@ -276,6 +276,7 @@ function TVPage() {
                                         cursor: 'pointer',
                                         backgroundColor: "rgba(255,255,255,0.2)",
                                         color: "white",
+                                        transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                         '&.MuiChip-root:hover': {
                                             backgroundColor: 'yellow.main',
                                             color: 'text.dark',
@@ -319,6 +320,7 @@ function TVPage() {
                                                 backgroundColor: "rgba(255,255,255,0.05)",
                                                 color: "white",
                                                 borderColor: "rgba(255,255,255,0.2)",
+                                                transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                                 '&.MuiChip-root:hover': {
                                                     backgroundColor: 'yellow.main',
                                                     color: 'text.dark',

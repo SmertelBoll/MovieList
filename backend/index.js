@@ -27,7 +27,7 @@ import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
 import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder } from "./controllers/folderControllers.js";
-import { addMovieToFolder, getMovieByTmdbId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
+import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, removeTvFromFolder, updateTvByMongoId } from "./controllers/tvControllers.js";
 
 // підключаємось до бази даних
@@ -88,6 +88,7 @@ app.patch("/auth/settings", checkAuth, updateSettings);
 // app.post("/comments", checkAuth, commentCreateValidation, checkValidationError, createComment);
 // app.delete("/comments/:id", checkAuth, removeComment);
 
+app.get("/movie/mongo/:mongoId", checkAuth, getMovieByMongoId)
 app.get("/movie/:tmdbId", checkAuth, getMovieByTmdbId)
 app.post("/movie", checkAuth, addMovieToFolder)
 app.patch("/movie/:mongoId", checkAuth, updateMovieByMongoId)

@@ -401,8 +401,6 @@ export const getItemsFromFolder = async (req, res) => {
     const totalCount = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
-    console.log(2, items)
-
     res.json({
       success: true,
       results: items,

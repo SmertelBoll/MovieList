@@ -26,6 +26,7 @@ function ItemSaveDialog({
     objectOfFolderPage = null,
     setItems = () => { },
     sortItems = () => { },
+    onAfterDelete = () => { },
     // sidebar props
     folders,
     setFolders,
@@ -215,6 +216,7 @@ function ItemSaveDialog({
                 .then((res) => {
                     alertSuccess(`${item.media_type} successfully deleted`);
                     removeItem(item);
+                    onAfterDelete();
                     handleCloseDialog()
                 })
                 .catch((err) => {

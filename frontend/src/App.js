@@ -44,6 +44,7 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/movie/:id" element={<MoviePage />} />
+              <Route path="/user/movie/:id" element={<MoviePage isSaved />} />
               <Route path="/tv/:id" element={<TVPage />} />
               <Route path="/actor/:id" element={<ActorPage />} />
               <Route path="/crew/:id" element={<CrewPage />} />

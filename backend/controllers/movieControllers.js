@@ -148,6 +148,36 @@ export const removeMovieFromFolder = async (req, res) => {
   }
 };
 
+export const getMovieByMongoId = async (req, res) => {
+  try {
+    const mongoId = req.params.mongoId;
+    const userId = req.userId;
+
+    const item = await MovieModel.findOne({ _id: mongoId, user: userId });
+
+    if (!item) {
+      return res.status(404).json({ title: "Not found", message: "Item not found in your database" });
+    }
+
+    // Знаходимо папку, у якій збережено цей фільм
+    const folder = await FolderModel.findOne({
+      user: userId,
+      "folderElements.itemId": mongoId
+    }).select("name -_id");
+
+    res.json({
+      success: true,
+      results: {
+        ...item.toObject(),
+        folderName: folder?.name || null
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Error", message: "Failed to get item by mongo ID" });
+  }
+};
+
 export const getMovieByTmdbId = async (req, res) => {
   try {
     const tmdbId = req.params.tmdbId;

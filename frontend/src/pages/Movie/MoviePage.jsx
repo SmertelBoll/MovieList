@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Grid, Card, CardMedia, CardContent, IconButton } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -6,22 +6,30 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import ActorCart from '../../components/Carts/ActorCart'
+import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
-function MoviePage() {
+function MoviePage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
     const [movie, setMovie] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Стани для діалогу додавання до папки
+    // Папка, у якій збережено цей фільм (тільки для збереженого фільму)
+    const [currentFolderName, setCurrentFolderName] = useState(null)
+    const [reload, setReload] = useState(0)
+
+    // Стани для діалогу
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
+    const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
+    const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
@@ -31,27 +39,55 @@ function MoviePage() {
 
     const navigate = useNavigate()
 
+    // Завантаження даних фільму з TMDB (за потреби — спочатку дані зі збереженого документа mongo)
     useEffect(() => {
         setIsLoading(true)
 
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/movie/${id}`, {
-                params: {
-                    api_key: API_KEY,
-                    language: "en-US",
-                    append_to_response: "credits"
-                }
-            })
-            .then((res) => {
-                setMovie({ ...res.data, media_type: "movie" })
-                setIsLoading(false)
-            })
-            .catch((err) => {
-                console.warn(err)
-                alertError(err, "Failed to load movie")
-                setIsLoading(false)
-            })
-    }, [id])
+        const loadTmdb = (tmdbId, savedFields = {}) => {
+            instance
+                .get(`${process.env.REACT_APP_URL_TMDB}/movie/${tmdbId}`, {
+                    params: {
+                        api_key: API_KEY,
+                        language: "en-US",
+                        append_to_response: "credits"
+                    }
+                })
+                .then((res) => {
+                    setMovie({ ...res.data, media_type: "movie", tmdbId: res.data.id, ...savedFields })
+                    setIsLoading(false)
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err, "Failed to load movie")
+                    setIsLoading(false)
+                })
+        }
+
+        if (isSaved) {
+            instance
+                .get(`/movie/mongo/${id}`)
+                .then((res) => {
+                    const saved = res.data.results
+                    setCurrentFolderName(saved.folderName)
+                    loadTmdb(saved.tmdbId, {
+                        _id: saved._id,
+                        tmdbId: saved.tmdbId,
+                        rating: saved.rating,
+                        comment: saved.comment,
+                        dateAdded: saved.dateAdded,
+                        updatedAt: saved.updatedAt,
+                        customType: saved.customType
+                    })
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err, "Failed to load movie")
+                    setIsLoading(false)
+                })
+        } else {
+            loadTmdb(id)
+        }
+    }, [id, isSaved, reload])
 
     // Завантаження папок користувача
     useEffect(() => {
@@ -71,10 +107,11 @@ function MoviePage() {
 
     // Завантаження папок, де є цей фільм
     useEffect(() => {
-        if (isAuth && id) {
+        const tmdbId = movie?.tmdbId
+        if (isAuth && tmdbId) {
             setIsLoadingItemFolders(true)
             instance
-                .get(`/folders/movie/${id}`)
+                .get(`/folders/movie/${tmdbId}`)
                 .then((res) => {
                     setItemFolders(res.data.results)
                     setIsLoadingItemFolders(false)
@@ -87,16 +124,35 @@ function MoviePage() {
             setItemFolders([])
             setIsLoadingItemFolders(false)
         }
-    }, [id, isAuth, isGetFolders])
+    }, [movie?.tmdbId, isAuth, isGetFolders])
 
     // Функції для роботи з діалогом
-    const handleOpenDialogFolder = () => {
+    const handleOpenDialogAdd = () => {
+        setSelectedFolder(false)
         setIsOpenDialogAdd(true)
+    }
+    const handleOpenDialogEdit = () => {
+        setSelectedFolder(currentFolderName ? { name: currentFolderName } : false)
+        setIsOpenDialogEdit(true)
+    }
+    const handleDeleteItem = () => {
+        setSelectedFolder(currentFolderName ? { name: currentFolderName } : false)
+        setIsDeleteItem(true)
     }
     const handleCloseDialog = () => {
         setIsOpenDialogAdd(false)
+        setIsOpenDialogEdit(false)
+        setIsDeleteItem(false)
         setSelectedFolder(false)
+        // Оновлюємо дані сторінки після редагування / додавання
+        if (isSaved) setReload(prev => prev + 1)
     }
+
+    const savedMenuItems = [
+        { key: 'Add', label: 'Add', onClick: handleOpenDialogAdd },
+        { key: 'Edit', label: 'Edit', onClick: handleOpenDialogEdit },
+        { key: 'Delete', label: 'Delete', onClick: handleDeleteItem },
+    ]
 
     if (isLoading) {
         return (
@@ -131,33 +187,61 @@ function MoviePage() {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка Add для авторизованих користувачів */}
+                {/* Кнопка дій для авторизованих користувачів */}
                 {isAuth && (
-                    <IconButton
-                        aria-label="add to folder"
-                        onClick={handleOpenDialogFolder}
-                        sx={{
-                            position: "absolute",
-                            right: 20,
-                            top: 20,
-                            backgroundColor: "white",
-                            opacity: 0.9,
-                            zIndex: 2,
-                            borderRadius: 2,
-                            '&:hover': {
-                                opacity: 1,
-                                backgroundColor: "yellow.main",
-                                '& svg': {
-                                    color: "text.dark",
-                                },
-                            }
-                        }}
-                    >
-                        <AddIcon sx={{
-                            opacity: 1,
-                            color: "text.main"
-                        }} />
-                    </IconButton>
+                    isSaved
+                        ? (
+                            <DropdownMenu
+                                width={140}
+                                items={savedMenuItems}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                renderTrigger={({ onClick }) => (
+                                    <IconButton
+                                        aria-label="edit saved movie"
+                                        onClick={onClick}
+                                        sx={{
+                                            position: "absolute",
+                                            right: 20,
+                                            top: 20,
+                                            backgroundColor: "white",
+                                            opacity: 0.9,
+                                            zIndex: 2,
+                                            borderRadius: 2,
+                                            '&:hover': {
+                                                opacity: 1,
+                                                backgroundColor: "yellow.main",
+                                                '& svg': { color: "text.dark" },
+                                            }
+                                        }}
+                                    >
+                                        <MoreVertIcon sx={{ opacity: 1, color: "text.main" }} />
+                                    </IconButton>
+                                )}
+                            />
+                        )
+                        : (
+                            <IconButton
+                                aria-label="add to folder"
+                                onClick={handleOpenDialogAdd}
+                                sx={{
+                                    position: "absolute",
+                                    right: 20,
+                                    top: 20,
+                                    backgroundColor: "white",
+                                    opacity: 0.9,
+                                    zIndex: 2,
+                                    borderRadius: 2,
+                                    '&:hover': {
+                                        opacity: 1,
+                                        backgroundColor: "yellow.main",
+                                        '& svg': { color: "text.dark" },
+                                    }
+                                }}
+                            >
+                                <AddIcon sx={{ opacity: 1, color: "text.main" }} />
+                            </IconButton>
+                        )
                 )}
                 <Box sx={{
                     display: "flex",
@@ -168,22 +252,35 @@ function MoviePage() {
                     p: 3
                 }}>
                     {/* Poster */}
-                    <Card sx={{
-                        width: 200,
-                        height: 300,
-                        flexShrink: 0,
-                        boxShadow: 3,
-                        borderRadius: 2
-                    }}>
-                        <CardMedia
-                            component="img"
-                            height="300"
-                            image={movie.poster_path
-                                ? `${IMAGE_BASE_URL_W500}${movie.poster_path}`
-                                : IMAGE_DEFAULT
-                            }
-                        />
-                    </Card>
+                    <Tooltip title={isSaved ? "Open the movie page" : ""} arrow placement="top">
+                        <Card
+                            onClick={isSaved ? () => navigate(`/movie/${movie.tmdbId}`) : undefined}
+                            sx={{
+                                width: 200,
+                                height: 300,
+                                flexShrink: 0,
+                                boxShadow: 3,
+                                borderRadius: 2,
+                                ...(isSaved && {
+                                    cursor: "pointer",
+                                    transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+                                    "&:hover": {
+                                        transform: "translateY(-4px)",
+                                        boxShadow: 6
+                                    }
+                                })
+                            }}
+                        >
+                            <CardMedia
+                                component="img"
+                                height="300"
+                                image={movie.poster_path
+                                    ? `${IMAGE_BASE_URL_W500}${movie.poster_path}`
+                                    : IMAGE_DEFAULT
+                                }
+                            />
+                        </Card>
+                    </Tooltip>
 
                     {/* Movie Info */}
                     <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -204,6 +301,7 @@ function MoviePage() {
                                         cursor: 'pointer',
                                         backgroundColor: "rgba(255,255,255,0.2)",
                                         color: "white",
+                                        transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                         '&.MuiChip-root:hover': {
                                             backgroundColor: 'yellow.main',
                                             color: 'text.dark',
@@ -247,6 +345,7 @@ function MoviePage() {
                                                 backgroundColor: "rgba(255,255,255,0.05)",
                                                 color: "white",
                                                 borderColor: "rgba(255,255,255,0.2)",
+                                                transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                                 '&.MuiChip-root:hover': {
                                                     backgroundColor: 'yellow.main',
                                                     color: 'text.dark',
@@ -261,6 +360,44 @@ function MoviePage() {
                     </Box>
                 </Box>
             </Box>
+
+            {/* User review (тільки для збереженого фільму) */}
+            {isSaved && (
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3 }}>
+                    {/* Коментар (займає всю решту місця) */}
+                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <Typography variant="h5" color="text.main">My review</Typography>
+                        <Typography variant="body1" color="text.main" sx={{ whiteSpace: "pre-wrap" }}>
+                            {movie.comment || "No comment"}
+                        </Typography>
+                    </Box>
+
+                    {/* Оцінка та дати (під розмір вмісту) */}
+                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Rating
+                                name="user-rating"
+                                value={(movie.rating || 0) / 20}
+                                precision={0.1}
+                                readOnly
+                            />
+                            <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
+                                {movie.rating ?? "-"}/100
+                            </Typography>
+                        </Box>
+                        {movie.dateAdded && (
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                                Added: {movie.dateAdded.split('T')[0]}
+                            </Typography>
+                        )}
+                        {movie.updatedAt && (
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                                Updated: {movie.updatedAt.split('T')[0]}
+                            </Typography>
+                        )}
+                    </Box>
+                </Box>
+            )}
 
             {/* Cast Section */}
             {movie.credits?.cast && movie.credits.cast.length > 0 && (
@@ -353,6 +490,7 @@ function MoviePage() {
                                 onClick={() => navigate(`/company/${company.id}`)}
                                 sx={{
                                     cursor: 'pointer',
+                                    transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                     '&.MuiChip-root:hover': {
                                         backgroundColor: 'yellow.main',
                                         color: 'text.dark',
@@ -366,13 +504,16 @@ function MoviePage() {
                 </Box>
             )}
 
-            {/* Діалог додавання до папки */}
+            {/* Діалог додавання / редагування / видалення */}
             <ItemSaveDialog
                 isOpenDialogAdd={isOpenDialogAdd}
+                isOpenDialogEdit={isOpenDialogEdit}
+                isDeleteItem={isDeleteItem}
                 handleCloseDialog={handleCloseDialog}
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
                 selectedItem={movie}
+                onAfterDelete={() => navigate(-1)}
                 // sidebar props
                 folders={folders}
                 setFolders={setFolders}
@@ -382,4 +523,4 @@ function MoviePage() {
     )
 }
 
-export default MoviePage 
+export default MoviePage

@@ -33,7 +33,11 @@ function ItemCart({
     const handleCardClick = (e) => {
         e.stopPropagation();
         if (item.media_type === "movie") {
-            navigate(`/movie/${item.id}`);
+            if (dbType === "mongo") {
+                navigate(`/user/movie/${item._id}`);
+            } else {
+                navigate(`/movie/${item.id}`);
+            }
         } else if (item.media_type === "tv") {
             navigate(`/tv/${item.id}`);
         }
