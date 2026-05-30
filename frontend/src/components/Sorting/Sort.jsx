@@ -14,7 +14,7 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         } else {
             // Якщо вибираємо новий елемент - встановлюємо його order за замовчуванням
-            const selectedCategory = categoriesSortBy.find(cat => cat.name === newName);
+            const selectedCategory = categoriesSortBy[newName]
             setSortDirection(selectedCategory.order);
             setNameSortBy(newName);
         }
@@ -90,11 +90,11 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                     },
                 }}
             >
-                {categoriesSortBy.map((category) => (
+                {Object.keys(categoriesSortBy).map((categoryName) => (
                     <MenuItem
-                        key={category.name}
-                        value={category.name}
-                        onClick={() => handleMenuItemClick(category.name)}
+                        key={categoryName}
+                        value={categoryName}
+                        onClick={() => handleMenuItemClick(categoryName)}
                         sx={{
                             '&:hover': {
                                 backgroundColor: "yellow.main",
@@ -117,8 +117,8 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                         }}
                     >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <span>{category.name}</span>
-                            {category.name === nameSortBy && (
+                            <span>{categoryName}</span>
+                            {categoryName === nameSortBy && (
                                 sortDirection === 'asc' ? (
                                     <ArrowUpwardIcon sx={{ fontSize: 16 }} />
                                 ) : (

@@ -12,6 +12,8 @@ import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 function HomePage() {
   const isAuth = useSelector(selectIsAuth);
   const navigate = useNavigate();
+  const { typeTMDB } = useSelector((state) => state.config);
+
 
   const [folders, setFolders] = useState([])                  // Папки
   const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
@@ -68,7 +70,7 @@ function HomePage() {
 
   //-- OPEN FOLDER -- //
   const handleOpenFolder = (folder) => {
-    navigate(`user/folders/${folder.name}`);
+    navigate(`folders/${folder.name}`);
   }
 
 
@@ -87,7 +89,7 @@ function HomePage() {
       preperedData={false}
       // Інформація сторінки
       pageType="home"
-      pageTitle="Movies"
+      pageTitle="Here can be your advertisement"
       isSearch={true}
       isSort={true}
     />

@@ -49,7 +49,7 @@ function App() {
               <Route path="/crew/:id" element={<CrewPage />} />
               <Route path="/company/:id" element={<CompanyPage />} />
               <Route path="/genre/:id" element={<GenrePage />} />
-              <Route path="/user/folders/:folderName" element={<FolderPage />} />
+              <Route path="/folders/:folderName" element={<FolderPage />} />
               <Route path="/register" element={<RegistrationForm />} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="*" element={<NotFound />} />

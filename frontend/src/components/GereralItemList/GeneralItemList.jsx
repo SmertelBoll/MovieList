@@ -1,10 +1,10 @@
-import { Box, CircularProgress, debounce, Grid2, Typography } from '@mui/material'
+import { Box, CircularProgress, debounce, Grid2, Tooltip, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import Search from '../Sorting/Search'
 import ItemCart from './ItemCart';
 import instance from '../../axios';
-import { alertError, alertConfirm, alertSuccess } from '../../alerts';
+import { alertError } from '../../alerts';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MainButton from '../Buttons/MainButton';
 import ItemSaveDialog from '../ItemSaveDialog/ItemSaveDialog';
@@ -13,55 +13,47 @@ import Sort from '../Sorting/Sort';
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 const CATEGORIES_SORT_BY = {
-    tmdb: [
-        {
-            name: 'Popularity',
-            keys: ['popularity'],
+    tmdb: {
+        'Popularity': {
+            keys: { movie: 'popularity', tv: 'popularity' },
             order: 'desc'
         },
-        {
-            name: 'Rating',
-            keys: ['vote_average'],
+        'Rating': {
+            keys: { movie: 'vote_average', tv: 'vote_average' },
             order: 'desc'
         },
-        {
-            name: 'Release Date',
-            keys: ['release_date', 'first_air_date'],
+        'Release Date': {
+            keys: { movie: 'release_date', tv: 'first_air_date' },
             order: 'desc'
         },
-        {
-            name: 'Vote Count',
-            keys: ['vote_count'],
+        'Vote Count': {
+            keys: { movie: 'vote_count', tv: 'vote_count' },
             order: 'desc'
         },
-        {
-            name: 'Title',
-            keys: ['original_title'],
+        'Title': {
+            keys: { movie: 'title', tv: 'name' },
             order: 'asc'
         }
-    ],
-    mongo: [
-        {
-            name: 'Add Date',
-            keys: ['dateAdded'],
+
+    },
+    mongo: {
+        'Add Date': {
+            keys: { movie: 'dateAdded', tv: 'dateAdded' },
             order: 'desc'
         },
-        {
-            name: 'Update Date',
-            keys: ['updatedAt'],
+        'Update Date': {
+            keys: { movie: 'updatedAt', tv: 'updatedAt' },
             order: 'desc'
         },
-        {
-            name: 'Rating',
-            keys: ['rating'],
+        'Rating': {
+            keys: { movie: 'rating', tv: 'rating' },
             order: 'desc'
         },
-        {
-            name: 'Title',
-            keys: ['movieTitle'],
+        'Title': {
+            keys: { movie: 'movieTitle', tv: 'movieTitle' },
             order: 'asc'
         }
-    ]
+    }
 }
 
 const LIMIT_ITEMS = 12;
@@ -98,7 +90,7 @@ function GeneralItemList({
     const [isLoadedItems, setIsLoadedItems] = useState(true);    // фільми загружені (T/F)
     const [items, setItems] = useState([])                       // об'єкти фільму
     const [displayedItems, setDisplayedItems] = useState(0)      // скільки фільмів на екрані
-    const [page, setPage] = useState(1)                          // сторінка запиту
+    const [page, setPage] = useState(0)                          // сторінка запиту
     const [totalPages, setTotalPages] = useState(1)              // загальна кількість сторінок
 
     // об'єкти для ItemsDialog
@@ -109,21 +101,16 @@ function GeneralItemList({
     const [selectedItem, setSelectedItem] = useState({});        // який фільм (obj) обраний у ItemsDialog
 
     // робота з сортуванням
-    const [nameSortBy, setNameSortBy] = useState(CATEGORIES_SORT_BY[dbType][0].name);
-    const [sortDirection, setSortDirection] = useState(CATEGORIES_SORT_BY[dbType][0].order);
+    const [nameSortBy, setNameSortBy] = useState(Object.keys(CATEGORIES_SORT_BY[dbType])[0]);
+    const [sortDirection, setSortDirection] = useState('desc');
 
 
     // -- HELP FUNCTIONS -- //
-    // Функція для отримання ключів сортування
-    const getSortKeys = (nameSortBy) => {
-        return CATEGORIES_SORT_BY[dbType].find(el => el.name === nameSortBy).keys;
-    }
     // Функція для сортування фільмів на клієнті
     const sortItems = useCallback((items, nameSortBy, order) => {
         return [...items].sort((a, b) => {
-            const sortByKeys = getSortKeys(nameSortBy);
-            let aValue = sortByKeys.map(k => a[k]).find(v => v !== undefined)
-            let bValue = sortByKeys.map(k => b[k]).find(v => v !== undefined)
+            let aValue = a[CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][a.media_type]]
+            let bValue = b[CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][b.media_type]]
 
             // Обробка спеціальних випадків
             if (nameSortBy === 'Release Date' || nameSortBy === 'Add Date' || nameSortBy === 'Update Date') {
@@ -177,17 +164,23 @@ function GeneralItemList({
         }
     }, [location.search, navigate]);
 
+    // Почати завантаження з початку
     useEffect(() => {
         setIsLoadedItems(false)
         setItems([])
         setDisplayedItems(0)
-        setPage(1)
         setTotalPages(1)
+        setPage(0)
     }, [searchValue, nameSortBy, sortDirection, typeTMDB])
 
     // Загрузка даних
     useEffect(() => {
         setIsLoadedItems(false);
+
+        if (page === 0) {
+            setPage(1)
+            return
+        }
 
         // Використовуємо передані дані
         if (isPreperedData && page === 1) {
@@ -216,7 +209,6 @@ function GeneralItemList({
                 api_key: API_KEY,
                 language: "en-US",
                 page: page,
-                sort_by: `${CATEGORIES_SORT_BY[dbType]}.${sortDirection}`,
                 ...urlParams
             };
 
@@ -227,7 +219,12 @@ function GeneralItemList({
 
             Promise.all(
                 typeTMDB.map(type =>
-                    instance.get(`${endpoint}/${type}`, { params })
+                    instance.get(`${endpoint}/${type}`, {
+                        params: {
+                            ...params,
+                            sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][type]}.${sortDirection}`,
+                        }
+                    })
                         .then(res => ({
                             results: res.data.results.map(item => ({ ...item, media_type: type })),
                             totalPages: res.data.total_pages
@@ -256,7 +253,7 @@ function GeneralItemList({
 
             let params = {
                 page: page,
-                sort_by: `${getSortKeys(nameSortBy)}.${sortDirection}`,
+                sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"]["movie"]}.${sortDirection}`,
                 limit: 24,
                 ...urlParams
             };
@@ -395,19 +392,31 @@ function GeneralItemList({
                         <Search inputText={inputText} onChangeInput={onChangeInput} />
                     </Box>}
 
-                    {isSort && <Box sx={{
-                        flex: isSearch ? "25%" : "0%",
-                        opacity: searchValue.trim() !== "" && dbType === "tmdb" && !preperedData ? 0.5 : 1,
-                        pointerEvents: searchValue.trim() !== "" && dbType === "tmdb" && !preperedData ? "none" : "auto"
-                    }}>
-                        <Sort
-                            nameSortBy={nameSortBy}
-                            setNameSortBy={setNameSortBy}
-                            sortDirection={sortDirection}
-                            setSortDirection={setSortDirection}
-                            categoriesSortBy={CATEGORIES_SORT_BY[dbType]}
-                        />
-                    </Box>}
+                    {isSort && (() => {
+                        const isSortDisabled = dbType === "tmdb" && !preperedData && (searchValue.trim() !== "" || typeTMDB.length > 1);
+                        return (
+                            <Tooltip
+                                title={isSortDisabled ? "Sorting is not available for the current filters" : ""}
+                                arrow
+                                placement="top"
+                            >
+                                <Box sx={{ flex: isSearch ? "25%" : "0%" }}>
+                                    <Box sx={{
+                                        opacity: isSortDisabled ? 0.5 : 1,
+                                        pointerEvents: isSortDisabled ? "none" : "auto"
+                                    }}>
+                                        <Sort
+                                            nameSortBy={nameSortBy}
+                                            setNameSortBy={setNameSortBy}
+                                            sortDirection={sortDirection}
+                                            setSortDirection={setSortDirection}
+                                            categoriesSortBy={CATEGORIES_SORT_BY[dbType]}
+                                        />
+                                    </Box>
+                                </Box>
+                            </Tooltip>
+                        );
+                    })()}
                 </Box>
             }
 

@@ -313,7 +313,7 @@ function TVPage() {
                                             key={folder.name}
                                             label={folder.name}
                                             variant="outlined"
-                                            onClick={() => navigate(`/user/folders/${folder.name}?filter=${encodeURIComponent(serial.name)}`)}
+                                            onClick={() => navigate(`/folders/${folder.name}?filter=${encodeURIComponent(serial.name)}`)}
                                             sx={{
                                                 cursor: 'pointer',
                                                 backgroundColor: "rgba(255,255,255,0.05)",

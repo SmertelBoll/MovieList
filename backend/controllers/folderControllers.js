@@ -46,46 +46,6 @@ export const createFolder = async (req, res) => {
   }
 };
 
-export const renameFolderByOrder = async (req, res) => {
-  try {
-    const folderOrder = req.params.order;
-    const newFolderName = req.body.name;
-    const userId = req.userId;
-
-    const currentFolder = await FolderModel.findOne({ order: folderOrder, user: userId });
-
-    if (!currentFolder) {
-      return res.status(404).json({ title: "Folder not found", message: "no folder found" });
-    }
-
-    let folderNames = await FolderModel
-      .find({ user: userId })
-      .select("name -_id")
-      .exec()
-
-    folderNames = folderNames.map(obj => obj.name)
-
-    if (folderNames.includes(newFolderName) && currentFolder.name !== newFolderName) {
-      return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
-    }
-
-    // Оновити поле name
-    currentFolder.name = newFolderName;
-
-    // Зберегти зміни
-    await currentFolder.save();
-
-    // Відповідь з оновленою папкою
-    res.json({
-      success: true,
-      results: currentFolder
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ title: "Folders error", message: "failed to get folders" });
-  }
-}
-
 export const renameFolder = async (req, res) => {
   try {
     const oldFolderName = req.params.oldName;
