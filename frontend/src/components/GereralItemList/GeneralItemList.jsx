@@ -381,80 +381,91 @@ function GeneralItemList({
         props.objectOfFolderPage
     ]);
 
+    const isEmpty = isPreperedData && preperedData.length === 0;
+
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
             <Typography variant="p" color="text.main" >{pageTitle}</Typography>
 
-            {(isSearch || isSort) &&
-                <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
+            {isEmpty
+                ? <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                    No items to display
+                </Typography>
+                : <>
+                    {(isSearch || isSort) &&
+                        <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
 
-                    {isSearch && <Box sx={{ flex: isSort ? "75%" : "100%" }}>
-                        <Search inputText={inputText} onChangeInput={onChangeInput} />
-                    </Box>}
+                            {isSearch && <Box sx={{ flex: isSort ? "75%" : "100%" }}>
+                                <Search inputText={inputText} onChangeInput={onChangeInput} />
+                            </Box>}
 
-                    {isSort && (() => {
-                        const isSortDisabled = dbType === "tmdb" && !preperedData && (searchValue.trim() !== "" || typeTMDB.length > 1);
-                        return (
-                            <Tooltip
-                                title={isSortDisabled ? "Sorting is not available for the current filters" : ""}
-                                arrow
-                                placement="top"
-                            >
-                                <Box sx={{ flex: isSearch ? "25%" : "0%" }}>
-                                    <Box sx={{
-                                        opacity: isSortDisabled ? 0.5 : 1,
-                                        pointerEvents: isSortDisabled ? "none" : "auto"
-                                    }}>
-                                        <Sort
-                                            nameSortBy={nameSortBy}
-                                            setNameSortBy={setNameSortBy}
-                                            sortDirection={sortDirection}
-                                            setSortDirection={setSortDirection}
-                                            categoriesSortBy={CATEGORIES_SORT_BY[dbType]}
-                                        />
-                                    </Box>
-                                </Box>
-                            </Tooltip>
-                        );
-                    })()}
-                </Box>
-            }
-
-            {items.length > 0 && renderedItemGrid}
-
-            <ItemSaveDialog
-                isOpenDialogAdd={isOpenDialogAdd}
-                isOpenDialogEdit={isOpenDialogEdit}
-                isDeleteItem={isDeleteItem}
-                handleCloseDialog={handleCloseDialog}
-                selectedFolder={selectedFolder}
-                setSelectedFolder={setSelectedFolder}
-                selectedItem={selectedItem}
-                // update state if folder page
-                objectOfFolderPage={props?.objectOfFolderPage}
-                setItems={setItems}
-                sortItems={(items) => sortItems(items, nameSortBy, sortDirection)}
-                // sidebar props
-                folders={folders}
-                setFolders={setFolders}
-                setIsGetFolders={setIsGetFolders}
-            />
-
-            <Box sx={{ mb: 2 }}>
-                {
-                    !isLoadedItems
-                        ? <Box width="100%" textAlign="center">
-                            <CircularProgress color="text.main" />
+                            {isSort && (() => {
+                                const isSortDisabled = dbType === "tmdb" && !preperedData && (searchValue.trim() !== "" || typeTMDB.length > 1);
+                                return (
+                                    <Tooltip
+                                        title={isSortDisabled ? "Sorting is not available for the current filters" : ""}
+                                        arrow
+                                        placement="top"
+                                    >
+                                        <Box sx={{ flex: isSearch ? "25%" : "0%" }}>
+                                            <Box sx={{
+                                                opacity: isSortDisabled ? 0.5 : 1,
+                                                pointerEvents: isSortDisabled ? "none" : "auto"
+                                            }}>
+                                                <Sort
+                                                    nameSortBy={nameSortBy}
+                                                    setNameSortBy={setNameSortBy}
+                                                    sortDirection={sortDirection}
+                                                    setSortDirection={setSortDirection}
+                                                    categoriesSortBy={CATEGORIES_SORT_BY[dbType]}
+                                                />
+                                            </Box>
+                                        </Box>
+                                    </Tooltip>
+                                );
+                            })()}
                         </Box>
-                        : (totalPages > page || displayedItems < items.length) && items.length > 0
-                            ? <Box display="flex" justifyContent="center" >
-                                <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
-                            </Box>
-                            : <></>
-                }
-            </Box>
+                    }
 
+                    {items.length > 0 && renderedItemGrid}
 
+                    {items.length === 0 && isLoadedItems && page > 0 &&
+                        <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                            No items to display
+                        </Typography>
+                    }
+
+                    <ItemSaveDialog
+                        isOpenDialogAdd={isOpenDialogAdd}
+                        isOpenDialogEdit={isOpenDialogEdit}
+                        isDeleteItem={isDeleteItem}
+                        handleCloseDialog={handleCloseDialog}
+                        selectedFolder={selectedFolder}
+                        setSelectedFolder={setSelectedFolder}
+                        selectedItem={selectedItem}
+                        objectOfFolderPage={props?.objectOfFolderPage}
+                        setItems={setItems}
+                        sortItems={(items) => sortItems(items, nameSortBy, sortDirection)}
+                        folders={folders}
+                        setFolders={setFolders}
+                        setIsGetFolders={setIsGetFolders}
+                    />
+
+                    <Box sx={{ mb: 2 }}>
+                        {
+                            !isLoadedItems
+                                ? <Box width="100%" textAlign="center">
+                                    <CircularProgress color="text.main" />
+                                </Box>
+                                : (totalPages > page || displayedItems < items.length) && items.length > 0
+                                    ? <Box display="flex" justifyContent="center" >
+                                        <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
+                                    </Box>
+                                    : <></>
+                        }
+                    </Box>
+                </>
+            }
 
         </Box >
     )
