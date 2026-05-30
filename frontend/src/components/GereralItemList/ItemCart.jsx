@@ -39,7 +39,11 @@ function ItemCart({
                 navigate(`/movie/${item.id}`);
             }
         } else if (item.media_type === "tv") {
-            navigate(`/tv/${item.id}`);
+            if (dbType === "mongo") {
+                navigate(`/user/tv/${item._id}`);
+            } else {
+                navigate(`/tv/${item.id}`);
+            }
         }
     };
 

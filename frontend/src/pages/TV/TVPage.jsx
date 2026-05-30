@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Grid, Card, CardMedia, CardContent, IconButton, Divider } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -6,84 +6,120 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import ActorCart from '../../components/Carts/ActorCart'
 import EpisodeCart from '../../components/Carts/EpisodeCart'
+import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
-function TVPage() {
+function TVPage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true)
 
-    // Стани для діалогу додавання до папки
+    // Папка, у якій збережено цей серіал (тільки для збереженого серіалу)
+    const [currentFolderName, setCurrentFolderName] = useState(null)
+    const [reload, setReload] = useState(0)
+
+    // Стани для діалогу
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
+    const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
+    const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
-    const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей фільм
-    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей фільм
+    const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей серіал
+    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей серіал
 
     const navigate = useNavigate()
 
+    // Завантаження даних серіалу з TMDB (за потреби — спочатку дані зі збереженого документа mongo)
     useEffect(() => {
         setIsLoading(true)
 
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/tv/${id}`, {
-                params: {
-                    api_key: API_KEY,
-                    language: "en-US",
-                    append_to_response: "credits"
-                }
-            })
-            .then((res) => {
-                setSerial({ ...res.data, media_type: "tv" })
+        const loadTmdb = (tmdbId, savedFields = {}) => {
+            instance
+                .get(`${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}`, {
+                    params: {
+                        api_key: API_KEY,
+                        language: "en-US",
+                        append_to_response: "credits"
+                    }
+                })
+                .then((res) => {
+                    setSerial({ ...res.data, media_type: "tv", tmdbId: res.data.id, ...savedFields })
 
-                // Fetch details for all seasons to get episode ratings
-                const seasonPromises = res.data.seasons
-                    .filter(s => s.season_number > 0)
-                    .map(s =>
-                        instance.get(
-                            `${process.env.REACT_APP_URL_TMDB}/tv/${id}/season/${s.season_number}`,
-                            { params: { api_key: API_KEY, language: "en-US" } }
-                        )
-                    );
+                    // Завантажуємо деталі всіх сезонів, щоб отримати оцінки серій
+                    const seasonPromises = res.data.seasons
+                        .filter(s => s.season_number > 0)
+                        .map(s =>
+                            instance.get(
+                                `${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}/season/${s.season_number}`,
+                                { params: { api_key: API_KEY, language: "en-US" } }
+                            )
+                        );
 
-                Promise.all(seasonPromises)
-                    .then(responses => {
-                        const seasonMap = {};
-                        responses.forEach(r => {
-                            const season = r.data;
-                            const episodeMap = {};
-                            season.episodes.forEach(e => {
-                                episodeMap[e.episode_number] = e;
+                    Promise.all(seasonPromises)
+                        .then(responses => {
+                            const seasonMap = {};
+                            responses.forEach(r => {
+                                const season = r.data;
+                                const episodeMap = {};
+                                season.episodes.forEach(e => {
+                                    episodeMap[e.episode_number] = e;
+                                });
+                                seasonMap[season.season_number] = episodeMap;
                             });
-                            seasonMap[season.season_number] = episodeMap;
+                            setSeasonDetails(seasonMap);
+                            setIsLoading(false);
+                        })
+                        .catch(err => {
+                            console.warn(err);
+                            alertError(err, "Failed to fetch seasons")
+                            setIsLoading(false);
                         });
-                        setSeasonDetails(seasonMap);
-                        console.log(seasonMap)
-                        setIsLoading(false);
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err, "Failed to load TV show")
+                    setIsLoading(false)
+                })
+        }
+
+        if (isSaved) {
+            instance
+                .get(`/tv/mongo/${id}`)
+                .then((res) => {
+                    const saved = res.data.results
+                    setCurrentFolderName(saved.folderName)
+                    loadTmdb(saved.tmdbId, {
+                        _id: saved._id,
+                        tmdbId: saved.tmdbId,
+                        rating: saved.rating,
+                        comment: saved.comment,
+                        dateAdded: saved.dateAdded,
+                        updatedAt: saved.updatedAt,
+                        customType: saved.customType,
+                        seasons: saved.seasons
                     })
-                    .catch(err => {
-                        console.warn(err);
-                        alertError(err, "Failed to fetch seasons")
-                        setIsLoading(false);
-                    });
-            })
-            .catch((err) => {
-                console.warn(err)
-                alertError(err, "Failed to load TV show")
-                setIsLoading(false)
-            })
-    }, [id])
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err, "Failed to load TV show")
+                    setIsLoading(false)
+                })
+        } else {
+            loadTmdb(id)
+        }
+    }, [id, isSaved, reload])
 
     // Завантаження папок користувача
     useEffect(() => {
@@ -101,12 +137,13 @@ function TVPage() {
         }
     }, [isGetFolders, isAuth])
 
-    // Завантаження папок, де є цей фільм
+    // Завантаження папок, де є цей серіал
     useEffect(() => {
-        if (isAuth && id) {
+        const tmdbId = serial?.tmdbId
+        if (isAuth && tmdbId) {
             setIsLoadingItemFolders(true)
             instance
-                .get(`/folders/tv/${id}`)
+                .get(`/folders/tv/${tmdbId}`)
                 .then((res) => {
                     setItemFolders(res.data.results)
                     setIsLoadingItemFolders(false)
@@ -119,18 +156,37 @@ function TVPage() {
             setItemFolders([])
             setIsLoadingItemFolders(false)
         }
-    }, [id, isAuth, isGetFolders])
+    }, [serial?.tmdbId, isAuth, isGetFolders])
 
     // Функції для роботи з діалогом
-    const handleOpenDialogFolder = () => {
+    const handleOpenDialogAdd = () => {
+        setSelectedFolder(false)
         setIsOpenDialogAdd(true)
+    }
+    const handleOpenDialogEdit = () => {
+        setSelectedFolder(currentFolderName ? { name: currentFolderName } : false)
+        setIsOpenDialogEdit(true)
+    }
+    const handleDeleteItem = () => {
+        setSelectedFolder(currentFolderName ? { name: currentFolderName } : false)
+        setIsDeleteItem(true)
     }
     const handleCloseDialog = () => {
         setIsOpenDialogAdd(false)
+        setIsOpenDialogEdit(false)
+        setIsDeleteItem(false)
         setSelectedFolder(false)
+        // Оновлюємо дані сторінки після редагування / додавання
+        if (isSaved) setReload(prev => prev + 1)
     }
 
-    // Функція для отримання кольору за оцінкою
+    const savedMenuItems = [
+        { key: 'Add', label: 'Add', onClick: handleOpenDialogAdd },
+        { key: 'Edit', label: 'Edit', onClick: handleOpenDialogEdit },
+        { key: 'Delete', label: 'Delete', onClick: handleDeleteItem },
+    ]
+
+    // Функція для отримання кольору за оцінкою (шкала 0-10)
     const getRatingColor = (rating) => {
         if (!rating || rating === 0) return "rgba(255,255,255,0.0)";
         if (rating >= 9) return "#1b5e20"; // Awesome
@@ -144,6 +200,33 @@ function TVPage() {
         if (!rating || rating === 0) return "black";
         if (rating >= 7.0 && rating < 8.0) return "black"; // Dark text for yellow
         return "white";
+    };
+
+    // Оцінка серії у шкалі 0-10 (або null). TMDB — vote_average; mongo — оцінка користувача / 10
+    const getEpisodeRating = (sNum, eNum) => {
+        if (isSaved) {
+            const season = serial?.seasons?.find(s => s.season === Number(sNum));
+            const episode = season?.episodes?.find(e => e.episode === eNum);
+            return episode?.rating ? episode.rating / 10 : null;
+        }
+        const episode = seasonDetails[sNum]?.[eNum];
+        return episode?.vote_average ? episode.vote_average : null;
+    };
+
+    // Вигляд клітинки серії. Серії беремо з TMDB (seasonDetails):
+    //  - серії немає в сезоні -> прозоро (нічого)
+    //  - серія є, але без оцінки -> видимий білий квадрат без тексту
+    //  - серія є з оцінкою -> розфарбований квадрат із значенням
+    const getEpisodeCell = (sNum, eNum) => {
+        const exists = Boolean(seasonDetails[sNum]?.[eNum]);
+        if (!exists) {
+            return { bg: "rgba(255,255,255,0.0)", text: "black", content: "", active: false };
+        }
+        const rating = getEpisodeRating(sNum, eNum);
+        if (rating == null) {
+            return { bg: "#ffffff", text: "black", content: "-", active: true };
+        }
+        return { bg: getRatingColor(rating), text: getTextColor(rating), content: rating.toFixed(1), active: true };
     };
 
     const seasonNumbers = Object.keys(seasonDetails).sort((a, b) => a - b);
@@ -203,33 +286,61 @@ function TVPage() {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка Add для авторизованих користувачів */}
+                {/* Кнопка дій для авторизованих користувачів */}
                 {isAuth && (
-                    <IconButton
-                        aria-label="add to folder"
-                        onClick={handleOpenDialogFolder}
-                        sx={{
-                            position: "absolute",
-                            right: 20,
-                            top: 20,
-                            backgroundColor: "white",
-                            opacity: 0.9,
-                            zIndex: 2,
-                            borderRadius: 2,
-                            '&:hover': {
-                                opacity: 1,
-                                backgroundColor: "yellow.main",
-                                '& svg': {
-                                    color: "text.dark",
-                                },
-                            }
-                        }}
-                    >
-                        <AddIcon sx={{
-                            opacity: 1,
-                            color: "text.main"
-                        }} />
-                    </IconButton>
+                    isSaved
+                        ? (
+                            <DropdownMenu
+                                width={140}
+                                items={savedMenuItems}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                renderTrigger={({ onClick }) => (
+                                    <IconButton
+                                        aria-label="edit saved tv"
+                                        onClick={onClick}
+                                        sx={{
+                                            position: "absolute",
+                                            right: 20,
+                                            top: 20,
+                                            backgroundColor: "white",
+                                            opacity: 0.9,
+                                            zIndex: 2,
+                                            borderRadius: 2,
+                                            '&:hover': {
+                                                opacity: 1,
+                                                backgroundColor: "yellow.main",
+                                                '& svg': { color: "text.dark" },
+                                            }
+                                        }}
+                                    >
+                                        <MoreVertIcon sx={{ opacity: 1, color: "text.main" }} />
+                                    </IconButton>
+                                )}
+                            />
+                        )
+                        : (
+                            <IconButton
+                                aria-label="add to folder"
+                                onClick={handleOpenDialogAdd}
+                                sx={{
+                                    position: "absolute",
+                                    right: 20,
+                                    top: 20,
+                                    backgroundColor: "white",
+                                    opacity: 0.9,
+                                    zIndex: 2,
+                                    borderRadius: 2,
+                                    '&:hover': {
+                                        opacity: 1,
+                                        backgroundColor: "yellow.main",
+                                        '& svg': { color: "text.dark" },
+                                    }
+                                }}
+                            >
+                                <AddIcon sx={{ opacity: 1, color: "text.main" }} />
+                            </IconButton>
+                        )
                 )}
                 <Box sx={{
                     display: "flex",
@@ -240,22 +351,35 @@ function TVPage() {
                     p: 3
                 }}>
                     {/* Poster */}
-                    <Card sx={{
-                        width: 200,
-                        height: 300,
-                        flexShrink: 0,
-                        boxShadow: 3,
-                        borderRadius: 2
-                    }}>
-                        <CardMedia
-                            component="img"
-                            height="300"
-                            image={serial.poster_path
-                                ? `${IMAGE_BASE_URL_W500}${serial.poster_path}`
-                                : IMAGE_DEFAULT
-                            }
-                        />
-                    </Card>
+                    <Tooltip title={isSaved ? "Open the TV page" : ""} arrow placement="top">
+                        <Card
+                            onClick={isSaved ? () => navigate(`/tv/${serial.tmdbId}`) : undefined}
+                            sx={{
+                                width: 200,
+                                height: 300,
+                                flexShrink: 0,
+                                boxShadow: 3,
+                                borderRadius: 2,
+                                ...(isSaved && {
+                                    cursor: "pointer",
+                                    transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+                                    "&:hover": {
+                                        transform: "translateY(-4px)",
+                                        boxShadow: 6
+                                    }
+                                })
+                            }}
+                        >
+                            <CardMedia
+                                component="img"
+                                height="300"
+                                image={serial.poster_path
+                                    ? `${IMAGE_BASE_URL_W500}${serial.poster_path}`
+                                    : IMAGE_DEFAULT
+                                }
+                            />
+                        </Card>
+                    </Tooltip>
 
                     {/* Serial Info */}
                     <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -336,6 +460,44 @@ function TVPage() {
                 </Box>
             </Box>
 
+            {/* User review (тільки для збереженого серіалу) */}
+            {isSaved && (
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3 }}>
+                    {/* Коментар (займає всю решту місця) */}
+                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <Typography variant="h5" color="text.main">My review</Typography>
+                        <Typography variant="body1" color="text.main" sx={{ whiteSpace: "pre-wrap" }}>
+                            {serial.comment || "No comment"}
+                        </Typography>
+                    </Box>
+
+                    {/* Оцінка та дати (під розмір вмісту) */}
+                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Rating
+                                name="user-rating"
+                                value={(serial.rating || 0) / 20}
+                                precision={0.1}
+                                readOnly
+                            />
+                            <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
+                                {serial.rating ?? "-"}/100
+                            </Typography>
+                        </Box>
+                        {serial.dateAdded && (
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                                Added: {serial.dateAdded.split('T')[0]}
+                            </Typography>
+                        )}
+                        {serial.updatedAt && (
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                                Updated: {serial.updatedAt.split('T')[0]}
+                            </Typography>
+                        )}
+                    </Box>
+                </Box>
+            )}
+
             {/* Ratings Heatmap Section */}
             <Box>
                 <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
@@ -374,21 +536,18 @@ function TVPage() {
                                 >
                                     S{sNum}
                                 </EpisodeCart>
-                                {/* <Box sx={{ width: 35, height: 35, flexShrink: 0 }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>S{sNum}</Typography>
-                                </Box> */}
                                 <Box sx={{ display: "flex", gap: 1 }}>
                                     {Array.from({ length: maxEpisodes }, (_, i) => {
                                         const eNum = i + 1;
-                                        const episode = seasonDetails[sNum][eNum];
+                                        const cell = getEpisodeCell(sNum, eNum);
 
                                         return <EpisodeCart
                                             unique_key={`${sNum}_${eNum}`}
-                                            backgroundColor={getRatingColor(episode?.vote_average)}
-                                            textColor={getTextColor(episode?.vote_average)}
-                                            isHoverActive={episode}
+                                            backgroundColor={cell.bg}
+                                            textColor={cell.text}
+                                            isHoverActive={cell.active}
                                         >
-                                            {episode?.vote_average.toFixed(1)}
+                                            {cell.content}
                                         </EpisodeCart>
                                     })}
                                 </Box>
@@ -473,12 +632,16 @@ function TVPage() {
                 </Box>
             )}
 
+            {/* Діалог додавання / редагування / видалення */}
             <ItemSaveDialog
                 isOpenDialogAdd={isOpenDialogAdd}
+                isOpenDialogEdit={isOpenDialogEdit}
+                isDeleteItem={isDeleteItem}
                 handleCloseDialog={handleCloseDialog}
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
                 selectedItem={serial}
+                onAfterDelete={() => navigate(-1)}
                 // sidebar props
                 folders={folders}
                 setFolders={setFolders}

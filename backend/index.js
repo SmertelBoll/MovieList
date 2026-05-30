@@ -28,7 +28,7 @@ import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
 import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
-import { addTvToFolder, getTvByTmdbId, removeTvFromFolder, updateTvByMongoId } from "./controllers/tvControllers.js";
+import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId } from "./controllers/tvControllers.js";
 
 // підключаємось до бази даних
 const mongoConnection = process.env.MONGO_CONNECTION;
@@ -94,6 +94,7 @@ app.post("/movie", checkAuth, addMovieToFolder)
 app.patch("/movie/:mongoId", checkAuth, updateMovieByMongoId)
 app.delete("/movie", checkAuth, removeMovieFromFolder)
 
+app.get("/tv/mongo/:mongoId", checkAuth, getTvByMongoId)
 app.get("/tv/:tmdbId", checkAuth, getTvByTmdbId)
 app.post("/tv", checkAuth, addTvToFolder)
 app.patch("/tv/:mongoId", checkAuth, updateTvByMongoId)

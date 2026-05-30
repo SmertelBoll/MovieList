@@ -14,10 +14,7 @@ export const addTvToFolder = async (req, res) => {
       dateAdded,
       rating,
       comment,
-      customType,
-      level,
-      season,
-      episode
+      customType
     } = req.body;
 
     if (!folderName) {
@@ -34,9 +31,6 @@ export const addTvToFolder = async (req, res) => {
       rating,
       comment,
       customType,
-      level,
-      season,
-      episode,
       user: userId
     });
 
@@ -72,16 +66,13 @@ export const updateTvByMongoId = async (req, res) => {
       dateAdded,
       rating,
       comment,
-      customType,
-      level,
-      season,
-      episode
+      customType
     } = req.body;
 
     // Оновлюємо дані
     let updatedItem = await TvModel.findOneAndUpdate(
       { _id: mongoId, user: userId },
-      { rating, comment, dateAdded, customType, level, season, episode },
+      { rating, comment, dateAdded, customType },
       { new: true }
     );
 
@@ -156,6 +147,36 @@ export const removeTvFromFolder = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Delete error", message: "failed to remove item" });
+  }
+};
+
+export const getTvByMongoId = async (req, res) => {
+  try {
+    const mongoId = req.params.mongoId;
+    const userId = req.userId;
+
+    const item = await TvModel.findOne({ _id: mongoId, user: userId });
+
+    if (!item) {
+      return res.status(404).json({ title: "Not found", message: "Item not found in your database" });
+    }
+
+    // Знаходимо папку, у якій збережено цей серіал
+    const folder = await FolderModel.findOne({
+      user: userId,
+      "folderElements.itemId": mongoId
+    }).select("name -_id");
+
+    res.json({
+      success: true,
+      results: {
+        ...item.toObject(),
+        folderName: folder?.name || null
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Error", message: "Failed to get item by mongo ID" });
   }
 };
 

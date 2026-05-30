@@ -46,6 +46,7 @@ function App() {
               <Route path="/movie/:id" element={<MoviePage />} />
               <Route path="/user/movie/:id" element={<MoviePage isSaved />} />
               <Route path="/tv/:id" element={<TVPage />} />
+              <Route path="/user/tv/:id" element={<TVPage isSaved />} />
               <Route path="/actor/:id" element={<ActorPage />} />
               <Route path="/crew/:id" element={<CrewPage />} />
               <Route path="/company/:id" element={<CompanyPage />} />
