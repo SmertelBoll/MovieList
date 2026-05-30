@@ -106,7 +106,7 @@ function TVPage() {
         if (isAuth && id) {
             setIsLoadingItemFolders(true)
             instance
-                .get(`/folders/movie/${id}`)
+                .get(`/folders/tv/${id}`)
                 .then((res) => {
                     setItemFolders(res.data.results)
                     setIsLoadingItemFolders(false)

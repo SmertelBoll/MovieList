@@ -253,6 +253,40 @@ export const getFoldersByMovie = async (req, res) => {
   }
 };
 
+export const getFoldersByTV = async (req, res) => {
+  try {
+    const tmdbId = req.params.tmdbId;
+    const userId = req.userId;
+
+    const tvShows = await TvModel.find({
+      tmdbId: tmdbId,
+      user: userId
+    });
+
+    if (!tvShows || tvShows.length === 0) {
+      return res.json({
+        success: true,
+        results: []
+      });
+    }
+
+    const tvIds = tvShows.map(tv => tv._id);
+
+    const folders = await FolderModel.find({
+      user: userId,
+      "folderElements.itemId": { $in: tvIds }
+    }).select("name order -_id").exec();
+
+    res.json({
+      success: true,
+      results: folders
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Folder error", message: "Failed to get folders by TV ID" });
+  }
+};
+
 export const getItemsFromFolder = async (req, res) => {
   try {
     const folderName = req.params.name;
