@@ -381,7 +381,8 @@ function GeneralItemList({
         props.objectOfFolderPage
     ]);
 
-    const isEmpty = isPreperedData && preperedData.length === 0;
+    const isEmpty = (isPreperedData && preperedData.length === 0)
+        || (!isPreperedData && items.length === 0 && isLoadedItems && page > 0 && searchValue.trim() === "");
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
