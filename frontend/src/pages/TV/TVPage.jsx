@@ -23,12 +23,12 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 // Мемоїзована клітинка серії. Перемальовується ЛИШЕ коли змінюються її власні
 // (примітивні) пропси, тому збереження однієї серії не чіпає решту сотень клітинок.
 // Важливо: onClick має бути стабільним (useCallback), а content/kind — примітивами.
-const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, content, active, onClick }) {
+const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, content, active, onClick, watched, dateAdded }) {
     let node = content
     if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />
     else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />
 
-    return (
+    const cart = (
         <EpisodeCart
             unique_key={`${sNum}_${eNum}`}
             backgroundColor={bg}
@@ -39,6 +39,27 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
             {node}
         </EpisodeCart>
     )
+
+    // Tooltip для mongo-режиму (watched/dateAdded — примітиви, memo не ламається)
+    if (active && (watched != null || dateAdded)) {
+        const tooltipTitle = (
+            <Box sx={{ p: 0.5 }}>
+                {watched != null && (
+                    <Typography variant="caption" sx={{ display: "block" }}>Views: {watched}</Typography>
+                )}
+                {dateAdded && (
+                    <Typography variant="caption" sx={{ display: "block" }}>Added: {dateAdded}</Typography>
+                )}
+            </Box>
+        )
+        return (
+            <Tooltip title={tooltipTitle} arrow disableInteractive>
+                <Box component="span" sx={{ display: "inline-flex" }}>{cart}</Box>
+            </Tooltip>
+        )
+    }
+
+    return cart
 })
 
 function TVPage({ isSaved = false }) {
@@ -387,15 +408,18 @@ function TVPage({ isSaved = false }) {
             // mongo: не переглянуто -> порожній чекбокс (навіть якщо є оцінка);
             // переглянуто з оцінкою -> число; переглянуто без оцінки -> галочка
             const ep = mongoEpisodeMap[`${sNum}_${eNum}`];
-            const watched = ep?.watchedCount > 0;
-            if (!watched) {
-                return { bg: "#ffffff", text: "black", kind: "empty", content: "", active: true };
+            const isWatched = (ep?.watchedCount ?? 0) > 0;
+            const watched = isWatched ? ep.watchedCount : null;
+            const dateAdded = ep?.dateAdded ? String(ep.dateAdded).split('T')[0] : null;
+
+            if (!isWatched) {
+                return { bg: "#ffffff", text: "black", kind: "empty", content: "", active: true, watched: null, dateAdded: null };
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
-                return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
+                return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true, watched, dateAdded };
             }
-            return { bg: "#ffffff", text: "black", kind: "checked", content: "", active: true };
+            return { bg: "#ffffff", text: "black", kind: "checked", content: "", active: true, watched, dateAdded };
         }
 
         // TMDB: оцінка -> число; без оцінки -> білий квадрат
@@ -581,6 +605,8 @@ function TVPage({ isSaved = false }) {
                                             content={cell.content}
                                             active={cell.active}
                                             onClick={handleEpisodeCellClick}
+                                            watched={cell.watched}
+                                            dateAdded={cell.dateAdded}
                                         />
                                     );
                                 }
