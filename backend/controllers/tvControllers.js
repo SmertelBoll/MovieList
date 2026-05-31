@@ -229,6 +229,79 @@ export const updateTvEpisode = async (req, res) => {
   }
 };
 
+// Повністю видалити серію (об'єкт серії) із сезону
+export const deleteTvEpisode = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mongoId, season, episode } = req.params;
+
+    const tv = await TvModel.findOne({ _id: mongoId, user: userId });
+    if (!tv) {
+      return res.status(404).json({ title: "Delete error", message: "tv not found" });
+    }
+
+    const seasonNumber = Number(season);
+    const episodeNumber = Number(episode);
+
+    const seasonDoc = tv.seasons.find(s => s.season === seasonNumber);
+    if (seasonDoc) {
+      seasonDoc.episodes = seasonDoc.episodes.filter(e => e.episode !== episodeNumber);
+      await tv.save();
+    }
+
+    res.json({
+      success: true,
+      results: tv
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Delete error", message: "failed to delete episode" });
+  }
+};
+
+// Позначити всі (передані) серії сезону як переглянуті (watchedCount = 1),
+// не чіпаючи серії, які вже мають перегляди / оцінку
+export const markSeasonEpisodesWatched = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mongoId, season } = req.params;
+    const { episodes } = req.body;
+
+    const tv = await TvModel.findOne({ _id: mongoId, user: userId });
+    if (!tv) {
+      return res.status(404).json({ title: "Update error", message: "tv not found" });
+    }
+
+    const seasonNumber = Number(season);
+    let seasonDoc = tv.seasons.find(s => s.season === seasonNumber);
+    if (!seasonDoc) {
+      tv.seasons.push({ season: seasonNumber });
+      seasonDoc = tv.seasons[tv.seasons.length - 1];
+    }
+
+    const epNumbers = Array.isArray(episodes) ? episodes.map(Number) : [];
+    for (const epNum of epNumbers) {
+      let episodeDoc = seasonDoc.episodes.find(e => e.episode === epNum);
+      if (!episodeDoc) {
+        seasonDoc.episodes.push({ episode: epNum, watchedCount: 1, dateAdded: new Date() });
+      } else if (!(episodeDoc.watchedCount > 0)) {
+        episodeDoc.watchedCount = 1;
+        if (!episodeDoc.dateAdded) episodeDoc.dateAdded = new Date();
+      }
+    }
+
+    await tv.save();
+
+    res.json({
+      success: true,
+      results: tv
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Update error", message: "failed to mark season watched" });
+  }
+};
+
 export const getTvByMongoId = async (req, res) => {
   try {
     const mongoId = req.params.mongoId;

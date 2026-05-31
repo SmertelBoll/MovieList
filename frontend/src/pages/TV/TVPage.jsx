@@ -231,6 +231,59 @@ function TVPage({ isSaved = false }) {
             })
     }
 
+    // -- Кількість переглянутих серій у сезоні + "переглянути всі" -- //
+    const getSeasonWatchedCount = (sNum) => {
+        const total = Object.keys(seasonDetails[sNum] || {}).length
+        const seasonDoc = findMongoSeason(sNum)
+        const watched = seasonDoc?.episodes?.filter(e => (e.watchedCount ?? 0) > 0).length ?? 0
+        return { watched, total }
+    }
+
+    const handleMarkSeasonWatched = (sNum) => {
+        const epNums = Object.keys(seasonDetails[sNum] || {}).map(Number)
+        instance
+            .patch(`/tv/${serial._id}/season/${sNum}/watched`, { episodes: epNums })
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+
+    // -- Дії над серією -- //
+    // Серія без переглядів (0) -> тихо ставимо 1 перегляд.
+    const saveEpisodeWatched = (sNum, eNum) => {
+        const ep = findMongoEpisode(sNum, eNum)
+        instance
+            .patch(`/tv/${serial._id}/season/${sNum}/episode/${eNum}`, {
+                watchedCount: 1,
+                dateAdded: new Date(),
+                rating: ep?.rating ?? null,
+                comment: ep?.comment ?? ""
+            })
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+    // Повне видалення серії з бази
+    const handleDeleteEpisode = (sNum, eNum) => {
+        instance
+            .delete(`/tv/${serial._id}/season/${sNum}/episode/${eNum}`)
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+
 
     // Функція для отримання кольору за оцінкою (шкала 0-10)
     const getRatingColor = (rating) => {
@@ -255,7 +308,7 @@ function TVPage({ isSaved = false }) {
         if (rating == null) {
             return { bg: "#ffffff", text: "black", content: "-" };
         }
-        return { bg: getRatingColor(rating / 10), text: getTextColor(rating / 10), content: `${rating}/100` };
+        return { bg: getRatingColor(rating / 10), text: getTextColor(rating / 10), content: `${rating}` };
     };
 
     // Вигляд клітинки серії. Серії беремо з TMDB (seasonDetails):
@@ -268,19 +321,26 @@ function TVPage({ isSaved = false }) {
         }
 
         if (isSaved) {
-            // mongo: оцінка -> число; переглянуто без оцінки -> галочка; не переглянуто -> порожній чекбокс
+            // mongo: не переглянуто -> порожній чекбокс (навіть якщо є оцінка);
+            // переглянуто з оцінкою -> число; переглянуто без оцінки -> галочка
             const ep = findMongoEpisode(sNum, eNum);
+            const watched = ep?.watchedCount > 0;
+            if (!watched) {
+                return {
+                    bg: "#ffffff",
+                    text: "black",
+                    content: <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />,
+                    active: true
+                };
+            }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
                 return { bg: getRatingColor(rating), text: getTextColor(rating), content: rating.toFixed(1), active: true };
             }
-            const watched = ep?.watchedCount > 0;
             return {
                 bg: "#ffffff",
                 text: "black",
-                content: watched
-                    ? <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />
-                    : <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />,
+                content: <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />,
                 active: true
             };
         }
@@ -580,6 +640,17 @@ function TVPage({ isSaved = false }) {
                             />
                             {isSaved && (
                                 <EpisodeCart
+                                    unique_key={'A_watched'}
+                                    width={60}
+                                    backgroundColor={getRatingColor()}
+                                    textColor={getTextColor()}
+                                    isHoverActive={false}
+                                >
+                                    Seen
+                                </EpisodeCart>
+                            )}
+                            {isSaved && (
+                                <EpisodeCart
                                     unique_key={'A_season'}
                                     width={80}
                                     backgroundColor={getRatingColor()}
@@ -589,16 +660,18 @@ function TVPage({ isSaved = false }) {
                                     Rate
                                 </EpisodeCart>
                             )}
-                            {Array.from({ length: maxEpisodes }, (_, i) => (
-                                <EpisodeCart
-                                    unique_key={i}
-                                    backgroundColor={getRatingColor()}
-                                    textColor={getTextColor()}
-                                    isHoverActive={false}
-                                >
-                                    E{i + 1}
-                                </EpisodeCart>
-                            ))}
+                            <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
+                                {Array.from({ length: maxEpisodes }, (_, i) => (
+                                    <EpisodeCart
+                                        unique_key={i}
+                                        backgroundColor={getRatingColor()}
+                                        textColor={getTextColor()}
+                                        isHoverActive={false}
+                                    >
+                                        E{i + 1}
+                                    </EpisodeCart>
+                                ))}
+                            </Box>
                         </Box>
 
                         {/* Rows (Seasons) */}
@@ -615,6 +688,29 @@ function TVPage({ isSaved = false }) {
                                     >
                                         S{sNum}
                                     </EpisodeCart>
+                                    {isSaved && (() => {
+                                        const wc = getSeasonWatchedCount(sNum);
+                                        return (
+                                            <DropdownMenu
+                                                width={180}
+                                                items={[
+                                                    { key: 'all', label: 'Mark all as watched', onClick: () => handleMarkSeasonWatched(sNum) },
+                                                ]}
+                                                renderTrigger={({ onClick }) => (
+                                                    <EpisodeCart
+                                                        unique_key={`${sNum}_watched`}
+                                                        width={60}
+                                                        backgroundColor={"#ffffff"}
+                                                        textColor={"black"}
+                                                        isHoverActive={true}
+                                                        onClick={onClick}
+                                                    >
+                                                        {`${wc.watched}/${wc.total}`}
+                                                    </EpisodeCart>
+                                                )}
+                                            />
+                                        );
+                                    })()}
                                     {isSaved && (
                                         <EpisodeCart
                                             unique_key={`${sNum}_season`}
@@ -627,17 +723,47 @@ function TVPage({ isSaved = false }) {
                                             {seasonCell.content}
                                         </EpisodeCart>
                                     )}
-                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
                                         {Array.from({ length: maxEpisodes }, (_, i) => {
                                             const eNum = i + 1;
                                             const cell = getEpisodeCell(sNum, eNum);
 
+                                            if (isSaved && cell.active) {
+                                                const ep = findMongoEpisode(sNum, eNum);
+                                                const isEpisodeSaved = Boolean(ep && (ep.watchedCount ?? 0) > 0);
+                                                return (
+                                                    <DropdownMenu
+                                                        key={`${sNum}_${eNum}`}
+                                                        width={140}
+                                                        items={[
+                                                            { key: 'edit', label: 'Edit', onClick: () => openEpisodeDialog(sNum, eNum) },
+                                                            { key: 'delete', label: 'Delete', onClick: () => handleDeleteEpisode(sNum, eNum) },
+                                                        ]}
+                                                        renderTrigger={({ onClick }) => (
+                                                            <EpisodeCart
+                                                                unique_key={`${sNum}_${eNum}`}
+                                                                backgroundColor={cell.bg}
+                                                                textColor={cell.text}
+                                                                isHoverActive={cell.active}
+                                                                onClick={(e) => {
+                                                                    if (isEpisodeSaved) onClick(e);
+                                                                    else saveEpisodeWatched(sNum, eNum);
+                                                                }}
+                                                            >
+                                                                {cell.content}
+                                                            </EpisodeCart>
+                                                        )}
+                                                    />
+                                                );
+                                            }
+
                                             return <EpisodeCart
+                                                key={`${sNum}_${eNum}`}
                                                 unique_key={`${sNum}_${eNum}`}
                                                 backgroundColor={cell.bg}
                                                 textColor={cell.text}
                                                 isHoverActive={cell.active}
-                                                onClick={isSaved && cell.active ? () => openEpisodeDialog(sNum, eNum) : undefined}
+                                                onClick={undefined}
                                             >
                                                 {cell.content}
                                             </EpisodeCart>
