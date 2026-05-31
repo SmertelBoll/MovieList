@@ -7,6 +7,7 @@ const EpisodeSchema = new mongoose.Schema(
         rating: { type: Number },
         comment: { type: String },
         dateAdded: { type: Date },
+        watchedCount: { type: Number, default: 0 },
     },
     {
         timestamps: true, // createdAt / updatedAt (updatedAt = дата редагування)

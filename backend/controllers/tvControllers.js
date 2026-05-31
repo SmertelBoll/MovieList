@@ -150,6 +150,85 @@ export const removeTvFromFolder = async (req, res) => {
   }
 };
 
+// Оцінка / коментар / дата перегляду для сезону
+export const updateTvSeason = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mongoId, season } = req.params;
+    const { rating, comment, dateAdded } = req.body;
+
+    const tv = await TvModel.findOne({ _id: mongoId, user: userId });
+    if (!tv) {
+      return res.status(404).json({ title: "Update error", message: "tv not found" });
+    }
+
+    const seasonNumber = Number(season);
+    let seasonDoc = tv.seasons.find(s => s.season === seasonNumber);
+    if (!seasonDoc) {
+      tv.seasons.push({ season: seasonNumber });
+      seasonDoc = tv.seasons[tv.seasons.length - 1];
+    }
+
+    seasonDoc.rating = rating;
+    seasonDoc.comment = comment;
+    seasonDoc.dateAdded = dateAdded;
+
+    await tv.save();
+
+    res.json({
+      success: true,
+      results: tv
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Update error", message: "failed to update season" });
+  }
+};
+
+// Оцінка / коментар / дата перегляду / кількість переглядів для серії
+export const updateTvEpisode = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mongoId, season, episode } = req.params;
+    const { rating, comment, dateAdded, watchedCount } = req.body;
+
+    const tv = await TvModel.findOne({ _id: mongoId, user: userId });
+    if (!tv) {
+      return res.status(404).json({ title: "Update error", message: "tv not found" });
+    }
+
+    const seasonNumber = Number(season);
+    const episodeNumber = Number(episode);
+
+    let seasonDoc = tv.seasons.find(s => s.season === seasonNumber);
+    if (!seasonDoc) {
+      tv.seasons.push({ season: seasonNumber });
+      seasonDoc = tv.seasons[tv.seasons.length - 1];
+    }
+
+    let episodeDoc = seasonDoc.episodes.find(e => e.episode === episodeNumber);
+    if (!episodeDoc) {
+      seasonDoc.episodes.push({ episode: episodeNumber });
+      episodeDoc = seasonDoc.episodes[seasonDoc.episodes.length - 1];
+    }
+
+    episodeDoc.rating = rating;
+    episodeDoc.comment = comment;
+    episodeDoc.dateAdded = dateAdded;
+    episodeDoc.watchedCount = watchedCount;
+
+    await tv.save();
+
+    res.json({
+      success: true,
+      results: tv
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Update error", message: "failed to update episode" });
+  }
+};
+
 export const getTvByMongoId = async (req, res) => {
   try {
     const mongoId = req.params.mongoId;

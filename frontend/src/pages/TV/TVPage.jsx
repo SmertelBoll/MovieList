@@ -4,10 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
-import { alertError } from '../../alerts'
+import { alertError, alertSuccess } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
+import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
 import ActorCart from '../../components/Carts/ActorCart'
 import EpisodeCart from '../../components/Carts/EpisodeCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
@@ -186,6 +189,49 @@ function TVPage({ isSaved = false }) {
         { key: 'Delete', label: 'Delete', onClick: handleDeleteItem },
     ]
 
+    // -- Оцінка сезонів / серій (тільки для збереженого серіалу) -- //
+    const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
+    const [ratingMode, setRatingMode] = useState("season")
+    const [ratingTarget, setRatingTarget] = useState({ season: null, episode: null })
+    const [ratingInitial, setRatingInitial] = useState({})
+
+    const findMongoSeason = (sNum) => serial?.seasons?.find(s => s.season === Number(sNum))
+    const findMongoEpisode = (sNum, eNum) => findMongoSeason(sNum)?.episodes?.find(e => e.episode === Number(eNum))
+
+    const openSeasonDialog = (sNum) => {
+        const s = findMongoSeason(sNum)
+        setRatingMode("season")
+        setRatingTarget({ season: Number(sNum), episode: null })
+        setRatingInitial({ rating: s?.rating, comment: s?.comment, dateAdded: s?.dateAdded })
+        setRatingDialogOpen(true)
+    }
+    const openEpisodeDialog = (sNum, eNum) => {
+        const ep = findMongoEpisode(sNum, eNum)
+        setRatingMode("episode")
+        setRatingTarget({ season: Number(sNum), episode: Number(eNum) })
+        setRatingInitial({ rating: ep?.rating, comment: ep?.comment, dateAdded: ep?.dateAdded, watchedCount: ep?.watchedCount })
+        setRatingDialogOpen(true)
+    }
+    const handleSaveRating = (values) => {
+        const { season, episode } = ratingTarget
+        const url = ratingMode === "episode"
+            ? `/tv/${serial._id}/season/${season}/episode/${episode}`
+            : `/tv/${serial._id}/season/${season}`
+
+        instance
+            .patch(url, values)
+            .then((res) => {
+                alertSuccess(ratingMode === "episode" ? "Episode saved" : "Season saved")
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+                setRatingDialogOpen(false)
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+
+
     // Функція для отримання кольору за оцінкою (шкала 0-10)
     const getRatingColor = (rating) => {
         if (!rating || rating === 0) return "rgba(255,255,255,0.0)";
@@ -202,27 +248,46 @@ function TVPage({ isSaved = false }) {
         return "white";
     };
 
-    // Оцінка серії у шкалі 0-10 (або null). TMDB — vote_average; mongo — оцінка користувача / 10
-    const getEpisodeRating = (sNum, eNum) => {
-        if (isSaved) {
-            const season = serial?.seasons?.find(s => s.season === Number(sNum));
-            const episode = season?.episodes?.find(e => e.episode === eNum);
-            return episode?.rating ? episode.rating / 10 : null;
+    // Вигляд клітинки оцінки сезону (mongo). Прямокутник із "rating/100"
+    const getSeasonCell = (sNum) => {
+        const season = findMongoSeason(sNum);
+        const rating = season?.rating ? season.rating : null; // 0-100
+        if (rating == null) {
+            return { bg: "#ffffff", text: "black", content: "-" };
         }
-        const episode = seasonDetails[sNum]?.[eNum];
-        return episode?.vote_average ? episode.vote_average : null;
+        return { bg: getRatingColor(rating / 10), text: getTextColor(rating / 10), content: `${rating}/100` };
     };
 
     // Вигляд клітинки серії. Серії беремо з TMDB (seasonDetails):
     //  - серії немає в сезоні -> прозоро (нічого)
-    //  - серія є, але без оцінки -> видимий білий квадрат без тексту
-    //  - серія є з оцінкою -> розфарбований квадрат із значенням
+    //  - інакше залежно від режиму (TMDB або mongo)
     const getEpisodeCell = (sNum, eNum) => {
         const exists = Boolean(seasonDetails[sNum]?.[eNum]);
         if (!exists) {
             return { bg: "rgba(255,255,255,0.0)", text: "black", content: "", active: false };
         }
-        const rating = getEpisodeRating(sNum, eNum);
+
+        if (isSaved) {
+            // mongo: оцінка -> число; переглянуто без оцінки -> галочка; не переглянуто -> порожній чекбокс
+            const ep = findMongoEpisode(sNum, eNum);
+            const rating = ep?.rating ? ep.rating / 10 : null;
+            if (rating != null) {
+                return { bg: getRatingColor(rating), text: getTextColor(rating), content: rating.toFixed(1), active: true };
+            }
+            const watched = ep?.watchedCount > 0;
+            return {
+                bg: "#ffffff",
+                text: "black",
+                content: watched
+                    ? <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />
+                    : <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />,
+                active: true
+            };
+        }
+
+        // TMDB: оцінка -> число; без оцінки -> білий квадрат
+        const episode = seasonDetails[sNum]?.[eNum];
+        const rating = episode?.vote_average ? episode.vote_average : null;
         if (rating == null) {
             return { bg: "#ffffff", text: "black", content: "-", active: true };
         }
@@ -502,7 +567,7 @@ function TVPage({ isSaved = false }) {
             <Box>
                 <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
 
-                <Box sx={{ overflowX: "auto", pb: 2 }}>
+                <Box sx={{ overflowX: "auto", pb: 2, px: 1 }}>
                     <Legend />
                     <Box sx={{ minWidth: "fit-content", display: "flex", flexDirection: "column", gap: 1 }}>
                         {/* Column Headers (Episodes) */}
@@ -513,6 +578,17 @@ function TVPage({ isSaved = false }) {
                                 textColor={getTextColor()}
                                 isHoverActive={false}
                             />
+                            {isSaved && (
+                                <EpisodeCart
+                                    unique_key={'A_season'}
+                                    width={80}
+                                    backgroundColor={getRatingColor()}
+                                    textColor={getTextColor()}
+                                    isHoverActive={false}
+                                >
+                                    Rate
+                                </EpisodeCart>
+                            )}
                             {Array.from({ length: maxEpisodes }, (_, i) => (
                                 <EpisodeCart
                                     unique_key={i}
@@ -526,33 +602,50 @@ function TVPage({ isSaved = false }) {
                         </Box>
 
                         {/* Rows (Seasons) */}
-                        {seasonNumbers.map((sNum) => (
-                            <Box key={sNum} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <EpisodeCart
-                                    unique_key={sNum}
-                                    backgroundColor={getRatingColor()}
-                                    textColor={getTextColor()}
-                                    isHoverActive={false}
-                                >
-                                    S{sNum}
-                                </EpisodeCart>
-                                <Box sx={{ display: "flex", gap: 1 }}>
-                                    {Array.from({ length: maxEpisodes }, (_, i) => {
-                                        const eNum = i + 1;
-                                        const cell = getEpisodeCell(sNum, eNum);
-
-                                        return <EpisodeCart
-                                            unique_key={`${sNum}_${eNum}`}
-                                            backgroundColor={cell.bg}
-                                            textColor={cell.text}
-                                            isHoverActive={cell.active}
+                        {seasonNumbers.map((sNum) => {
+                            const seasonCell = getSeasonCell(sNum);
+                            return (
+                                <Box key={sNum} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <EpisodeCart
+                                        unique_key={sNum}
+                                        backgroundColor={getRatingColor()}
+                                        textColor={getTextColor()}
+                                        isHoverActive={isSaved}
+                                        onClick={isSaved ? () => openSeasonDialog(sNum) : undefined}
+                                    >
+                                        S{sNum}
+                                    </EpisodeCart>
+                                    {isSaved && (
+                                        <EpisodeCart
+                                            unique_key={`${sNum}_season`}
+                                            width={80}
+                                            backgroundColor={seasonCell.bg}
+                                            textColor={seasonCell.text}
+                                            isHoverActive={true}
+                                            onClick={() => openSeasonDialog(sNum)}
                                         >
-                                            {cell.content}
+                                            {seasonCell.content}
                                         </EpisodeCart>
-                                    })}
+                                    )}
+                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                        {Array.from({ length: maxEpisodes }, (_, i) => {
+                                            const eNum = i + 1;
+                                            const cell = getEpisodeCell(sNum, eNum);
+
+                                            return <EpisodeCart
+                                                unique_key={`${sNum}_${eNum}`}
+                                                backgroundColor={cell.bg}
+                                                textColor={cell.text}
+                                                isHoverActive={cell.active}
+                                                onClick={isSaved && cell.active ? () => openEpisodeDialog(sNum, eNum) : undefined}
+                                            >
+                                                {cell.content}
+                                            </EpisodeCart>
+                                        })}
+                                    </Box>
                                 </Box>
-                            </Box>
-                        ))}
+                            );
+                        })}
                     </Box>
                 </Box>
             </Box>
@@ -646,6 +739,18 @@ function TVPage({ isSaved = false }) {
                 folders={folders}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}
+            />
+
+            {/* Діалог оцінки сезону / серії */}
+            <SeasonEpisodeDialog
+                open={ratingDialogOpen}
+                mode={ratingMode}
+                title={ratingMode === "episode"
+                    ? `S${ratingTarget.season} · E${ratingTarget.episode}`
+                    : `Season ${ratingTarget.season}`}
+                initial={ratingInitial}
+                onClose={() => setRatingDialogOpen(false)}
+                onSave={handleSaveRating}
             />
         </Box>
     )
