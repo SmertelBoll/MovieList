@@ -146,6 +146,7 @@ function MoviePage({ isSaved = false }) {
         setSelectedFolder(false)
         // Оновлюємо дані сторінки після редагування / додавання
         if (isSaved) setReload(prev => prev + 1)
+        else setIsGetFolders(true) // на TMDB-сторінці оновлюємо "Saved in"
     }
 
     const savedMenuItems = [
