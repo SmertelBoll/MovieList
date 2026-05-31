@@ -11,6 +11,7 @@ import RenameFolderInput from './RenameFolderInput';
 import { useSelector } from 'react-redux';
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import instance from '../../axios';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -23,6 +24,7 @@ function SideBar({
     sx
 }) {
     const isAuth = useSelector(selectIsAuth);
+    const navigate = useNavigate();
 
     const theme = useTheme();
 
@@ -147,7 +149,14 @@ function SideBar({
             borderRadius: 2,
             ...sx
         }}>
-            <Typography variant="p" color="text.main" >My folders</Typography>
+            <Typography
+                variant="p"
+                color="text.main"
+                onClick={() => navigate('/folders')}
+                sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+            >
+                My folders
+            </Typography>
 
             <Box>
                 <SecondaryButton

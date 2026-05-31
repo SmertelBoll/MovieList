@@ -10,11 +10,19 @@ export const getFoldersByUser = async (req, res) => {
     const userId = req.userId;
     const foldersByUser = await FolderModel
       .find({ user: userId })
-      .select("name order -_id")
+      .select("name order folderElements -_id")
       .exec();
+
+    const results = foldersByUser.map(folder => ({
+      name: folder.name,
+      order: folder.order,
+      movieCount: folder.folderElements.filter(e => e.itemModel === "Movie").length,
+      tvCount: folder.folderElements.filter(e => e.itemModel === "Tv").length,
+    }));
+
     res.json({
       success: true,
-      results: foldersByUser
+      results
     });
   } catch (error) {
     res.status(500).json({ title: "Folders error", message: "could not get folders" });

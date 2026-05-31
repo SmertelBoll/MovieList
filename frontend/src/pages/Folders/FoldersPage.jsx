@@ -1,0 +1,239 @@
+import { Box, CircularProgress, Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import instance from '../../axios'
+import { alertConfirm, alertError } from '../../alerts'
+import FolderIcon from '@mui/icons-material/Folder'
+import UpdateFolder from '../../components/SideBar/UpdateFolder'
+import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
+
+function FoldersPage() {
+    const isAuth = useSelector(selectIsAuth)
+    const { typeTMDB } = useSelector((state) => state.config)
+    const navigate = useNavigate()
+
+    const [folders, setFolders] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    const [curFolderToRename, setCurFolderToRename] = useState(null)
+    const [curFolderName, setCurFolderName] = useState('')
+
+    useEffect(() => {
+        if (isAuth) {
+            setIsLoading(true)
+            instance
+                .get('/folders')
+                .then((res) => {
+                    setFolders(res.data.results)
+                    setIsLoading(false)
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err)
+                    setIsLoading(false)
+                })
+        } else {
+            setIsLoading(false)
+        }
+    }, [isAuth])
+
+    const getCount = (folder) => {
+        const showMovies = typeTMDB.includes('movie')
+        const showTv = typeTMDB.includes('tv')
+        if (showMovies && showTv) return folder.movieCount + folder.tvCount
+        if (showMovies) return folder.movieCount
+        if (showTv) return folder.tvCount
+        return 0
+    }
+
+    // -- RENAME --
+    const handleClickRename = (folder) => {
+        setCurFolderToRename(folder)
+        setCurFolderName(folder.name)
+    }
+    const handleInputChange = (e) => setCurFolderName(e.target.value)
+    const handleUpdateFolderName = (folder, newName) => {
+        instance
+            .patch(`/folders/${folder.name}`, { name: newName })
+            .then(() => {
+                setFolders(prev =>
+                    prev.map(f => f.name === folder.name ? { ...f, name: newName } : f)
+                )
+                setCurFolderToRename(null)
+                setCurFolderName('')
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
+    // -- DELETE --
+    const handleClickDelete = (folder, pressure = false) => {
+        const doDelete = () => {
+            instance
+                .delete(`/folders/${folder.name}`)
+                .then(() => {
+                    setFolders(prev => prev.filter(f => f.name !== folder.name))
+                    setCurFolderToRename(null)
+                })
+                .catch((err) => { console.warn(err); alertError(err) })
+        }
+        if (pressure) doDelete()
+        else alertConfirm('Are you sure?', doDelete)
+    }
+
+    // -- ORDER: оновлюємо локально, без рефетчу (без моргання) --
+    const handleIncrementOrder = (folder) => {
+        instance
+            .patch(`/folders/orderIncrement/${folder.name}`)
+            .then((res) => {
+                if (res.data.success) {
+                    setFolders(prev => prev.map(f => {
+                        if (f.name === folder.name) return { ...f, order: folder.order + 1 }
+                        if (f.order === folder.order + 1) return { ...f, order: folder.order }
+                        return f
+                    }))
+                }
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+    const handleDecrementOrder = (folder) => {
+        instance
+            .patch(`/folders/orderDecrement/${folder.name}`)
+            .then((res) => {
+                if (res.data.success) {
+                    setFolders(prev => prev.map(f => {
+                        if (f.name === folder.name) return { ...f, order: folder.order - 1 }
+                        if (f.order === folder.order - 1) return { ...f, order: folder.order }
+                        return f
+                    }))
+                }
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
+    if (isLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+                <CircularProgress color="primary" />
+            </Box>
+        )
+    }
+
+    if (!isAuth) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+                <Typography variant="h6" color="text.secondary">
+                    Please log in to see your folders
+                </Typography>
+            </Box>
+        )
+    }
+
+    const sorted = [...folders].sort((a, b) => b.order - a.order)
+
+    return (
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Typography variant="p" color="text.main">
+                My Folders
+            </Typography>
+
+            {sorted.length === 0 ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                    <Typography variant="h6" color="text.secondary">No folders yet</Typography>
+                </Box>
+            ) : (
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gridAutoRows: '1fr',
+                    gap: 4,
+                }}>
+                    {sorted.map((folder) => {
+                        const count = getCount(folder)
+                        const isRenaming = curFolderToRename?.order === folder.order
+
+                        return (
+                            <Box
+                                key={folder.name}
+                                sx={{
+                                    position: 'relative',
+                                    height: '100%',
+                                    borderRadius: 2,
+                                    transition: 'background-color 0.15s, transform 0.15s',
+                                    ...(!isRenaming && {
+                                        '&:hover': {
+                                            transform: 'translateY(-3px)',
+                                            bgcolor: 'yellow.main',
+                                        },
+                                    }),
+                                }}
+                            >
+                                {/* Картка */}
+                                <Box
+                                    onClick={isRenaming ? undefined : () => navigate(`/folders/${folder.name}`)}
+                                    sx={{
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        cursor: isRenaming ? 'default' : 'pointer',
+                                        p: 1,
+                                    }}
+                                >
+                                    {/* Іконка — завжди видима */}
+                                    <FolderIcon sx={{ fontSize: '11rem', color: 'text.main' }} />
+
+                                    {/* Назва або input для перейменування */}
+                                    {isRenaming ? (
+                                        <RenameFolderInput
+                                            curFolderName={curFolderName}
+                                            handleInputChange={handleInputChange}
+                                            handleUpdateFolderName={handleUpdateFolderName}
+                                            folder={folder}
+                                            handleClickDelete={handleClickDelete}
+                                            isInputNewFolder={false}
+                                        />
+                                    ) : (
+                                        <>
+                                            <Typography
+                                                variant="body2"
+                                                color="text.main"
+                                                fontWeight="bold"
+                                                textAlign="center"
+                                                sx={{ wordBreak: 'break-word' }}
+                                            >
+                                                {folder.name}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {count} {count === 1 ? 'item' : 'items'}
+                                            </Typography>
+                                        </>
+                                    )}
+                                </Box>
+
+                                {/* Кнопка ⋮ */}
+                                <Box
+                                    onClick={(e) => e.stopPropagation()}
+                                    sx={{ position: 'absolute', top: 4, right: 4 }}
+                                >
+                                    <UpdateFolder
+                                        actionFunctions={{
+                                            handleClickRename: () => handleClickRename(folder),
+                                            handleClickDelete: () => handleClickDelete(folder),
+                                            handleIncrementOrder: () => handleIncrementOrder(folder),
+                                            handleDecrementOrder: () => handleDecrementOrder(folder),
+                                        }}
+                                    />
+                                </Box>
+                            </Box>
+                        )
+                    })}
+                </Box>
+            )}
+        </Box>
+    )
+}
+
+export default FoldersPage

@@ -17,6 +17,7 @@ import CrewPage from "./pages/Info/CrewPage";
 import CompanyPage from "./pages/Info/CompanyPage";
 import GenrePage from "./pages/Info/GenrePage";
 import FolderPage from "./pages/SingleFolder/FolderPage";
+import FoldersPage from "./pages/Folders/FoldersPage";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
@@ -51,6 +52,7 @@ function App() {
               <Route path="/crew/:id" element={<CrewPage />} />
               <Route path="/company/:id" element={<CompanyPage />} />
               <Route path="/genre/:id" element={<GenrePage />} />
+              <Route path="/folders" element={<FoldersPage />} />
               <Route path="/folders/:folderName" element={<FolderPage />} />
               <Route path="/register" element={<RegistrationForm />} />
               <Route path="/login" element={<LoginForm />} />
