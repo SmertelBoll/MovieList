@@ -1,5 +1,5 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip, Menu, MenuItem } from '@mui/material'
+import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -20,12 +20,37 @@ const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
+// Мемоїзована клітинка серії. Перемальовується ЛИШЕ коли змінюються її власні
+// (примітивні) пропси, тому збереження однієї серії не чіпає решту сотень клітинок.
+// Важливо: onClick має бути стабільним (useCallback), а content/kind — примітивами.
+const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, content, active, onClick }) {
+    let node = content
+    if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />
+    else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />
+
+    return (
+        <EpisodeCart
+            unique_key={`${sNum}_${eNum}`}
+            backgroundColor={bg}
+            textColor={text}
+            isHoverActive={active}
+            onClick={active && onClick ? (e) => onClick(e, sNum, eNum) : undefined}
+        >
+            {node}
+        </EpisodeCart>
+    )
+})
+
 function TVPage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true)
+
+    // Завжди актуальне посилання на serial для стабільних колбеків (без перестворення)
+    const serialRef = useRef(serial)
+    useEffect(() => { serialRef.current = serial }, [serial])
 
     // Папка, у якій збережено цей серіал (тільки для збереженого серіалу)
     const [currentFolderName, setCurrentFolderName] = useState(null)
@@ -198,6 +223,26 @@ function TVPage({ isSaved = false }) {
     const findMongoSeason = (sNum) => serial?.seasons?.find(s => s.season === Number(sNum))
     const findMongoEpisode = (sNum, eNum) => findMongoSeason(sNum)?.episodes?.find(e => e.episode === Number(eNum))
 
+    // Швидкі O(1) карти для рендеру таблиці (перераховуються лише коли змінюються дані)
+    // Ключ "season_episode" -> mongo-серія
+    const mongoEpisodeMap = useMemo(() => {
+        const map = {}
+        serial?.seasons?.forEach(s => {
+            s.episodes?.forEach(e => { map[`${s.season}_${e.episode}`] = e })
+        })
+        return map
+    }, [serial?.seasons])
+
+    // Зсув кожного сезону (перша серія -> перша колонка) — рахуємо один раз
+    const seasonOffsets = useMemo(() => {
+        const offsets = {}
+        Object.keys(seasonDetails).forEach(sNum => {
+            const nums = Object.keys(seasonDetails[sNum] || {}).map(Number).sort((a, b) => a - b)
+            offsets[sNum] = nums.length ? nums[0] - 1 : 0
+        })
+        return offsets
+    }, [seasonDetails])
+
     const openSeasonDialog = (sNum) => {
         const s = findMongoSeason(sNum)
         setRatingMode("season")
@@ -253,24 +298,6 @@ function TVPage({ isSaved = false }) {
     }
 
     // -- Дії над серією -- //
-    // Серія без переглядів (0) -> тихо ставимо 1 перегляд.
-    const saveEpisodeWatched = (sNum, eNum) => {
-        const ep = findMongoEpisode(sNum, eNum)
-        instance
-            .patch(`/tv/${serial._id}/season/${sNum}/episode/${eNum}`, {
-                watchedCount: 1,
-                dateAdded: new Date(),
-                rating: ep?.rating ?? null,
-                comment: ep?.comment ?? ""
-            })
-            .then((res) => {
-                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
-            })
-            .catch((err) => {
-                console.warn(err)
-                alertError(err)
-            })
-    }
     // Повне видалення серії з бази
     const handleDeleteEpisode = (sNum, eNum) => {
         instance
@@ -283,6 +310,42 @@ function TVPage({ isSaved = false }) {
                 alertError(err)
             })
     }
+
+    // Одне спільне меню Edit/Delete для всіх серій (швидше за DropdownMenu на кожну клітинку)
+    const [episodeMenuAnchor, setEpisodeMenuAnchor] = useState(null)
+    const [episodeMenuTarget, setEpisodeMenuTarget] = useState({ season: null, episode: null })
+
+    // Стабільний колбек (не перестворюється при зміні serial) -> EpisodeCell не ре-рендериться через нього.
+    // serial читаємо з ref, тому залежностей немає.
+    const handleEpisodeCellClick = useCallback((e, sNum, eNum) => {
+        const current = serialRef.current
+        const season = current?.seasons?.find(s => s.season === Number(sNum))
+        const ep = season?.episodes?.find(item => item.episode === Number(eNum))
+        const isEpisodeSaved = Boolean(ep && (ep.watchedCount ?? 0) > 0)
+
+        if (isEpisodeSaved) {
+            // Серія вже переглянута -> відкриваємо меню Edit/Delete
+            setEpisodeMenuAnchor(e.currentTarget)
+            setEpisodeMenuTarget({ season: sNum, episode: eNum })
+        } else {
+            // Серія без переглядів (0) -> тихо ставимо 1 перегляд
+            instance
+                .patch(`/tv/${current._id}/season/${sNum}/episode/${eNum}`, {
+                    watchedCount: 1,
+                    dateAdded: new Date(),
+                    rating: ep?.rating ?? null,
+                    comment: ep?.comment ?? ""
+                })
+                .then((res) => {
+                    setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+                })
+                .catch((err) => {
+                    console.warn(err)
+                    alertError(err)
+                })
+        }
+    }, [])
+    const closeEpisodeMenu = () => setEpisodeMenuAnchor(null)
 
 
     // Функція для отримання кольору за оцінкою (шкала 0-10)
@@ -311,53 +374,78 @@ function TVPage({ isSaved = false }) {
         return { bg: getRatingColor(rating / 10), text: getTextColor(rating / 10), content: `${rating}` };
     };
 
-    // Вигляд клітинки серії. Серії беремо з TMDB (seasonDetails):
-    //  - серії немає в сезоні -> прозоро (нічого)
-    //  - інакше залежно від режиму (TMDB або mongo)
-    const getEpisodeCell = (sNum, eNum) => {
+    // Стан клітинки серії у вигляді ПРИМІТИВІВ (для React.memo).
+    // kind: 'none' | 'empty' | 'checked' | 'rating' | 'dash'
+    //  - 'empty'/'checked' -> EpisodeCell сам рендерить іконку (щоб не передавати JSX як проп)
+    const getEpisodeCellState = (sNum, eNum) => {
         const exists = Boolean(seasonDetails[sNum]?.[eNum]);
         if (!exists) {
-            return { bg: "rgba(255,255,255,0.0)", text: "black", content: "", active: false };
+            return { bg: "rgba(255,255,255,0.0)", text: "black", kind: "none", content: "", active: false };
         }
 
         if (isSaved) {
             // mongo: не переглянуто -> порожній чекбокс (навіть якщо є оцінка);
             // переглянуто з оцінкою -> число; переглянуто без оцінки -> галочка
-            const ep = findMongoEpisode(sNum, eNum);
+            const ep = mongoEpisodeMap[`${sNum}_${eNum}`];
             const watched = ep?.watchedCount > 0;
             if (!watched) {
-                return {
-                    bg: "#ffffff",
-                    text: "black",
-                    content: <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />,
-                    active: true
-                };
+                return { bg: "#ffffff", text: "black", kind: "empty", content: "", active: true };
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
-                return { bg: getRatingColor(rating), text: getTextColor(rating), content: rating.toFixed(1), active: true };
+                return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
             }
-            return {
-                bg: "#ffffff",
-                text: "black",
-                content: <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />,
-                active: true
-            };
+            return { bg: "#ffffff", text: "black", kind: "checked", content: "", active: true };
         }
 
         // TMDB: оцінка -> число; без оцінки -> білий квадрат
         const episode = seasonDetails[sNum]?.[eNum];
         const rating = episode?.vote_average ? episode.vote_average : null;
         if (rating == null) {
-            return { bg: "#ffffff", text: "black", content: "-", active: true };
+            return { bg: "#ffffff", text: "black", kind: "dash", content: "-", active: true };
         }
-        return { bg: getRatingColor(rating), text: getTextColor(rating), content: rating.toFixed(1), active: true };
+        return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
     };
 
-    const seasonNumbers = Object.keys(seasonDetails).sort((a, b) => a - b);
-    const maxEpisodes = Math.max(...Object.values(seasonDetails).map(epMap =>
-        Math.max(...Object.keys(epMap).map(Number), 0)
-    ), 0);
+    // Зсув сезону: якщо нумерація серій не починається з 1 (напр. перша серія 65),
+    // зсуваємо серії так, щоб перша серія опинилась у першій колонці
+    const getSeasonOffset = (sNum) => seasonOffsets[sNum] ?? 0;
+
+    // Тултіп для серії (TMDB): номер серії, кількість голосів, дата виходу
+    const getEpisodeTooltip = (sNum, eNum) => {
+        const ep = seasonDetails[sNum]?.[eNum];
+        if (!ep) return "";
+        return (
+            <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" sx={{ display: "block", fontWeight: "bold" }}>
+                    Episode {ep.episode_number}
+                </Typography>
+                <Typography variant="caption" sx={{ display: "block" }}>
+                    Votes: {ep.vote_count ?? 0}
+                </Typography>
+                <Typography variant="caption" sx={{ display: "block" }}>
+                    Air date: {ep.air_date || "—"}
+                </Typography>
+            </Box>
+        );
+    };
+
+    const seasonNumbers = useMemo(
+        () => Object.keys(seasonDetails).sort((a, b) => a - b),
+        [seasonDetails]
+    );
+    // Кількість колонок з урахуванням зсуву кожного сезону
+    const maxEpisodes = useMemo(
+        () => Math.max(
+            ...seasonNumbers.map(sNum => {
+                const nums = Object.keys(seasonDetails[sNum] || {}).map(Number).sort((a, b) => a - b);
+                if (nums.length === 0) return 0;
+                return nums[nums.length - 1] - (nums[0] - 1);
+            }),
+            0
+        ),
+        [seasonNumbers, seasonDetails]
+    );
 
     // Legend Component
     const Legend = () => (
@@ -377,6 +465,158 @@ function TVPage({ isSaved = false }) {
             ))}
         </Box>
     );
+
+    // Таблиця серій. Мемоїзуємо, щоб зміна стану меню/діалогів НЕ перемальовувала сотні клітинок.
+    // Перераховується лише коли реально змінюються дані (seasonDetails / serial.seasons / isSaved).
+    const heatmapGrid = useMemo(() => (
+        <Box sx={{ minWidth: "fit-content", display: "flex", flexDirection: "column", gap: 1 }}>
+            {/* Column Headers (Episodes) */}
+            <Box sx={{ display: "flex", gap: 1 }}>
+                <EpisodeCart
+                    unique_key={'A1'}
+                    backgroundColor={getRatingColor()}
+                    textColor={getTextColor()}
+                    isHoverActive={false}
+                />
+                {isSaved && (
+                    <EpisodeCart
+                        unique_key={'A_watched'}
+                        width={60}
+                        backgroundColor={getRatingColor()}
+                        textColor={getTextColor()}
+                        isHoverActive={false}
+                    >
+                        Seen
+                    </EpisodeCart>
+                )}
+                {isSaved && (
+                    <EpisodeCart
+                        unique_key={'A_season'}
+                        width={80}
+                        backgroundColor={getRatingColor()}
+                        textColor={getTextColor()}
+                        isHoverActive={false}
+                    >
+                        Rate
+                    </EpisodeCart>
+                )}
+                <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
+                    {Array.from({ length: maxEpisodes }, (_, i) => (
+                        <EpisodeCart
+                            unique_key={i}
+                            backgroundColor={getRatingColor()}
+                            textColor={getTextColor()}
+                            isHoverActive={false}
+                        >
+                            E{i + 1}
+                        </EpisodeCart>
+                    ))}
+                </Box>
+            </Box>
+
+            {/* Rows (Seasons) */}
+            {seasonNumbers.map((sNum) => {
+                const seasonCell = getSeasonCell(sNum);
+                return (
+                    <Box key={sNum} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <EpisodeCart
+                            unique_key={sNum}
+                            backgroundColor={getRatingColor()}
+                            textColor={getTextColor()}
+                            isHoverActive={isSaved}
+                            onClick={isSaved ? () => openSeasonDialog(sNum) : undefined}
+                        >
+                            S{sNum}
+                        </EpisodeCart>
+                        {isSaved && (() => {
+                            const wc = getSeasonWatchedCount(sNum);
+                            return (
+                                <DropdownMenu
+                                    width={180}
+                                    items={[
+                                        { key: 'all', label: 'Mark all as watched', onClick: () => handleMarkSeasonWatched(sNum) },
+                                    ]}
+                                    renderTrigger={({ onClick }) => (
+                                        <EpisodeCart
+                                            unique_key={`${sNum}_watched`}
+                                            width={60}
+                                            backgroundColor={"#ffffff"}
+                                            textColor={"black"}
+                                            isHoverActive={true}
+                                            onClick={onClick}
+                                        >
+                                            {`${wc.watched}/${wc.total}`}
+                                        </EpisodeCart>
+                                    )}
+                                />
+                            );
+                        })()}
+                        {isSaved && (
+                            <EpisodeCart
+                                unique_key={`${sNum}_season`}
+                                width={80}
+                                backgroundColor={seasonCell.bg}
+                                textColor={seasonCell.text}
+                                isHoverActive={true}
+                                onClick={() => openSeasonDialog(sNum)}
+                            >
+                                {seasonCell.content}
+                            </EpisodeCart>
+                        )}
+                        <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
+                            {Array.from({ length: maxEpisodes }, (_, i) => {
+                                const eNum = i + 1 + getSeasonOffset(sNum);
+                                const cell = getEpisodeCellState(sNum, eNum);
+
+                                if (isSaved) {
+                                    // Мемоїзована клітинка зі стабільним onClick -> ре-рендериться лише вона сама
+                                    return (
+                                        <EpisodeCell
+                                            key={`${sNum}_${eNum}`}
+                                            sNum={sNum}
+                                            eNum={eNum}
+                                            bg={cell.bg}
+                                            text={cell.text}
+                                            kind={cell.kind}
+                                            content={cell.content}
+                                            active={cell.active}
+                                            onClick={handleEpisodeCellClick}
+                                        />
+                                    );
+                                }
+
+                                const episodeCart = (
+                                    <EpisodeCell
+                                        sNum={sNum}
+                                        eNum={eNum}
+                                        bg={cell.bg}
+                                        text={cell.text}
+                                        kind={cell.kind}
+                                        content={cell.content}
+                                        active={cell.active}
+                                    />
+                                );
+
+                                // На сторінці TMDB показуємо тултіп з інфою про серію
+                                if (!isSaved && cell.active) {
+                                    return (
+                                        <Tooltip key={`${sNum}_${eNum}`} title={getEpisodeTooltip(sNum, eNum)} arrow>
+                                            <Box component="span" sx={{ display: "inline-flex" }}>
+                                                {episodeCart}
+                                            </Box>
+                                        </Tooltip>
+                                    );
+                                }
+
+                                return <Box key={`${sNum}_${eNum}`} component="span" sx={{ display: "inline-flex" }}>{episodeCart}</Box>
+                            })}
+                        </Box>
+                    </Box>
+                );
+            })}
+        </Box>
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets]);
 
     if (isLoading) {
         return (
@@ -629,150 +869,7 @@ function TVPage({ isSaved = false }) {
 
                 <Box sx={{ overflowX: "auto", pb: 2, px: 1 }}>
                     <Legend />
-                    <Box sx={{ minWidth: "fit-content", display: "flex", flexDirection: "column", gap: 1 }}>
-                        {/* Column Headers (Episodes) */}
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                            <EpisodeCart
-                                unique_key={'A1'}
-                                backgroundColor={getRatingColor()}
-                                textColor={getTextColor()}
-                                isHoverActive={false}
-                            />
-                            {isSaved && (
-                                <EpisodeCart
-                                    unique_key={'A_watched'}
-                                    width={60}
-                                    backgroundColor={getRatingColor()}
-                                    textColor={getTextColor()}
-                                    isHoverActive={false}
-                                >
-                                    Seen
-                                </EpisodeCart>
-                            )}
-                            {isSaved && (
-                                <EpisodeCart
-                                    unique_key={'A_season'}
-                                    width={80}
-                                    backgroundColor={getRatingColor()}
-                                    textColor={getTextColor()}
-                                    isHoverActive={false}
-                                >
-                                    Rate
-                                </EpisodeCart>
-                            )}
-                            <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
-                                {Array.from({ length: maxEpisodes }, (_, i) => (
-                                    <EpisodeCart
-                                        unique_key={i}
-                                        backgroundColor={getRatingColor()}
-                                        textColor={getTextColor()}
-                                        isHoverActive={false}
-                                    >
-                                        E{i + 1}
-                                    </EpisodeCart>
-                                ))}
-                            </Box>
-                        </Box>
-
-                        {/* Rows (Seasons) */}
-                        {seasonNumbers.map((sNum) => {
-                            const seasonCell = getSeasonCell(sNum);
-                            return (
-                                <Box key={sNum} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <EpisodeCart
-                                        unique_key={sNum}
-                                        backgroundColor={getRatingColor()}
-                                        textColor={getTextColor()}
-                                        isHoverActive={isSaved}
-                                        onClick={isSaved ? () => openSeasonDialog(sNum) : undefined}
-                                    >
-                                        S{sNum}
-                                    </EpisodeCart>
-                                    {isSaved && (() => {
-                                        const wc = getSeasonWatchedCount(sNum);
-                                        return (
-                                            <DropdownMenu
-                                                width={180}
-                                                items={[
-                                                    { key: 'all', label: 'Mark all as watched', onClick: () => handleMarkSeasonWatched(sNum) },
-                                                ]}
-                                                renderTrigger={({ onClick }) => (
-                                                    <EpisodeCart
-                                                        unique_key={`${sNum}_watched`}
-                                                        width={60}
-                                                        backgroundColor={"#ffffff"}
-                                                        textColor={"black"}
-                                                        isHoverActive={true}
-                                                        onClick={onClick}
-                                                    >
-                                                        {`${wc.watched}/${wc.total}`}
-                                                    </EpisodeCart>
-                                                )}
-                                            />
-                                        );
-                                    })()}
-                                    {isSaved && (
-                                        <EpisodeCart
-                                            unique_key={`${sNum}_season`}
-                                            width={80}
-                                            backgroundColor={seasonCell.bg}
-                                            textColor={seasonCell.text}
-                                            isHoverActive={true}
-                                            onClick={() => openSeasonDialog(sNum)}
-                                        >
-                                            {seasonCell.content}
-                                        </EpisodeCart>
-                                    )}
-                                    <Box sx={{ display: "flex", gap: 1, ml: 2 }}>
-                                        {Array.from({ length: maxEpisodes }, (_, i) => {
-                                            const eNum = i + 1;
-                                            const cell = getEpisodeCell(sNum, eNum);
-
-                                            if (isSaved && cell.active) {
-                                                const ep = findMongoEpisode(sNum, eNum);
-                                                const isEpisodeSaved = Boolean(ep && (ep.watchedCount ?? 0) > 0);
-                                                return (
-                                                    <DropdownMenu
-                                                        key={`${sNum}_${eNum}`}
-                                                        width={140}
-                                                        items={[
-                                                            { key: 'edit', label: 'Edit', onClick: () => openEpisodeDialog(sNum, eNum) },
-                                                            { key: 'delete', label: 'Delete', onClick: () => handleDeleteEpisode(sNum, eNum) },
-                                                        ]}
-                                                        renderTrigger={({ onClick }) => (
-                                                            <EpisodeCart
-                                                                unique_key={`${sNum}_${eNum}`}
-                                                                backgroundColor={cell.bg}
-                                                                textColor={cell.text}
-                                                                isHoverActive={cell.active}
-                                                                onClick={(e) => {
-                                                                    if (isEpisodeSaved) onClick(e);
-                                                                    else saveEpisodeWatched(sNum, eNum);
-                                                                }}
-                                                            >
-                                                                {cell.content}
-                                                            </EpisodeCart>
-                                                        )}
-                                                    />
-                                                );
-                                            }
-
-                                            return <EpisodeCart
-                                                key={`${sNum}_${eNum}`}
-                                                unique_key={`${sNum}_${eNum}`}
-                                                backgroundColor={cell.bg}
-                                                textColor={cell.text}
-                                                isHoverActive={cell.active}
-                                                onClick={undefined}
-                                            >
-                                                {cell.content}
-                                            </EpisodeCart>
-                                        })}
-                                    </Box>
-                                </Box>
-                            );
-                        })}
-                    </Box>
+                    {heatmapGrid}
                 </Box>
             </Box>
 
@@ -878,6 +975,43 @@ function TVPage({ isSaved = false }) {
                 onClose={() => setRatingDialogOpen(false)}
                 onSave={handleSaveRating}
             />
+
+            {/* Спільне меню Edit/Delete для серій */}
+            <Menu
+                anchorEl={episodeMenuAnchor}
+                open={Boolean(episodeMenuAnchor)}
+                onClose={closeEpisodeMenu}
+                disableScrollLock
+                slotProps={{
+                    paper: {
+                        sx: {
+                            width: 140,
+                            borderRadius: 2,
+                            boxShadow: 4,
+                            bgcolor: 'bg.second',
+                            color: 'text.main',
+                            '& .MuiList-root': { p: 0 },
+                        },
+                    },
+                }}
+            >
+                {[
+                    { key: 'edit', label: 'Edit', onClick: () => openEpisodeDialog(episodeMenuTarget.season, episodeMenuTarget.episode) },
+                    { key: 'delete', label: 'Delete', onClick: () => handleDeleteEpisode(episodeMenuTarget.season, episodeMenuTarget.episode) },
+                ].map((item) => (
+                    <MenuItem
+                        key={item.key}
+                        onClick={() => { item.onClick(); closeEpisodeMenu(); }}
+                        sx={{
+                            py: 1,
+                            px: 2,
+                            '&:hover': { bgcolor: 'yellow.main', color: 'text.dark' },
+                        }}
+                    >
+                        {item.label}
+                    </MenuItem>
+                ))}
+            </Menu>
         </Box>
     )
 }
