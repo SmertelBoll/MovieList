@@ -139,6 +139,54 @@ export const deleteCustomType = async (req, res) => {
   }
 };
 
+export const updateEmail = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const newEmail = (email || "").trim().toLowerCase();
+
+    // Базова валідація формату
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      return res.status(400).json({ title: "Email error", message: "invalid email address" });
+    }
+
+    const user = await UserModel.findById(req.userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Email error", message: "user not found" });
+    }
+
+    // Перевірка пароля
+    const isValidPassword = await bcrypt.compare(password || "", user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(400).json({ title: "Email error", message: "wrong password" });
+    }
+
+    // Якщо пошта не змінилась
+    if (newEmail === user.email) {
+      return res.status(400).json({ title: "Email error", message: "this is already your email" });
+    }
+
+    // Перевірка, що пошта не зайнята іншим користувачем
+    const existing = await UserModel.findOne({ email: newEmail }).exec();
+    if (existing) {
+      return res.status(400).json({ title: "Email error", message: "this email is already in use" });
+    }
+
+    user.email = newEmail;
+    await user.save();
+
+    res.json({
+      success: true,
+      results: { email: user.email },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ title: "Email error", message: "this email is already in use" });
+    }
+    console.log(error);
+    res.status(500).json({ title: "Email error", message: "failed to update email" });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, avatar, avatarPublicId } = req.body;

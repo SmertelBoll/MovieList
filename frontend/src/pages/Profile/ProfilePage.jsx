@@ -1,4 +1,4 @@
-import { Avatar, Box, Chip, CircularProgress, IconButton, Typography, useTheme } from '@mui/material'
+import { Avatar, Box, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import instance from '../../axios'
@@ -8,7 +8,7 @@ import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
 
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 
 // Перетворюємо файл у base64 для завантаження на /upload
@@ -29,11 +29,20 @@ function ProfilePage() {
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
     )
+    // Варіант зі стандартною висотою — для полів із плаваючим label (інакше label з'їжджає)
+    const LabeledInputBox = useMemo(
+        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
+        [theme.palette.bg.second, theme.palette.text.main]
+    )
 
     const [fullName, setFullName] = useState(user?.fullName || '')
+    const [newEmail, setNewEmail] = useState(user?.email || '')
+    const [emailPassword, setEmailPassword] = useState('')
     const [newType, setNewType] = useState('')
     const [savingName, setSavingName] = useState(false)
+    const [savingEmail, setSavingEmail] = useState(false)
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
     const fileInputRef = useRef(null)
     const userTypes = user?.typeCustom || []
@@ -42,6 +51,11 @@ function ProfilePage() {
     useEffect(() => {
         setFullName(user?.fullName || '')
     }, [user?.fullName])
+
+    // Підставляємо поточну пошту
+    useEffect(() => {
+        setNewEmail(user?.email || '')
+    }, [user?.email])
 
     if (!isAuth) {
         return (
@@ -78,17 +92,19 @@ function ProfilePage() {
         }
     }
 
-    const handleAvatarRemove = async () => {
-        try {
-            setUploadingAvatar(true)
-            await instance.patch('/auth/profile', { avatar: '', avatarPublicId: '' })
-            dispatch(updateUserData({ avatar: '' }))
-        } catch (err) {
-            console.warn(err)
-            alertError(err)
-        } finally {
-            setUploadingAvatar(false)
-        }
+    const handleAvatarRemove = () => {
+        alertConfirm('Are you sure you want to remove your photo?', async () => {
+            try {
+                setUploadingAvatar(true)
+                await instance.patch('/auth/profile', { avatar: '', avatarPublicId: '' })
+                dispatch(updateUserData({ avatar: '' }))
+            } catch (err) {
+                console.warn(err)
+                alertError(err)
+            } finally {
+                setUploadingAvatar(false)
+            }
+        })
     }
 
     // -- NAME -- //
@@ -106,6 +122,41 @@ function ProfilePage() {
             alertError(err)
         } finally {
             setSavingName(false)
+        }
+    }
+
+    // -- EMAIL -- //
+    const handleOpenEmailDialog = () => {
+        setNewEmail(user?.email || '')
+        setEmailPassword('')
+        setEmailDialogOpen(true)
+    }
+
+    const handleCloseEmailDialog = () => {
+        if (savingEmail) return
+        setEmailDialogOpen(false)
+    }
+
+    const handleSaveEmail = async () => {
+        const trimmed = newEmail.trim()
+        if (!trimmed || trimmed === user?.email) return
+        if (!emailPassword) {
+            alertError(null, 'Password required', 'Enter your current password to change email')
+            return
+        }
+
+        try {
+            setSavingEmail(true)
+            const { data } = await instance.patch('/auth/email', { email: trimmed, password: emailPassword })
+            dispatch(updateUserData({ email: data.results.email }))
+            setEmailPassword('')
+            setEmailDialogOpen(false)
+            alertSuccess('Email updated')
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        } finally {
+            setSavingEmail(false)
         }
     }
 
@@ -220,6 +271,24 @@ function ProfilePage() {
                     >
                         <PhotoCameraIcon fontSize="small" />
                     </IconButton>
+
+                    {/* Remove button */}
+                    {user?.avatar && (
+                        <IconButton
+                            onClick={handleAvatarRemove}
+                            disabled={uploadingAvatar}
+                            sx={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                bgcolor: '#d33',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#b32020' },
+                            }}
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    )}
                 </Box>
 
                 <Box>
@@ -233,23 +302,6 @@ function ProfilePage() {
                     )}
                 </Box>
 
-                {user?.avatar && (
-                    <MainButton
-                        onClick={handleAvatarRemove}
-                        disabled={uploadingAvatar}
-                        startIcon={<DeleteOutlineIcon />}
-                        sx={{
-                            bgcolor: 'transparent',
-                            color: 'text.main',
-                            border: '1px solid',
-                            borderColor: 'text.secondary',
-                            px: 3,
-                            ':hover': { bgcolor: 'bg.selected' },
-                        }}
-                    >
-                        Remove photo
-                    </MainButton>
-                )}
             </Box>
 
             {/* NAME */}
@@ -326,6 +378,71 @@ function ProfilePage() {
                     </MainButton>
                 </Box>
             </Box>
+
+            {/* LOGIN & SECURITY */}
+            <Box sx={cardSx}>
+                <Box>
+                    <Typography variant="h6" sx={sectionTitleSx}>
+                        Login & security
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                        Manage the email and password you use to sign in.
+                    </Typography>
+                </Box>
+
+                {/* Email */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                    <Box>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Email</Typography>
+                        <Typography variant="body1" sx={{ color: 'text.main', wordBreak: 'break-word' }}>
+                            {user?.email}
+                        </Typography>
+                    </Box>
+                    <MainButton onClick={handleOpenEmailDialog} sx={{ m: 0 }}>
+                        Change email
+                    </MainButton>
+                </Box>
+            </Box>
+
+            {/* EMAIL DIALOG */}
+            <Dialog open={emailDialogOpen} onClose={handleCloseEmailDialog} fullWidth maxWidth="xs">
+                <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
+                    Change email
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                    <LabeledInputBox
+                        fullWidth
+                        label="New email"
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                    />
+                    <LabeledInputBox
+                        fullWidth
+                        label="Current password"
+                        type="password"
+                        value={emailPassword}
+                        onChange={(e) => setEmailPassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEmail() }}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ bgcolor: 'bg.second', p: 2, gap: 1 }}>
+                    <MainButton
+                        onClick={handleCloseEmailDialog}
+                        disabled={savingEmail}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', ':hover': { bgcolor: 'bg.selected' } }}
+                    >
+                        Cancel
+                    </MainButton>
+                    <MainButton
+                        onClick={handleSaveEmail}
+                        disabled={!(newEmail.trim() && newEmail.trim() !== user?.email) || !emailPassword || savingEmail}
+                        sx={{ m: 0 }}
+                    >
+                        {savingEmail ? 'Saving...' : 'Save'}
+                    </MainButton>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }
