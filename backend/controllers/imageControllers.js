@@ -8,7 +8,7 @@ export const uploadFile = async (req, res) => {
       use_filename: true,
       unique_filename: false,
       overwrite: true,
-      folder: "myArticle",
+      folder: "MovieList",
     };
 
     const result = await cloudinary.uploader.upload(image, options);

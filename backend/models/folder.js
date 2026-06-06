@@ -10,6 +10,10 @@ const FolderSchema = new mongoose.Schema(
             type: Number,
             required: true
         },
+        image: {
+            type: String, // URL картинки папки (Cloudinary). Якщо немає — показуємо стандартну іконку
+            default: "",
+        },
         folderElements: [
             {
                 itemId: {

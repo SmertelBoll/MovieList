@@ -5,12 +5,18 @@ import EditIcon from '@mui/icons-material/Edit';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ClearIcon from '@mui/icons-material/Clear';
+import ImageIcon from '@mui/icons-material/Image';
+import HideImageIcon from '@mui/icons-material/HideImage';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 
 
-function UpdateFolder({ actionFunctions }) {
+function UpdateFolder({ actionFunctions, hasImage = false }) {
     const items = [
         { key: "Rename", label: "Rename", icon: <EditIcon />, onClick: actionFunctions.handleClickRename },
+        { key: "AddImage", label: "Add image", icon: <ImageIcon />, onClick: actionFunctions.handleClickAddImage },
+        ...(hasImage
+            ? [{ key: "RemoveImage", label: "Remove image", icon: <HideImageIcon />, onClick: actionFunctions.handleClickRemoveImage }]
+            : []),
         { key: "Up", label: "Up", icon: <ArrowUpwardIcon />, onClick: actionFunctions.handleIncrementOrder },
         { key: "Down", label: "Down", icon: <ArrowDownwardIcon />, onClick: actionFunctions.handleDecrementOrder },
         { key: "Delete", label: "Delete", icon: <ClearIcon />, onClick: actionFunctions.handleClickDelete },

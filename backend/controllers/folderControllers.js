@@ -10,12 +10,13 @@ export const getFoldersByUser = async (req, res) => {
     const userId = req.userId;
     const foldersByUser = await FolderModel
       .find({ user: userId })
-      .select("name order folderElements -_id")
+      .select("name order image folderElements -_id")
       .exec();
 
     const results = foldersByUser.map(folder => ({
       name: folder.name,
       order: folder.order,
+      image: folder.image,
       movieCount: folder.folderElements.filter(e => e.itemModel === "Movie").length,
       tvCount: folder.folderElements.filter(e => e.itemModel === "Tv").length,
     }));
@@ -95,6 +96,31 @@ export const renameFolder = async (req, res) => {
     });
   }
 }
+
+export const updateFolderImage = async (req, res) => {
+  try {
+    const folderName = req.params.name;
+    const userId = req.userId;
+    const image = req.body.image || "";
+
+    const currentFolder = await FolderModel.findOne({ name: folderName, user: userId });
+
+    if (!currentFolder) {
+      return res.status(404).json({ title: "Folder not found", message: "no folder found" });
+    }
+
+    currentFolder.image = image;
+    await currentFolder.save();
+
+    res.json({
+      success: true,
+      results: currentFolder
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Folders error", message: "failed to update folder image" });
+  }
+};
 
 export const removeFolder = async (req, res) => {
   try {

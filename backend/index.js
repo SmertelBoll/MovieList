@@ -26,7 +26,7 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
-import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder } from "./controllers/folderControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, updateFolderImage } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode } from "./controllers/tvControllers.js";
 
@@ -73,9 +73,9 @@ app.post("/auth/login", loginValidation, checkValidationError, loginUser);
 app.get("/auth/me", checkAuth, getMe);
 app.patch("/auth/settings", checkAuth, updateSettings);
 
-// // app.post("/upload", upload.single("image"), uploadFile);
-// // app.get("/image/:fileId", download);
-// app.post("/upload", upload.single("image"), uploadFile);
+// Фронтенд шле картинку як base64 у JSON ({ image: "data:..." }), тому multer не потрібен.
+// Без checkAuth, бо завантаження аватара відбувається ще до реєстрації/логіну.
+app.post("/upload", uploadFile);
 
 // app.get("/posts", getAllPosts);
 // app.get("/posts/:id", getOnePost);
@@ -111,6 +111,7 @@ app.get("/folders/tv/:tmdbId", checkAuth, getFoldersByTV)
 app.get("/folders", checkAuth, getFoldersByUser);
 app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);
 app.patch("/folders/:oldName", checkAuth, folderCreateValidation, checkValidationError, renameFolder);
+app.patch("/folders/image/:name", checkAuth, updateFolderImage);
 app.patch("/folders/orderIncrement/:name", checkAuth, orderIncrement);
 app.patch("/folders/orderDecrement/:name", checkAuth, orderDecrement);
 app.delete("/folders/:name", checkAuth, removeFolder);

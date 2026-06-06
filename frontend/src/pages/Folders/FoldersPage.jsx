@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -19,6 +19,11 @@ function FoldersPage() {
 
     const [curFolderToRename, setCurFolderToRename] = useState(null)
     const [curFolderName, setCurFolderName] = useState('')
+
+    // Завантаження картинки папки
+    const fileInputRef = useRef(null)
+    const folderForImageRef = useRef(null)
+    const [uploadingFolder, setUploadingFolder] = useState(null)
 
     useEffect(() => {
         if (isAuth) {
@@ -63,6 +68,55 @@ function FoldersPage() {
                 )
                 setCurFolderToRename(null)
                 setCurFolderName('')
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
+    // -- IMAGE --
+    // Перетворюємо файл у base64, щоб відправити на /upload
+    const fileToBase = (file) =>
+        new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.readAsDataURL(file)
+            reader.onloadend = () => resolve(reader.result)
+        })
+
+    const handleClickAddImage = (folder) => {
+        folderForImageRef.current = folder
+        // даємо вибрати той самий файл повторно
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        fileInputRef.current?.click()
+    }
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0]
+        const folder = folderForImageRef.current
+        if (!file || !folder) return
+
+        try {
+            setUploadingFolder(folder.name)
+            const base64 = await fileToBase(file)
+            // 1) завантажуємо картинку в Cloudinary
+            const { data } = await instance.post('/upload', { image: base64 })
+            const url = data.url
+            // 2) зберігаємо URL у папці
+            await instance.patch(`/folders/image/${folder.name}`, { image: url })
+            // 3) оновлюємо локально
+            setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: url } : f))
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        } finally {
+            setUploadingFolder(null)
+            folderForImageRef.current = null
+        }
+    }
+
+    const handleClickRemoveImage = (folder) => {
+        instance
+            .patch(`/folders/image/${folder.name}`, { image: '' })
+            .then(() => {
+                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: '' } : f))
             })
             .catch((err) => { console.warn(err); alertError(err) })
     }
@@ -134,6 +188,15 @@ function FoldersPage() {
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Прихований input для вибору картинки папки */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
+
             <Typography variant="p" color="text.main">
                 My Folders
             </Typography>
@@ -182,8 +245,26 @@ function FoldersPage() {
                                         p: 1,
                                     }}
                                 >
-                                    {/* Іконка — завжди видима */}
-                                    <FolderIcon sx={{ fontSize: '11rem', color: 'text.main' }} />
+                                    {/* Картинка папки або стандартна іконка */}
+                                    {uploadingFolder === folder.name ? (
+                                        <Box sx={{ height: '11rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <CircularProgress color="primary" />
+                                        </Box>
+                                    ) : folder.image ? (
+                                        <Box
+                                            component="img"
+                                            src={folder.image}
+                                            alt={folder.name}
+                                            sx={{
+                                                height: '11rem',
+                                                width: '100%',
+                                                objectFit: 'cover',
+                                                borderRadius: 2,
+                                            }}
+                                        />
+                                    ) : (
+                                        <FolderIcon sx={{ fontSize: '11rem', color: 'text.main' }} />
+                                    )}
 
                                     {/* Назва або input для перейменування */}
                                     {isRenaming ? (
@@ -219,8 +300,11 @@ function FoldersPage() {
                                     sx={{ position: 'absolute', top: 4, right: 4 }}
                                 >
                                     <UpdateFolder
+                                        hasImage={Boolean(folder.image)}
                                         actionFunctions={{
                                             handleClickRename: () => handleClickRename(folder),
+                                            handleClickAddImage: () => handleClickAddImage(folder),
+                                            handleClickRemoveImage: () => handleClickRemoveImage(folder),
                                             handleClickDelete: () => handleClickDelete(folder),
                                             handleIncrementOrder: () => handleIncrementOrder(folder),
                                             handleDecrementOrder: () => handleDecrementOrder(folder),
