@@ -50,7 +50,7 @@ const CATEGORIES_SORT_BY = {
             order: 'desc'
         },
         'Title': {
-            keys: { movie: 'movieTitle', tv: 'movieTitle' },
+            keys: { movie: 'tmdbTitle', tv: 'tmdbTitle' },
             order: 'asc'
         }
     }
