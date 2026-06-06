@@ -75,7 +75,7 @@ function GeneralItemList({
     isSort = false,
     ...props
 }) {
-    const { typeTMDB } = useSelector((state) => state.config);
+    const { typeTMDB, customType } = useSelector((state) => state.config);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -171,7 +171,7 @@ function GeneralItemList({
         setDisplayedItems(0)
         setTotalPages(1)
         setPage(0)
-    }, [searchValue, nameSortBy, sortDirection, typeTMDB])
+    }, [searchValue, nameSortBy, sortDirection, typeTMDB, customType])
 
     // Загрузка даних
     useEffect(() => {
@@ -256,6 +256,7 @@ function GeneralItemList({
                 sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"]["movie"]}.${sortDirection}`,
                 limit: 24,
                 type: typeTMDB.join(","),
+                ...(customType ? { customType } : {}),
                 ...urlParams
             };
 

@@ -29,6 +29,27 @@ export const alertSuccess = (title) => {
   });
 };
 
+// Запитує у користувача текст. Повертає введене значення або null (якщо скасовано/порожньо)
+export const alertInput = async (title, placeholder = "") => {
+  const result = await Swal.fire({
+    ...defaultProp,
+    title: title,
+    input: "text",
+    inputPlaceholder: placeholder,
+    showConfirmButton: true,
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return "Please enter a value";
+      }
+    },
+  });
+
+  return result.isConfirmed ? result.value.trim() : null;
+};
+
 export const alertConfirm = (title, funcIfTrue) => {
   Swal.fire({
     ...defaultProp,

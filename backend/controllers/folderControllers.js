@@ -9,18 +9,39 @@ import mongoose from "mongoose";
 export const getFoldersByUser = async (req, res) => {
   try {
     const userId = req.userId;
+
     const foldersByUser = await FolderModel
       .find({ user: userId })
       .select("name order image folderElements -_id")
       .exec();
 
-    const results = foldersByUser.map(folder => ({
-      name: folder.name,
-      order: folder.order,
-      image: folder.image,
-      movieCount: folder.folderElements.filter(e => e.itemModel === "Movie").length,
-      tvCount: folder.folderElements.filter(e => e.itemModel === "Tv").length,
-    }));
+    // Дістаємо customType усіх елементів користувача, щоб клієнт міг рахувати
+    // кількість за будь-яким фільтром (movie/tv + customType) без перезавантаження.
+    const [movies, tvs] = await Promise.all([
+      MovieModel.find({ user: userId }).select("_id customType").exec(),
+      TvModel.find({ user: userId }).select("_id customType").exec(),
+    ]);
+    const movieMap = new Map(movies.map(m => [m._id.toString(), m.customType || ""]));
+    const tvMap = new Map(tvs.map(t => [t._id.toString(), t.customType || ""]));
+
+    const results = foldersByUser.map(folder => {
+      const elements = folder.folderElements.map(e => {
+        const isMovie = e.itemModel === "Movie";
+        return {
+          media_type: isMovie ? "movie" : "tv",
+          customType: (isMovie ? movieMap : tvMap).get(e.itemId.toString()) || "",
+        };
+      });
+
+      return {
+        name: folder.name,
+        order: folder.order,
+        image: folder.image,
+        movieCount: elements.filter(el => el.media_type === "movie").length,
+        tvCount: elements.filter(el => el.media_type === "tv").length,
+        elements,
+      };
+    });
 
     res.json({
       success: true,
@@ -345,6 +366,9 @@ export const getItemsFromFolder = async (req, res) => {
     // Фільтр за типом (movie/tv). Може містити обидва значення через кому
     const types = (req.query.type || "").split(",").filter(Boolean);
 
+    // Фільтр за кастомним типом користувача (customType)
+    const customType = req.query.customType || "";
+
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 12;
     const skip = (page - 1) * limit;
@@ -407,6 +431,13 @@ export const getItemsFromFolder = async (req, res) => {
     if (types.length > 0) {
       pipeline.push({
         $match: { media_type: { $in: types } }
+      });
+    }
+
+    // Фільтрація за кастомним типом
+    if (customType) {
+      pipeline.push({
+        $match: { customType: customType }
       });
     }
 

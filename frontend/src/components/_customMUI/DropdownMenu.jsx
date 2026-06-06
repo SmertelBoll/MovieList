@@ -134,6 +134,9 @@ function DropdownMenu({
                 <Box sx={{ py: searchable ? 0 : 1, overflowY: 'auto', maxHeight: searchable ? 300 : undefined }}>
                     {filteredItems.length > 0 ? (
                         filteredItems.map((item) => (
+                            item.divider ? (
+                                <Divider key={item.key} sx={{ my: 0.5 }} />
+                            ) : (
                             <MenuItem
                                 key={item.key ?? item.label}
                                 onClick={(e) => handleItemClick(e, item)}
@@ -175,6 +178,7 @@ function DropdownMenu({
                                     <Box sx={{ display: 'flex', alignItems: 'center' }}>{item.endAdornment}</Box>
                                 )}
                             </MenuItem>
+                            )
                         ))
                     ) : (
                         <Box sx={{ p: 2, textAlign: 'center' }}>

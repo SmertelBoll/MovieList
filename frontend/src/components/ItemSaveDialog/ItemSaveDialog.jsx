@@ -6,8 +6,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import instance from '../../axios';
-import { alertError, alertConfirm, alertSuccess } from '../../alerts';
+import { alertError, alertConfirm, alertSuccess, alertInput } from '../../alerts';
 import SideBar from '../SideBar/SideBar';
+import DropdownMenu from '../_customMUI/DropdownMenu';
+import { useDispatch, useSelector } from 'react-redux';
+import { setUserTypeCustom } from '../../redux/slices/AuthSlice';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import AddIcon from '@mui/icons-material/Add';
+import CheckIcon from '@mui/icons-material/Check';
 
 const DEFAULT_RATE = null;
 const DEFAULT_DATE = new Date();
@@ -33,6 +39,9 @@ function ItemSaveDialog({
     setIsGetFolders,
 }) {
     const theme = useTheme();
+    const dispatch = useDispatch();
+    // Список кастомних типів користувача (свій у кожного)
+    const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
@@ -51,6 +60,7 @@ function ItemSaveDialog({
         setRating(DEFAULT_RATE);
         setSelectedDate(DEFAULT_DATE);
         setText(DEFAULT_TEXT);
+        setTypeCustom(DEFAULT_TYPE_CUSTOM);
     }, [isOpenDialogAdd]);
 
     // Відкрито редагування фільму в папці
@@ -61,6 +71,7 @@ function ItemSaveDialog({
         setRating(selectedItem.rating);
         setSelectedDate(new Date(curDate.replace('Z', '')));
         setText(selectedItem.comment);
+        setTypeCustom(selectedItem.customType || null);
     }, [isOpenDialogEdit]);
 
     // Видалення фільму з папки
@@ -77,17 +88,19 @@ function ItemSaveDialog({
         label: 10 * index,
     }));
 
+    // 0 означає "оцінки немає" — зберігаємо як null
     const handleSliderChange = (event, newValue) => {
-        setRating(newValue);
+        setRating(newValue === 0 ? null : newValue);
     };
     const handleInputSliderChange = (event) => {
-        setRating(event.target.value === '' ? 0 : Number(event.target.value));
+        const value = event.target.value;
+        setRating(value === '' || Number(value) === 0 ? null : Number(value));
     };
     const handleBlur = () => {
-        if (rating < 0) {
-            setRating(0);
-        } else if (rating > 100) {
+        if (rating > 100) {
             setRating(100);
+        } else if (rating < 0) {
+            setRating(null);
         }
     };
 
@@ -99,6 +112,33 @@ function ItemSaveDialog({
     // Папка
     const handleFolderClick = (folder) => {
         setSelectedFolder(folder);
+    };
+
+    // Кастомний тип
+    // Вибір типу зі списку (повторний клік по обраному — знімає вибір)
+    const handleSelectType = (type) => {
+        setTypeCustom((prev) => (prev === type ? null : type));
+    };
+
+    // Додавання нового типу до списку користувача (зберігається в акаунті)
+    const handleAddType = async () => {
+        const newType = await alertInput('New type name', 'e.g. Anime, Documentary...');
+        if (!newType) return;
+
+        if (userTypes.includes(newType)) {
+            setTypeCustom(newType);
+            return;
+        }
+
+        const newList = [...userTypes, newType];
+        try {
+            await instance.patch('/auth/settings', { typeCustom: newList });
+            dispatch(setUserTypeCustom(newList));
+            setTypeCustom(newType);
+        } catch (err) {
+            console.warn(err);
+            alertError(err);
+        }
     };
 
     // -- API -- //
@@ -227,7 +267,7 @@ function ItemSaveDialog({
     };
 
     return (
-        <Dialog open={isOpenDialogAdd || isOpenDialogEdit} onClose={handleCloseDialog} fullWidth maxWidth="md">
+        <Dialog open={isOpenDialogAdd || isOpenDialogEdit} onClose={handleCloseDialog} fullWidth maxWidth="md" disableEnforceFocus>
             <DialogContent
                 sx={{
                     display: 'flex',
@@ -283,34 +323,87 @@ function ItemSaveDialog({
                                 color="text.dark"
                             />
                             <InputBox
-                                value={rating}
+                                value={rating ? rating : ''}
                                 size="small"
                                 onChange={handleInputSliderChange}
                                 onBlur={handleBlur}
                                 inputProps={{
                                     step: 1,
-                                    min: 0,
-                                    max: 10,
+                                    min: 1,
+                                    max: 100,
                                     type: 'number',
                                 }}
                                 sx={{ '& .MuiInput-underline': { display: 'none' } }}
                             />
                         </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <DatePicker
-                                    label="Choose date"
-                                    value={selectedDate}
-                                    onChange={handleDateChange}
-                                    renderInput={(params) => (
-                                        <InputBox
-                                            {...params}
-                                            fullWidth
-                                            sx={{ width: '100%', mb: 0 }}
-                                        />
-                                    )}
-                                />
-                            </LocalizationProvider>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                            {/* Дата — зліва */}
+                            <Box sx={{ flexGrow: 1 }}>
+                                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <DatePicker
+                                        label="Choose date"
+                                        value={selectedDate}
+                                        onChange={handleDateChange}
+                                        renderInput={(params) => (
+                                            <InputBox
+                                                {...params}
+                                                fullWidth
+                                                sx={{ width: '100%', mb: 0 }}
+                                            />
+                                        )}
+                                    />
+                                </LocalizationProvider>
+                            </Box>
+
+                            {/* Випадайка кастомних типів — справа */}
+                            <DropdownMenu
+                                width={200}
+                                items={[
+                                    ...[...userTypes].reverse().map((type) => ({
+                                        key: type,
+                                        label: type,
+                                        selected: typeCustom === type,
+                                        icon: typeCustom === type ? <CheckIcon fontSize="small" /> : null,
+                                        onClick: () => handleSelectType(type),
+                                    })),
+                                    ...(userTypes.length > 0 ? [{ key: '__divider__', divider: true }] : []),
+                                    {
+                                        key: '__add__',
+                                        label: 'Add type',
+                                        icon: <AddIcon fontSize="small" />,
+                                        onClick: handleAddType,
+                                    },
+                                ]}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                renderTrigger={({ onClick }) => (
+                                    <Box
+                                        onClick={onClick}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 0.5,
+                                            minWidth: 200,
+                                            height: 40,           // як у поля вибору дати
+                                            boxSizing: 'border-box',
+                                            p: 1,
+                                            borderRadius: '4px', // як у блока вибору дати
+                                            cursor: 'pointer',
+                                            border: '1px solid',
+                                            borderColor: 'text.main',
+                                            color: typeCustom ? 'text.main' : 'text.secondary',
+                                            transition: 'border-color 0.15s',
+                                            '&:hover': { borderColor: 'text.main' },
+                                        }}
+                                    >
+                                        <Typography variant="body2" noWrap>
+                                            {typeCustom || 'Type'}
+                                        </Typography>
+                                        <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                                    </Box>
+                                )}
+                            />
                         </Box>
                         <InputBox
                             label="Enter text..."

@@ -1,8 +1,10 @@
 import React from 'react';
 import { IconButton, Typography, useTheme } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
-import { setTypeTMDB } from '../../redux/slices/ConfigSlice';
+import { useLocation } from 'react-router-dom';
+import { setTypeTMDB, setCustomType } from '../../redux/slices/ConfigSlice';
 import TuneIcon from '@mui/icons-material/Tune';
+import CheckIcon from '@mui/icons-material/Check';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 
 const TMDB_TYPES = [
@@ -13,20 +15,50 @@ const TMDB_TYPES = [
 
 function TypeTMDBSelector() {
     const dispatch = useDispatch();
-    const { typeTMDB } = useSelector((state) => state.config);
+    const { typeTMDB, customType } = useSelector((state) => state.config);
+    // Кастомні типи користувача (свій список у кожного)
+    const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
     const theme = useTheme();
+    const location = useLocation();
+
+    // Кастомні типи доступні на сторінках папок (дані з mongo): /folders та /folders/<name>
+    const isFolderPage = location.pathname.startsWith('/folders');
+    const showCustomTypes = isFolderPage && userTypes.length > 0;
+    const activeCustomType = isFolderPage ? customType : '';
 
     const isActive = (codes) =>
         codes.length === typeTMDB.length && codes.every((code) => typeTMDB.includes(code));
 
     const activeCategory = TMDB_TYPES.find((c) => isActive(c.codes)) || TMDB_TYPES[0];
+    // У тригері показуємо обраний кастомний тип, якщо він активний, інакше — категорію
+    const triggerLabel = activeCustomType || activeCategory.name;
 
-    const items = TMDB_TYPES.map((cat) => ({
-        key: cat.name,
-        label: cat.name,
-        selected: isActive(cat.codes),
-        onClick: () => dispatch(setTypeTMDB(cat.codes)),
-    }));
+    const items = [
+        ...TMDB_TYPES.map((cat) => ({
+            key: cat.name,
+            label: cat.name,
+            // підсвічуємо категорію лише коли не обрано кастомний тип
+            selected: !activeCustomType && isActive(cat.codes),
+            // вибір категорії скидає фільтр кастомного типу
+            onClick: () => {
+                dispatch(setTypeTMDB(cat.codes));
+                if (customType) dispatch(setCustomType(''));
+            },
+        })),
+        // Кастомні типи користувача — лише на сторінці папки
+        ...(showCustomTypes ? [{ key: '__divider__', divider: true }] : []),
+        ...(showCustomTypes ? userTypes.map((type) => ({
+            key: `custom_${type}`,
+            label: type,
+            selected: customType === type,
+            icon: customType === type ? <CheckIcon fontSize="small" /> : null,
+            // повторний клік знімає фільтр; вибір кастомного типу скидає фільтр movie/tv (показуємо все)
+            onClick: () => {
+                dispatch(setCustomType(customType === type ? '' : type));
+                if (!isActive(['movie', 'tv'])) dispatch(setTypeTMDB(['movie', 'tv']));
+            },
+        })) : []),
+    ];
 
     return (
         <DropdownMenu
@@ -54,7 +86,7 @@ function TypeTMDBSelector() {
                             display: { xs: 'none', sm: 'block' },
                         }}
                     >
-                        {activeCategory.name}
+                        {triggerLabel}
                     </Typography>
                 </IconButton>
             )}

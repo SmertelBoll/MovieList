@@ -11,7 +11,7 @@ import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
 
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
-    const { typeTMDB } = useSelector((state) => state.config)
+    const { typeTMDB, customType } = useSelector((state) => state.config)
     const navigate = useNavigate()
 
     const [folders, setFolders] = useState([])
@@ -44,13 +44,14 @@ function FoldersPage() {
         }
     }, [isAuth])
 
+    // Рахуємо кількість на клієнті за активними фільтрами (movie/tv + customType),
+    // тож зміна фільтра не перезавантажує сторінку.
     const getCount = (folder) => {
-        const showMovies = typeTMDB.includes('movie')
-        const showTv = typeTMDB.includes('tv')
-        if (showMovies && showTv) return folder.movieCount + folder.tvCount
-        if (showMovies) return folder.movieCount
-        if (showTv) return folder.tvCount
-        return 0
+        const elements = folder.elements || []
+        return elements.filter(el =>
+            typeTMDB.includes(el.media_type) &&
+            (!customType || el.customType === customType)
+        ).length
     }
 
     // -- RENAME --
