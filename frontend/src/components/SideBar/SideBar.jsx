@@ -1,11 +1,11 @@
 import { Box, Typography } from '@mui/material'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import SecondaryButton from '../Buttons/SecondaryButton'
-import FolderIcon from '@mui/icons-material/Folder';
 import { useTheme } from '@emotion/react';
 import AddIcon from '@mui/icons-material/Add';
 import { alertConfirm, alertError } from '../../alerts';
 
+import FolderThumb from './FolderThumb';
 import UpdateFolder from './UpdateFolder';
 import RenameFolderInput from './RenameFolderInput';
 import { useSelector } from 'react-redux';
@@ -31,6 +31,11 @@ function SideBar({
     const [isInputNewFolder, setIsInputNewFolder] = useState(false)     // чи активовано поле інпуту для створення нової папки (T/F)
     const [curFolderToRename, setCurFolderToRename] = useState(false);  // obj папки, якій міняємо назву
     const [curFolderName, setCurFolderName] = useState(false)           // значення в інпуті для папки, якій міняємо назву
+
+    // Завантаження картинки папки
+    const fileInputRef = useRef(null)
+    const folderForImageRef = useRef(null)
+    const [uploadingFolder, setUploadingFolder] = useState(null)
 
     //-- ADD -- //
     // Додаємо нову папку
@@ -114,6 +119,51 @@ function SideBar({
             });
     }
 
+    //-- IMAGE -- //
+    // Перетворюємо файл у base64, щоб відправити на /upload
+    const fileToBase = (file) =>
+        new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.readAsDataURL(file)
+            reader.onloadend = () => resolve(reader.result)
+        })
+
+    const handleClickAddImage = (folder) => {
+        folderForImageRef.current = folder
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        fileInputRef.current?.click()
+    }
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0]
+        const folder = folderForImageRef.current
+        if (!file || !folder) return
+
+        try {
+            setUploadingFolder(folder.name)
+            const base64 = await fileToBase(file)
+            const { data } = await instance.post('/upload', { image: base64 })
+            const url = data.url
+            await instance.patch(`/folders/image/${folder.name}`, { image: url, imagePublicId: data.publicId })
+            setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: url, imagePublicId: data.publicId } : f))
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        } finally {
+            setUploadingFolder(null)
+            folderForImageRef.current = null
+        }
+    }
+
+    const handleClickRemoveImage = (folder) => {
+        instance
+            .patch(`/folders/image/${folder.name}`, { image: '', imagePublicId: '' })
+            .then(() => {
+                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: '', imagePublicId: '' } : f))
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
     //-- CHANGE ORDER -- //
     // Перемістити вверх по черзі
     const handleIncrementOrder = (folder) => {
@@ -149,6 +199,15 @@ function SideBar({
             borderRadius: 2,
             ...sx
         }}>
+            {/* Прихований input для вибору картинки папки */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
+
             <Typography
                 variant="p"
                 color="text.main"
@@ -183,7 +242,13 @@ function SideBar({
                                     isInputNewFolder={isInputNewFolder}
                                 />
                                 : <SecondaryButton
-                                    startIcon={<FolderIcon />}
+                                    startIcon={
+                                        <FolderThumb
+                                            folder={folder}
+                                            size={24}
+                                            loading={uploadingFolder === folder.name}
+                                        />
+                                    }
                                     isThreePoints={true}
                                     onClick={() => { handleClickToFolder(folder) }}
                                     fullWidth
@@ -211,8 +276,11 @@ function SideBar({
                                         {folder.name}
                                     </Typography>
                                     <UpdateFolder
+                                        hasImage={Boolean(folder.image)}
                                         actionFunctions={{
                                             handleClickRename: () => handleClickRename(folder),
+                                            handleClickAddImage: () => handleClickAddImage(folder),
+                                            handleClickRemoveImage: () => handleClickRemoveImage(folder),
                                             handleClickDelete: () => handleClickDelete(folder),
                                             handleIncrementOrder: () => handleIncrementOrder(folder),
                                             handleDecrementOrder: () => handleDecrementOrder(folder),

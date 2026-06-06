@@ -99,8 +99,8 @@ function FoldersPage() {
             // 1) завантажуємо картинку в Cloudinary
             const { data } = await instance.post('/upload', { image: base64 })
             const url = data.url
-            // 2) зберігаємо URL у папці
-            await instance.patch(`/folders/image/${folder.name}`, { image: url })
+            // 2) зберігаємо URL та public_id у папці (publicId потрібен для видалення з Cloudinary)
+            await instance.patch(`/folders/image/${folder.name}`, { image: url, imagePublicId: data.publicId })
             // 3) оновлюємо локально
             setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: url } : f))
         } catch (err) {
@@ -114,9 +114,9 @@ function FoldersPage() {
 
     const handleClickRemoveImage = (folder) => {
         instance
-            .patch(`/folders/image/${folder.name}`, { image: '' })
+            .patch(`/folders/image/${folder.name}`, { image: '', imagePublicId: '' })
             .then(() => {
-                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: '' } : f))
+                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: '', imagePublicId: '' } : f))
             })
             .catch((err) => { console.warn(err); alertError(err) })
     }
@@ -257,7 +257,7 @@ function FoldersPage() {
                                             alt={folder.name}
                                             sx={{
                                                 height: '11rem',
-                                                width: '100%',
+                                                width: '11rem',
                                                 objectFit: 'cover',
                                                 borderRadius: 2,
                                             }}

@@ -14,6 +14,10 @@ const FolderSchema = new mongoose.Schema(
             type: String, // URL картинки папки (Cloudinary). Якщо немає — показуємо стандартну іконку
             default: "",
         },
+        imagePublicId: {
+            type: String, // public_id у Cloudinary — потрібен, щоб видаляти файл із хмари
+            default: "",
+        },
         folderElements: [
             {
                 itemId: {

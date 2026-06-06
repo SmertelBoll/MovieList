@@ -2,6 +2,7 @@ import UserModel from "../models/user.js";
 import FolderModel from "../models/folder.js";
 import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
+import { destroyImage } from "./imageControllers.js";
 import mongoose from "mongoose";
 
 
@@ -102,6 +103,7 @@ export const updateFolderImage = async (req, res) => {
     const folderName = req.params.name;
     const userId = req.userId;
     const image = req.body.image || "";
+    const imagePublicId = req.body.imagePublicId || "";
 
     const currentFolder = await FolderModel.findOne({ name: folderName, user: userId });
 
@@ -109,7 +111,14 @@ export const updateFolderImage = async (req, res) => {
       return res.status(404).json({ title: "Folder not found", message: "no folder found" });
     }
 
+    // Якщо була стара картинка і вона змінюється/видаляється — прибираємо її з Cloudinary
+    const oldPublicId = currentFolder.imagePublicId;
+    if (oldPublicId && oldPublicId !== imagePublicId) {
+      await destroyImage(oldPublicId);
+    }
+
     currentFolder.image = image;
+    currentFolder.imagePublicId = imagePublicId;
     await currentFolder.save();
 
     res.json({
@@ -145,6 +154,9 @@ export const removeFolder = async (req, res) => {
     if (!folder) {
       return res.status(404).json({ title: "Folder error", message: "folder not found", });
     }
+
+    // Прибираємо картинку папки з Cloudinary, якщо вона була
+    await destroyImage(folder.imagePublicId);
 
     const foldersByUser = await FolderModel
       .find({ user: userId })
