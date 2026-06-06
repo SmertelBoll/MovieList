@@ -2,7 +2,7 @@ import React from 'react';
 import { IconButton, Typography, useTheme } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
 import { useSelector, useDispatch } from 'react-redux';
-import { setLanguage } from '../../redux/slices/ConfigSlice';
+import { changeLanguage } from '../../redux/slices/ConfigSlice';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 
 const LANGUAGES = [
@@ -41,7 +41,7 @@ function LanguageSelector() {
         label: lang.name,
         subLabel: lang.nativeName,
         selected: lang.code === language,
-        onClick: () => dispatch(setLanguage(lang.code)),
+        onClick: () => dispatch(changeLanguage(lang.code)),
         icon: (
             <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 25 }}>
                 {lang.code.toUpperCase()}

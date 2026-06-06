@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import axios from "../../axios";
 
 const savedMode = window.localStorage.getItem("MovieList-mode");
 const savedLanguage = window.localStorage.getItem("MovieList-language");
@@ -40,5 +41,32 @@ const configSlice = createSlice({
 });
 
 export const { setMode, setLanguage, setTypeTMDB, setCustomType, toggleMode } = configSlice.actions;
+
+// -- THUNKS: зберігають вибір локально і (якщо користувач залогінений) у профілі на сервері --
+
+// Зберігає налаштування на сервері, не блокуючи UI у разі помилки
+const persistSettings = async (payload, getState) => {
+    if (!getState().auth.data) return; // не залогінений — лише локально
+    try {
+        await axios.patch("/auth/settings", payload);
+    } catch (err) {
+        console.warn("Failed to save settings:", err);
+    }
+};
+
+export const changeLanguage = (code) => async (dispatch, getState) => {
+    dispatch(setLanguage(code));
+    await persistSettings({ language: code }, getState);
+};
+
+export const changeThemeMode = (mode) => async (dispatch, getState) => {
+    dispatch(setMode(mode));
+    await persistSettings({ themeMode: mode }, getState);
+};
+
+export const toggleThemeMode = () => async (dispatch, getState) => {
+    const nextMode = getState().config.mode === "light" ? "dark" : "light";
+    dispatch(changeThemeMode(nextMode));
+};
 
 export const configReducer = configSlice.reducer;

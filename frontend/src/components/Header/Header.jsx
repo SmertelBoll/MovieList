@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useTheme } from "@mui/material/styles";
-import { toggleMode } from "../../redux/slices/ConfigSlice";
+import { toggleThemeMode } from "../../redux/slices/ConfigSlice";
 
 import { logout, selectIsAuth } from "../../redux/slices/AuthSlice";
 import { alertConfirm } from "../../alerts";
@@ -87,7 +87,7 @@ function Header({ mode }) {
             <LanguageSelector />
 
             {/* Зміна теми */}
-            <IconButton onClick={() => dispatch(toggleMode())} color="inherit">
+            <IconButton onClick={() => dispatch(toggleThemeMode())} color="inherit">
               {mode === "light" ? (
                 <DarkModeIcon style={{ color: theme.palette.text.main }} />
               ) : (

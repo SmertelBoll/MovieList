@@ -20,6 +20,7 @@ import FolderPage from "./pages/SingleFolder/FolderPage";
 import FoldersPage from "./pages/Folders/FoldersPage";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
+import { setMode, setLanguage } from "./redux/slices/ConfigSlice";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
 
 function App() {
@@ -29,6 +30,14 @@ function App() {
     dispatch(fetchAuthMe())
   }, [dispatch]);
 
+  const authData = useSelector((state) => state.auth.data);
+
+  // Підтягуємо тему та мову з профілю користувача (сервер — джерело істини після входу)
+  useEffect(() => {
+    if (!authData) return;
+    if (authData.themeMode) dispatch(setMode(authData.themeMode));
+    if (authData.language) dispatch(setLanguage(authData.language));
+  }, [authData, dispatch]);
 
   const { mode } = useSelector((state) => state.config);
 
