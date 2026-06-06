@@ -212,7 +212,14 @@ function SideBar({
                 variant="p"
                 color="text.main"
                 onClick={() => navigate('/folders')}
-                sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                sx={{
+                    cursor: 'pointer',
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 2,
+                    transition: 'background-color 0.15s, color 0.15s',
+                    '&:hover': { bgcolor: 'yellow.main', color: 'text.dark' },
+                }}
             >
                 My folders
             </Typography>
