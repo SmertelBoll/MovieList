@@ -22,6 +22,10 @@ const UserSchema = new mongoose.Schema(
     avatar: {
       type: String,
     },
+    avatarPublicId: {
+      type: String, // public_id у Cloudinary — щоб видаляти стару аватарку
+      default: "",
+    },
     themeMode: {
       type: String,
       default: "light",

@@ -85,6 +85,7 @@ function RegistrationForm() {
     event.preventDefault();
 
     let avatar = null;
+    let avatarPublicId = null;
     if (localData.avatar && typeof localData.avatar !== "string") {
       const formDataImg = await setFileToBase();
 
@@ -92,6 +93,7 @@ function RegistrationForm() {
         const { data } = await axios.post("/upload", formDataImg);
 
         avatar = data.url;
+        avatarPublicId = data.publicId;
       } catch (err) {
         console.warn(err);
         alertError(err);
@@ -106,6 +108,7 @@ function RegistrationForm() {
     };
 
     if (avatar) formData["avatar"] = avatar;
+    if (avatarPublicId) formData["avatarPublicId"] = avatarPublicId;
 
     const resData = await dispatch(fetchRegister(formData));
 

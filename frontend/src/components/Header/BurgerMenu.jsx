@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { Box, Drawer, Button, Avatar, Typography } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import { selectIsAuth } from "../../redux/slices/AuthSlice";
 import MainButton from "../Buttons/MainButton";
 import SecondaryButton from "../Buttons/SecondaryButton";
-import ChangeAvatar from "../ChangeAvatar";
 
 import MenuIcon from "@mui/icons-material/Menu";
 import HomeIcon from "@mui/icons-material/Home";
@@ -36,8 +35,8 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
 
   const isAuth = useSelector(selectIsAuth);
   const { data } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false); // drawer
-  const [isOpenChangeAvatar, setIsOpenChangeAvatar] = useState(false);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -47,8 +46,9 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
     setOpen(false);
   };
 
-  const handleDialogClose = () => {
-    setIsOpenChangeAvatar(false);
+  const handleAvatarClick = () => {
+    handleDrawerClose();
+    navigate("/profile");
   };
 
   React.useEffect(() => {
@@ -90,13 +90,23 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
       >
         {/* user */}
         {isAuth && (
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+          <Box
+            onClick={handleAvatarClick}
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 2,
+              cursor: "pointer",
+              borderRadius: 2,
+              p: 1,
+              transition: "background-color 0.15s",
+              "&:hover": { bgcolor: "bg.selected" },
+            }}
+          >
             <Avatar
               src={data?.avatar}
-              onClick={() => setIsOpenChangeAvatar(true)}
-              sx={{ width: { xs: 50, sm: 75 }, height: { xs: 50, sm: 75 }, cursor: "pointer" }}
+              sx={{ width: { xs: 50, sm: 75 }, height: { xs: 50, sm: 75 } }}
             />
-            <ChangeAvatar onClose={handleDialogClose} open={isOpenChangeAvatar} />
             <Typography
               sx={{
                 display: "-webkit-box",

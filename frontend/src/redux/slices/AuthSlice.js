@@ -38,6 +38,11 @@ const authSlice = createSlice({
         state.data.typeCustom = action.payload;
       }
     },
+    updateUserData: (state, action) => {
+      if (state.data) {
+        state.data = { ...state.data, ...action.payload };
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -89,4 +94,4 @@ export const selectIsAuth = (state) => Boolean(state.auth.data);
 
 export const authReducer = authSlice.reducer;
 
-export const { logout, setUserTypeCustom } = authSlice.actions;
+export const { logout, setUserTypeCustom, updateUserData } = authSlice.actions;

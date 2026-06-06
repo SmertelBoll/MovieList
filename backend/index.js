@@ -7,7 +7,7 @@ dotenv.config();
 
 import { loginValidation, registerValidation } from "./validations/auth.js";
 import { checkValidationError } from "./utils/checkValidationError.js";
-import { getMe, loginUser, registerUser, updateSettings } from "./controllers/userControllers.js";
+import { getMe, loginUser, registerUser, updateSettings, updateProfile, deleteCustomType } from "./controllers/userControllers.js";
 import { checkAuth } from "./utils/checkAuth.js";
 import {
   createPost,
@@ -72,6 +72,8 @@ app.post("/auth/register", registerValidation, checkValidationError, registerUse
 app.post("/auth/login", loginValidation, checkValidationError, loginUser);
 app.get("/auth/me", checkAuth, getMe);
 app.patch("/auth/settings", checkAuth, updateSettings);
+app.patch("/auth/profile", checkAuth, updateProfile);
+app.delete("/auth/types/:type", checkAuth, deleteCustomType);
 
 // Фронтенд шле картинку як base64 у JSON ({ image: "data:..." }), тому multer не потрібен.
 // Без checkAuth, бо завантаження аватара відбувається ще до реєстрації/логіну.

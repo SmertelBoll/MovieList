@@ -4,6 +4,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 import UserModel from "../models/user.js";
+import MovieModel from "../models/movie.js";
+import TvModel from "../models/tv.js";
+import { destroyImage } from "./imageControllers.js";
 
 const bcrypt_salt = process.env.BCRYPT_SALT;
 const jwt_key = process.env.JWT_KEY;
@@ -18,11 +21,13 @@ export const registerUser = async (req, res) => {
     const hash = await bcrypt.hash(password, salt);
 
     const avatar = req.body.avatar;
+    const avatarPublicId = req.body.avatarPublicId;
 
     const doc = new UserModel({
       email: req.body.email,
       fullName: req.body.fullName,
       avatar: avatar ? avatar : "",
+      avatarPublicId: avatarPublicId ? avatarPublicId : "",
       passwordHash: hash,
     });
 
@@ -99,6 +104,76 @@ export const getMe = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ title: "Authorization error", message: "failed to get data" });
+  }
+};
+
+// Видаляє кастомний тип зі списку користувача і прибирає його з усіх
+// фільмів/серіалів користувача, де він був застосований
+export const deleteCustomType = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const type = req.params.type;
+
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Settings error", message: "user not found" });
+    }
+
+    // Прибираємо тип зі списку користувача
+    user.typeCustom = (user.typeCustom || []).filter((t) => t !== type);
+    await user.save();
+
+    // Очищаємо customType у всіх елементах користувача, де він використовувався
+    await Promise.all([
+      MovieModel.updateMany({ user: userId, customType: type }, { $set: { customType: "" } }),
+      TvModel.updateMany({ user: userId, customType: type }, { $set: { customType: "" } }),
+    ]);
+
+    res.json({
+      success: true,
+      results: { typeCustom: user.typeCustom },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Settings error", message: "failed to delete custom type" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { fullName, avatar, avatarPublicId } = req.body;
+
+    const user = await UserModel.findById(req.userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Profile error", message: "user not found" });
+    }
+
+    if (typeof fullName === "string" && fullName.trim()) {
+      user.fullName = fullName.trim();
+    }
+
+    // Зміна/видалення аватарки: прибираємо стару з Cloudinary
+    if (typeof avatar === "string") {
+      const newPublicId = avatarPublicId || "";
+      if (user.avatarPublicId && user.avatarPublicId !== newPublicId) {
+        await destroyImage(user.avatarPublicId);
+      }
+      user.avatar = avatar;
+      user.avatarPublicId = newPublicId;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      results: {
+        fullName: user.fullName,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Profile error", message: "failed to update profile" });
   }
 };
 
