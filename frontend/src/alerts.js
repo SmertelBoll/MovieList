@@ -37,6 +37,7 @@ export const alertInput = async (title, placeholder = "", defaultValue = "") => 
     input: "text",
     inputPlaceholder: placeholder,
     inputValue: defaultValue,
+    inputAttributes: { maxlength: 100 },
     showConfirmButton: true,
     showCancelButton: true,
     confirmButtonColor: "#3085d6",

@@ -445,6 +445,7 @@ function ProfilePage() {
                             onChange={(e) => setNewType(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleAddType() }}
                             placeholder="e.g. Anime, Documentary..."
+                            inputProps={{ maxLength: 100 }}
                         />
                     </Box>
                     <MainButton onClick={handleAddType} disabled={!newType.trim()} startIcon={<AddIcon />} sx={{ m: 0 }}>

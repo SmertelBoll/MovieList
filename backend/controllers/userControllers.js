@@ -226,6 +226,9 @@ export const renameCustomType = async (req, res) => {
     if (!newName) {
       return res.status(400).json({ title: "Tag error", message: "tag name cannot be empty" });
     }
+    if (newName.length > 100) {
+      return res.status(400).json({ title: "Tag error", message: "tag name must be at most 100 characters" });
+    }
 
     const user = await UserModel.findById(userId).exec();
     if (!user) {
@@ -301,6 +304,12 @@ export const updateProfile = async (req, res) => {
 export const updateSettings = async (req, res) => {
   try {
     const { themeMode, language, typeCustom } = req.body;
+
+    // Кожен тег — не довше 100 символів
+    if (Array.isArray(typeCustom) && typeCustom.some((t) => typeof t === "string" && t.length > 100)) {
+      return res.status(400).json({ title: "Tag error", message: "tag name must be at most 100 characters" });
+    }
+
     const user = await UserModel.findByIdAndUpdate(
       req.userId,
       {

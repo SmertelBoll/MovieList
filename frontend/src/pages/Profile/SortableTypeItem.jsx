@@ -48,7 +48,12 @@ function SortableTypeItem({ type, onRename, onDelete }) {
                 <DragIndicatorIcon fontSize="small" sx={{ color: 'text.dark', opacity: 0.6 }} />
             </Box>
 
-            <Typography variant="body2" sx={{ flexGrow: 1, fontWeight: 600 }}>
+            <Typography
+                variant="body2"
+                noWrap
+                title={type}
+                sx={{ flexGrow: 1, minWidth: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}
+            >
                 {type}
             </Typography>
 
