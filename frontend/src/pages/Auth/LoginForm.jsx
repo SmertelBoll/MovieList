@@ -8,10 +8,12 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
+  IconButton,
+  InputAdornment,
   Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useTheme } from "@mui/material/styles";
 
@@ -23,6 +25,8 @@ import MainButton from "../../components/Buttons/MainButton";
 import SecondaryButton from "../../components/Buttons/SecondaryButton";
 
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 function LoginForm() {
   const theme = useTheme();
@@ -34,6 +38,7 @@ function LoginForm() {
   const dispatch = useDispatch();
   const isAuth = useSelector(selectIsAuth);
   const [isSavePassword, setIsSavePassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -121,9 +126,22 @@ function LoginForm() {
             fullWidth
             name="password"
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             id="password"
             autoComplete={isSavePassword ? 'on' : 'off'}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end" sx={{ pr: 1 }}>
+                  <IconButton
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    edge="end"
+                    aria-label="toggle password visibility"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <FormControlLabel
@@ -150,6 +168,22 @@ function LoginForm() {
           <MainButton type="submit" fullWidth sx={{ borderRadius: 1 }}>
             Log in
           </MainButton>
+
+          <Typography sx={{ color: "text.main", textAlign: "center" }}>
+            Don't have an account?{" "}
+            <Typography
+              component={Link}
+              to="/register"
+              sx={{
+                color: "text.main",
+                fontWeight: 700,
+                textDecoration: "underline",
+                "&:hover": { color: "yellow.dark" },
+              }}
+            >
+              Sign up
+            </Typography>
+          </Typography>
         </Box>
 
         <Button

@@ -1,6 +1,6 @@
-import { Avatar, Box, IconButton, Typography } from "@mui/material";
+import { Avatar, Box, IconButton, InputAdornment, Typography } from "@mui/material";
 import React, { useMemo, useRef, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "../../axios";
 import { useTheme } from "@mui/material/styles";
@@ -12,6 +12,8 @@ import ContainerCustom from "../../components/_customMUI/ContainerCustom";
 import MainButton from "../../components/Buttons/MainButton";
 
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 function RegistrationForm() {
   const theme = useTheme();
@@ -29,6 +31,7 @@ function RegistrationForm() {
     avatar: null,
   });
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -205,13 +208,42 @@ function RegistrationForm() {
             fullWidth
             name="password"
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             id="password"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end" sx={{ pr: 1 }}>
+                  <IconButton
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    edge="end"
+                    aria-label="toggle password visibility"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <MainButton type="submit" fullWidth sx={{ borderRadius: 1 }}>
             Sign up
           </MainButton>
+
+          <Typography sx={{ color: "text.main", textAlign: "center" }}>
+            Already have an account?{" "}
+            <Typography
+              component={Link}
+              to="/login"
+              sx={{
+                color: "text.main",
+                fontWeight: 700,
+                textDecoration: "underline",
+                "&:hover": { color: "yellow.dark" },
+              }}
+            >
+              Log in
+            </Typography>
+          </Typography>
         </Box>
       </Box>
     </ContainerCustom>
