@@ -216,6 +216,50 @@ export const updatePassword = async (req, res) => {
   }
 };
 
+// Перейменовує тег у списку користувача і в усіх його фільмах/серіалах
+export const renameCustomType = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const oldName = req.params.type;
+    const newName = (req.body.newName || "").trim();
+
+    if (!newName) {
+      return res.status(400).json({ title: "Tag error", message: "tag name cannot be empty" });
+    }
+
+    const user = await UserModel.findById(userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Tag error", message: "user not found" });
+    }
+
+    const types = user.typeCustom || [];
+    if (!types.includes(oldName)) {
+      return res.status(404).json({ title: "Tag error", message: "tag not found" });
+    }
+    if (oldName !== newName && types.includes(newName)) {
+      return res.status(400).json({ title: "Tag error", message: "tag with this name already exists" });
+    }
+
+    // Замінюємо назву, зберігаючи порядок
+    user.typeCustom = types.map((t) => (t === oldName ? newName : t));
+    await user.save();
+
+    // Оновлюємо customType у всіх елементах користувача
+    await Promise.all([
+      MovieModel.updateMany({ user: userId, customType: oldName }, { $set: { customType: newName } }),
+      TvModel.updateMany({ user: userId, customType: oldName }, { $set: { customType: newName } }),
+    ]);
+
+    res.json({
+      success: true,
+      results: { typeCustom: user.typeCustom },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Tag error", message: "failed to rename tag" });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, avatar, avatarPublicId } = req.body;

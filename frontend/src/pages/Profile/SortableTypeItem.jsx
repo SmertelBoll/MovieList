@@ -3,10 +3,11 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
 
 // Один перетягуваний рядок кастомного типу
-function SortableTypeItem({ type, onDelete }) {
+function SortableTypeItem({ type, onRename, onDelete }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: type })
 
     const style = {
@@ -50,6 +51,14 @@ function SortableTypeItem({ type, onDelete }) {
             <Typography variant="body2" sx={{ flexGrow: 1, fontWeight: 600 }}>
                 {type}
             </Typography>
+
+            <IconButton
+                size="small"
+                onClick={onRename}
+                sx={{ color: 'text.dark', '&:hover': { color: 'text.main' } }}
+            >
+                <EditIcon fontSize="small" />
+            </IconButton>
 
             <IconButton
                 size="small"

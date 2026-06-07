@@ -30,12 +30,13 @@ export const alertSuccess = (title) => {
 };
 
 // Запитує у користувача текст. Повертає введене значення або null (якщо скасовано/порожньо)
-export const alertInput = async (title, placeholder = "") => {
+export const alertInput = async (title, placeholder = "", defaultValue = "") => {
   const result = await Swal.fire({
     ...defaultProp,
     title: title,
     input: "text",
     inputPlaceholder: placeholder,
+    inputValue: defaultValue,
     showConfirmButton: true,
     showCancelButton: true,
     confirmButtonColor: "#3085d6",

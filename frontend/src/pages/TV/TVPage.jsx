@@ -75,7 +75,6 @@ function TVPage({ isSaved = false }) {
 
     // Папка, у якій збережено цей серіал (тільки для збереженого серіалу)
     const [currentFolderName, setCurrentFolderName] = useState(null)
-    const [reload, setReload] = useState(0)
 
     // Стани для діалогу
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
@@ -168,7 +167,7 @@ function TVPage({ isSaved = false }) {
         } else {
             loadTmdb(id)
         }
-    }, [id, isSaved, reload])
+    }, [id, isSaved])
 
     // Завантаження папок користувача
     useEffect(() => {
@@ -225,9 +224,15 @@ function TVPage({ isSaved = false }) {
         setIsOpenDialogEdit(false)
         setIsDeleteItem(false)
         setSelectedFolder(false)
-        // Оновлюємо дані сторінки після редагування / додавання
-        if (isSaved) setReload(prev => prev + 1)
-        else setIsGetFolders(true) // на TMDB-сторінці оновлюємо "Saved in"
+    }
+
+    // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
+    const handleItemSaved = (updated) => {
+        if (isSaved) {
+            setSerial(prev => ({ ...prev, ...updated }))
+            if (updated.folderName) setCurrentFolderName(updated.folderName)
+        }
+        setIsGetFolders(true) // оновити блок "Saved in" без спіннера сторінки
     }
 
     const savedMenuItems = [
@@ -983,6 +988,7 @@ function TVPage({ isSaved = false }) {
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
                 selectedItem={serial}
+                onSaved={handleItemSaved}
                 onAfterDelete={() => navigate(-1)}
                 // sidebar props
                 folders={folders}

@@ -33,6 +33,7 @@ function ItemSaveDialog({
     setItems = () => { },
     sortItems = () => { },
     onAfterDelete = () => { },
+    onSaved = null,
     // sidebar props
     folders,
     setFolders,
@@ -191,6 +192,7 @@ function ItemSaveDialog({
                             ...res.data.results,
                         });
                     }
+                    onSaved?.({ ...selectedItem, ...res.data.results });
                     handleCloseDialog();
                 })
                 .catch((err) => {
@@ -235,6 +237,7 @@ function ItemSaveDialog({
                             ...res.data.results,
                         });
                     }
+                    onSaved?.({ ...selectedItem, ...res.data.results });
                     handleCloseDialog();
                 })
                 .catch((err) => {
@@ -245,7 +248,8 @@ function ItemSaveDialog({
     };
     // видалення фільму з папки (backend)
     const handleDeleteItem = (item, folder) => {
-        alertConfirm(`Are you sure you want to delete "${item.tmdbTitle}" from this folder?`, () => {
+        const title = item.tmdbTitle || item.title || item.name || "this item";
+        alertConfirm(`Are you sure you want to delete "${title}" from this folder?`, () => {
             instance
                 .delete(`/${item.media_type}`, {
                     data: {

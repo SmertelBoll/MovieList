@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import instance from '../../axios'
-import { alertError, alertSuccess, alertConfirm } from '../../alerts'
+import { alertError, alertSuccess, alertConfirm, alertInput } from '../../alerts'
 import { selectIsAuth, setUserTypeCustom, updateUserData } from '../../redux/slices/AuthSlice'
 import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
@@ -248,6 +248,19 @@ function ProfilePage() {
         )
     }
 
+    const handleRenameType = async (oldName) => {
+        const newName = await alertInput('Rename tag', 'New tag name', oldName)
+        if (!newName || newName === oldName) return
+
+        try {
+            const { data } = await instance.patch(`/auth/types/${encodeURIComponent(oldName)}`, { newName })
+            dispatch(setUserTypeCustom(data.results.typeCustom))
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        }
+    }
+
     // Зміна порядку перетягуванням
     const handleDragEnd = (event) => {
         const { active, over } = event
@@ -410,6 +423,7 @@ function ProfilePage() {
                                     <SortableTypeItem
                                         key={type}
                                         type={type}
+                                        onRename={() => handleRenameType(type)}
                                         onDelete={() => handleDeleteType(type)}
                                     />
                                 ))}
