@@ -10,7 +10,7 @@ const smallFormula = (minSize, maxSize) => {
 };
 
 const typography = {
-  fontFamily: "Kanit",
+  fontFamily: "Kanit, Rubik, sans-serif",
   h1: {
     fontSize: smallFormula(48, 96),
     "@media (min-width:767px)": {

@@ -1,8 +1,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Nunito&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Bungee&family=Kanit:wght@400;600;700&display=swap");
+/* Rubik з підтримкою кирилиці — фолбек для нелатинських символів */
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin");
 
 :root {
-  font-family: "Kanit", sans-serif;
+  font-family: "Kanit", "Rubik", sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
