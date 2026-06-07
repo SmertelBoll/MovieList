@@ -359,7 +359,7 @@ function ItemSaveDialog({
                             <DropdownMenu
                                 width={200}
                                 items={[
-                                    ...[...userTypes].reverse().map((type) => ({
+                                    ...userTypes.map((type) => ({
                                         key: type,
                                         label: type,
                                         selected: typeCustom === type,

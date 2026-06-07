@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { IconButton, Typography, useTheme } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
@@ -23,6 +23,14 @@ function TypeTMDBSelector() {
 
     // Кастомні типи доступні на сторінках папок (дані з mongo): /folders та /folders/<name>
     const isFolderPage = location.pathname.startsWith('/folders');
+
+    // Залишаючи сторінки папок, скидаємо фільтр кастомного типу,
+    // щоб при поверненні був активний обраний tmdbType, а не старий customType
+    useEffect(() => {
+        if (!isFolderPage && customType) {
+            dispatch(setCustomType(''));
+        }
+    }, [isFolderPage, customType, dispatch]);
     const showCustomTypes = isFolderPage && userTypes.length > 0;
     const activeCustomType = isFolderPage ? customType : '';
 
@@ -47,7 +55,7 @@ function TypeTMDBSelector() {
         })),
         // Кастомні типи користувача — лише на сторінці папки
         ...(showCustomTypes ? [{ key: '__divider__', divider: true }] : []),
-        ...(showCustomTypes ? userTypes.map((type) => ({
+        ...(showCustomTypes ? [...userTypes].map((type) => ({
             key: `custom_${type}`,
             label: type,
             selected: customType === type,

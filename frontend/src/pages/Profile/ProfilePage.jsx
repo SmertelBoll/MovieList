@@ -1,11 +1,14 @@
-import { Avatar, Box, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useTheme } from '@mui/material'
+import { Avatar, Box, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import instance from '../../axios'
 import { alertError, alertSuccess, alertConfirm } from '../../alerts'
 import { selectIsAuth, setUserTypeCustom, updateUserData } from '../../redux/slices/AuthSlice'
 import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
+import SortableTypeItem from './SortableTypeItem'
 
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import CloseIcon from '@mui/icons-material/Close'
@@ -52,6 +55,16 @@ function ProfilePage() {
 
     const fileInputRef = useRef(null)
     const userTypes = user?.typeCustom || []
+
+    // Локальний порядок типів для drag-and-drop (синхронізується з даними користувача)
+    const [orderedTypes, setOrderedTypes] = useState(userTypes)
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    )
+
+    useEffect(() => {
+        setOrderedTypes(user?.typeCustom || [])
+    }, [user?.typeCustom])
 
     // Підставляємо поточне ім'я, коли дані користувача завантажились
     useEffect(() => {
@@ -235,6 +248,20 @@ function ProfilePage() {
         )
     }
 
+    // Зміна порядку перетягуванням
+    const handleDragEnd = (event) => {
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        const oldIndex = orderedTypes.indexOf(active.id)
+        const newIndex = orderedTypes.indexOf(over.id)
+        if (oldIndex === -1 || newIndex === -1) return
+
+        const reordered = arrayMove(orderedTypes, oldIndex, newIndex)
+        setOrderedTypes(reordered)   // оптимістично оновлюємо UI
+        saveTypes(reordered)         // зберігаємо новий порядок
+    }
+
     const nameChanged = fullName.trim() && fullName.trim() !== user?.fullName
 
     const cardSx = {
@@ -374,27 +401,21 @@ function ProfilePage() {
                     </Typography>
                 </Box>
 
-                {/* Existing types */}
-                {userTypes.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {userTypes.map((type) => (
-                            <Chip
-                                key={type}
-                                label={type}
-                                onDelete={() => handleDeleteType(type)}
-                                sx={{
-                                    bgcolor: 'yellow.main',
-                                    color: 'text.dark',
-                                    fontWeight: 600,
-                                    borderRadius: 2,
-                                    '& .MuiChip-deleteIcon': {
-                                        color: 'text.dark',
-                                        '&:hover': { color: 'text.main' },
-                                    },
-                                }}
-                            />
-                        ))}
-                    </Box>
+                {/* Existing types — перетягуванням можна змінювати порядок */}
+                {orderedTypes.length > 0 ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={orderedTypes} strategy={verticalListSortingStrategy}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {orderedTypes.map((type) => (
+                                    <SortableTypeItem
+                                        key={type}
+                                        type={type}
+                                        onDelete={() => handleDeleteType(type)}
+                                    />
+                                ))}
+                            </Box>
+                        </SortableContext>
+                    </DndContext>
                 ) : (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                         No custom types yet.
