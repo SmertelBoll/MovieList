@@ -44,6 +44,12 @@ function ProfilePage() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
     const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
+    const [pwdDialogOpen, setPwdDialogOpen] = useState(false)
+    const [oldPassword, setOldPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [savingPassword, setSavingPassword] = useState(false)
+
     const fileInputRef = useRef(null)
     const userTypes = user?.typeCustom || []
 
@@ -157,6 +163,39 @@ function ProfilePage() {
             alertError(err)
         } finally {
             setSavingEmail(false)
+        }
+    }
+
+    // -- PASSWORD -- //
+    const handleOpenPwdDialog = () => {
+        setOldPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setPwdDialogOpen(true)
+    }
+
+    const handleClosePwdDialog = () => {
+        if (savingPassword) return
+        setPwdDialogOpen(false)
+    }
+
+    const handleSavePassword = async () => {
+        if (!oldPassword || !newPassword || !confirmPassword) return
+        if (newPassword !== confirmPassword) {
+            alertError(null, 'Passwords do not match', 'New password and confirmation must be the same')
+            return
+        }
+
+        try {
+            setSavingPassword(true)
+            await instance.patch('/auth/password', { oldPassword, newPassword })
+            setPwdDialogOpen(false)
+            alertSuccess('Password updated')
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        } finally {
+            setSavingPassword(false)
         }
     }
 
@@ -402,6 +441,19 @@ function ProfilePage() {
                         Change email
                     </MainButton>
                 </Box>
+
+                {/* Password */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                    <Box>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Password</Typography>
+                        <Typography variant="body1" sx={{ color: 'text.main' }}>
+                            ••••••••
+                        </Typography>
+                    </Box>
+                    <MainButton onClick={handleOpenPwdDialog} sx={{ m: 0 }}>
+                        Change password
+                    </MainButton>
+                </Box>
             </Box>
 
             {/* EMAIL DIALOG */}
@@ -440,6 +492,53 @@ function ProfilePage() {
                         sx={{ m: 0 }}
                     >
                         {savingEmail ? 'Saving...' : 'Save'}
+                    </MainButton>
+                </DialogActions>
+            </Dialog>
+
+            {/* PASSWORD DIALOG */}
+            <Dialog open={pwdDialogOpen} onClose={handleClosePwdDialog} fullWidth maxWidth="xs">
+                <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
+                    Change password
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                    <LabeledInputBox
+                        fullWidth
+                        label="Current password"
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                    />
+                    <LabeledInputBox
+                        fullWidth
+                        label="New password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <LabeledInputBox
+                        fullWidth
+                        label="Confirm new password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSavePassword() }}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ bgcolor: 'bg.second', p: 2, gap: 1 }}>
+                    <MainButton
+                        onClick={handleClosePwdDialog}
+                        disabled={savingPassword}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', ':hover': { bgcolor: 'bg.selected' } }}
+                    >
+                        Cancel
+                    </MainButton>
+                    <MainButton
+                        onClick={handleSavePassword}
+                        disabled={!oldPassword || !newPassword || !confirmPassword || savingPassword}
+                        sx={{ m: 0 }}
+                    >
+                        {savingPassword ? 'Saving...' : 'Save'}
                     </MainButton>
                 </DialogActions>
             </Dialog>

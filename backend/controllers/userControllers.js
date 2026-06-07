@@ -187,6 +187,35 @@ export const updateEmail = async (req, res) => {
   }
 };
 
+export const updatePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 5) {
+      return res.status(400).json({ title: "Password error", message: "new password must be at least 5 characters" });
+    }
+
+    const user = await UserModel.findById(req.userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Password error", message: "user not found" });
+    }
+
+    const isValidPassword = await bcrypt.compare(oldPassword || "", user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(400).json({ title: "Password error", message: "wrong current password" });
+    }
+
+    const salt = await bcrypt.genSalt(parseInt(bcrypt_salt));
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Password error", message: "failed to update password" });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, avatar, avatarPublicId } = req.body;
