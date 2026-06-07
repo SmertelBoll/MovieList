@@ -75,9 +75,10 @@ function GeneralItemList({
     isSort = false,
     ...props
 }) {
-    const { typeTMDB, customType } = useSelector((state) => state.config);
-    // Кастомний тип застосовується лише для mongo-сторінок; для tmdb його ігноруємо повністю
-    const effectiveCustomType = dbType === "mongo" ? customType : "";
+    const { typeTMDB, customTypes } = useSelector((state) => state.config);
+    // Кастомні типи застосовуються лише для mongo-сторінок; для tmdb їх ігноруємо повністю
+    const effectiveCustomTypes = dbType === "mongo" ? customTypes : [];
+    const customTypesKey = effectiveCustomTypes.join(",");
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -173,7 +174,7 @@ function GeneralItemList({
         setDisplayedItems(0)
         setTotalPages(1)
         setPage(0)
-    }, [searchValue, nameSortBy, sortDirection, typeTMDB, effectiveCustomType])
+    }, [searchValue, nameSortBy, sortDirection, typeTMDB, customTypesKey])
 
     // Загрузка даних
     useEffect(() => {
@@ -258,7 +259,7 @@ function GeneralItemList({
                 sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"]["movie"]}.${sortDirection}`,
                 limit: 24,
                 type: typeTMDB.join(","),
-                ...(effectiveCustomType ? { customType: effectiveCustomType } : {}),
+                ...(customTypesKey ? { customType: customTypesKey } : {}),
                 ...urlParams
             };
 

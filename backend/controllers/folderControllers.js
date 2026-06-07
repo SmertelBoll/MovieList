@@ -366,8 +366,8 @@ export const getItemsFromFolder = async (req, res) => {
     // Фільтр за типом (movie/tv). Може містити обидва значення через кому
     const types = (req.query.type || "").split(",").filter(Boolean);
 
-    // Фільтр за кастомним типом користувача (customType)
-    const customType = req.query.customType || "";
+    // Фільтр за кастомними типами користувача (один або кілька через кому)
+    const customTypes = (req.query.customType || "").split(",").filter(Boolean);
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 12;
@@ -434,11 +434,20 @@ export const getItemsFromFolder = async (req, res) => {
       });
     }
 
-    // Фільтрація за кастомним типом
-    if (customType) {
-      pipeline.push({
-        $match: { customType: customType }
-      });
+    // Фільтрація за кастомними типами (об'єднання). "__none__" = без тегів (порожній customType)
+    if (customTypes.length > 0) {
+      const NO_TAG = "__none__";
+      const realTags = customTypes.filter(t => t !== NO_TAG);
+      const includeNoTag = customTypes.includes(NO_TAG);
+
+      const orConditions = [];
+      if (realTags.length > 0) orConditions.push({ customType: { $in: realTags } });
+      // $in [null] збігається і з відсутнім полем, "" — з порожнім рядком
+      if (includeNoTag) orConditions.push({ customType: { $in: [null, ""] } });
+
+      if (orConditions.length > 0) {
+        pipeline.push({ $match: { $or: orConditions } });
+      }
     }
 
     // Додаємо фільтрацію

@@ -1,16 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "../../axios";
 
+// Спеціальне значення фільтра — "без тегів" (елементи з порожнім customType)
+export const NO_TAG = "__none__";
+
 const savedMode = window.localStorage.getItem("MovieList-mode");
 const savedLanguage = window.localStorage.getItem("MovieList-language");
 const savedTypeTMDB = window.localStorage.getItem("MovieList-typeTMDB");
-const savedCustomType = window.localStorage.getItem("MovieList-customType");
+const savedCustomTypes = window.localStorage.getItem("MovieList-customTypes");
 
 const initialState = {
     mode: savedMode ? savedMode : "light",
     language: savedLanguage ? savedLanguage : "en",
     typeTMDB: savedTypeTMDB ? JSON.parse(savedTypeTMDB) : ["movie", "tv"],
-    customType: savedCustomType ? savedCustomType : "",
+    // Кілька кастомних типів одночасно (об'єднання)
+    customTypes: savedCustomTypes ? JSON.parse(savedCustomTypes) : [],
 };
 
 const configSlice = createSlice({
@@ -33,14 +37,14 @@ const configSlice = createSlice({
             state.typeTMDB = action.payload;
             window.localStorage.setItem("MovieList-typeTMDB", JSON.stringify(action.payload));
         },
-        setCustomType: (state, action) => {
-            state.customType = action.payload;
-            window.localStorage.setItem("MovieList-customType", action.payload);
+        setCustomTypes: (state, action) => {
+            state.customTypes = action.payload;
+            window.localStorage.setItem("MovieList-customTypes", JSON.stringify(action.payload));
         },
     },
 });
 
-export const { setMode, setLanguage, setTypeTMDB, setCustomType, toggleMode } = configSlice.actions;
+export const { setMode, setLanguage, setTypeTMDB, setCustomTypes, toggleMode } = configSlice.actions;
 
 // -- THUNKS: зберігають вибір локально і (якщо користувач залогінений) у профілі на сервері --
 

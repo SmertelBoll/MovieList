@@ -394,10 +394,10 @@ function ProfilePage() {
             <Box sx={cardSx}>
                 <Box>
                     <Typography variant="h6" sx={sectionTitleSx}>
-                        Custom types
+                        Tags
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        Your personal labels for movies and TV shows.
+                        Your personal tags for movies and TV shows.
                     </Typography>
                 </Box>
 
@@ -418,7 +418,7 @@ function ProfilePage() {
                     </DndContext>
                 ) : (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        No custom types yet.
+                        No tags yet.
                     </Typography>
                 )}
 

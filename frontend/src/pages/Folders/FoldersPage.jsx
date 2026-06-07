@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { NO_TAG } from '../../redux/slices/ConfigSlice'
 import instance from '../../axios'
 import { alertConfirm, alertError } from '../../alerts'
 import FolderIcon from '@mui/icons-material/Folder'
@@ -11,7 +12,7 @@ import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
 
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
-    const { typeTMDB, customType } = useSelector((state) => state.config)
+    const { typeTMDB, customTypes } = useSelector((state) => state.config)
     const navigate = useNavigate()
 
     const [folders, setFolders] = useState([])
@@ -48,10 +49,13 @@ function FoldersPage() {
     // тож зміна фільтра не перезавантажує сторінку.
     const getCount = (folder) => {
         const elements = folder.elements || []
-        return elements.filter(el =>
-            typeTMDB.includes(el.media_type) &&
-            (!customType || el.customType === customType)
-        ).length
+        return elements.filter(el => {
+            if (!typeTMDB.includes(el.media_type)) return false
+            if (customTypes.length === 0) return true
+            // звичайний тег або "No tag" (порожній customType)
+            return customTypes.includes(el.customType) ||
+                (customTypes.includes(NO_TAG) && !el.customType)
+        }).length
     }
 
     // -- RENAME --

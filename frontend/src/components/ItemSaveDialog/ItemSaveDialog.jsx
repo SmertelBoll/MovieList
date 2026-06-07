@@ -122,7 +122,7 @@ function ItemSaveDialog({
 
     // Додавання нового типу до списку користувача (зберігається в акаунті)
     const handleAddType = async () => {
-        const newType = await alertInput('New type name', 'e.g. Anime, Documentary...');
+        const newType = await alertInput('New tag name', 'e.g. Anime, Documentary...');
         if (!newType) return;
 
         if (userTypes.includes(newType)) {
@@ -338,7 +338,7 @@ function ItemSaveDialog({
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                             {/* Дата — зліва */}
-                            <Box sx={{ flexGrow: 1 }}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                                     <DatePicker
                                         label="Choose date"
@@ -355,7 +355,8 @@ function ItemSaveDialog({
                                 </LocalizationProvider>
                             </Box>
 
-                            {/* Випадайка кастомних типів — справа */}
+                            {/* Випадайка тегів — справа, така ж ширина як дата */}
+                            <Box sx={{ flex: 1, minWidth: 0, '& > div': { width: '100%' } }}>
                             <DropdownMenu
                                 width={200}
                                 items={[
@@ -369,7 +370,7 @@ function ItemSaveDialog({
                                     ...(userTypes.length > 0 ? [{ key: '__divider__', divider: true }] : []),
                                     {
                                         key: '__add__',
-                                        label: 'Add type',
+                                        label: 'Add tag',
                                         icon: <AddIcon fontSize="small" />,
                                         onClick: handleAddType,
                                     },
@@ -384,7 +385,7 @@ function ItemSaveDialog({
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
                                             gap: 0.5,
-                                            minWidth: 200,
+                                            width: '100%',
                                             height: 40,           // як у поля вибору дати
                                             boxSizing: 'border-box',
                                             p: 1,
@@ -398,12 +399,13 @@ function ItemSaveDialog({
                                         }}
                                     >
                                         <Typography variant="body2" noWrap>
-                                            {typeCustom || 'Type'}
+                                            {typeCustom || 'Tag'}
                                         </Typography>
                                         <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
                                     </Box>
                                 )}
                             />
+                            </Box>
                         </Box>
                         <InputBox
                             label="Enter text..."
