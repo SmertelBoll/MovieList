@@ -1,5 +1,5 @@
 import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import ActorCart from '../../components/Carts/ActorCart'
+import TimelineCart from '../../components/Carts/TimelineCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
@@ -37,6 +38,9 @@ function MoviePage({ isSaved = false }) {
 
     const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей фільм
     const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей фільм
+
+    // Колекція TMDB (франшиза) — усі частини цього фільму
+    const [collection, setCollection] = useState(null)
 
     const navigate = useNavigate()
 
@@ -126,6 +130,51 @@ function MoviePage({ isSaved = false }) {
             setIsLoadingItemFolders(false)
         }
     }, [movie?.tmdbId, isAuth, isGetFolders])
+
+    // Завантаження колекції: belongs_to_collection приходить разом з /movie/{id},
+    // але самі частини лежать в окремому ендпоінті /collection/{id}
+    useEffect(() => {
+        const collectionId = movie?.belongs_to_collection?.id
+        if (!collectionId) {
+            setCollection(null)
+            return
+        }
+
+        let cancelled = false
+        instance
+            .get(`${process.env.REACT_APP_URL_TMDB}/collection/${collectionId}`, {
+                params: {
+                    api_key: API_KEY,
+                    language: "en-US"
+                }
+            })
+            .then((res) => {
+                if (!cancelled) setCollection(res.data)
+            })
+            .catch((err) => {
+                // Колекція — необов'язковий блок, тому не показуємо алерт користувачу
+                console.warn(err)
+                if (!cancelled) setCollection(null)
+            })
+
+        return () => { cancelled = true }
+    }, [movie?.belongs_to_collection?.id])
+
+    // Частини колекції в хронологічному порядку; без дати виходу — в кінець
+    const timelineParts = useMemo(() => {
+        if (!collection?.parts) return []
+        return [...collection.parts].sort((a, b) => {
+            const dateA = a.release_date || ''
+            const dateB = b.release_date || ''
+            if (!dateA && !dateB) return 0
+            if (!dateA) return 1
+            if (!dateB) return -1
+            return dateA.localeCompare(dateB)
+        })
+    }, [collection])
+
+    // TMDB називає колекції "<Франшиза> Collection" — прибираємо хвіст, щоб не дублювати слово
+    const franchiseName = (collection?.name || '').replace(/\s*collection\s*$/i, '')
 
     // Функції для роботи з діалогом
     const handleOpenDialogAdd = () => {
@@ -403,6 +452,49 @@ function MoviePage({ isSaved = false }) {
                                 Updated: {movie.updatedAt.split('T')[0]}
                             </Typography>
                         )}
+                    </Box>
+                </Box>
+            )}
+
+            {/* Timeline Section — частини франшизи (тільки якщо їх більше однієї) */}
+            {timelineParts.length > 1 && (
+                <Box>
+                    <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: 2, flexWrap: "wrap" }}>
+                        <Typography variant="h5">
+                            Timeline
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {franchiseName} · {timelineParts.length} parts
+                        </Typography>
+                    </Box>
+                    <Box sx={{
+                        display: "flex",
+                        gap: 2,
+                        overflowX: "auto",
+                        pt: 1,
+                        pb: 2,
+                        "&::-webkit-scrollbar": {
+                            height: 8,
+                        },
+                        "&::-webkit-scrollbar-track": {
+                            backgroundColor: "action.hover",
+                            borderRadius: 4,
+                        },
+                        "&::-webkit-scrollbar-thumb": {
+                            backgroundColor: "text.secondary",
+                            borderRadius: 4,
+                            "&:hover": {
+                                backgroundColor: "text.primary",
+                            },
+                        },
+                    }}>
+                        {timelineParts.map((part) => (
+                            <TimelineCart
+                                key={part.id}
+                                part={part}
+                                isCurrent={part.id === movie.tmdbId}
+                            />
+                        ))}
                     </Box>
                 </Box>
             )}
