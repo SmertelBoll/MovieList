@@ -303,11 +303,31 @@ export const updateProfile = async (req, res) => {
 
 export const updateSettings = async (req, res) => {
   try {
-    const { themeMode, language, typeCustom } = req.body;
+    const { themeMode, language, typeCustom, ratingSystem } = req.body;
 
     // Кожен тег — не довше 100 символів
     if (Array.isArray(typeCustom) && typeCustom.some((t) => typeof t === "string" && t.length > 100)) {
       return res.status(400).json({ title: "Tag error", message: "tag name must be at most 100 characters" });
+    }
+
+    // Система оцінок: або порожня (стандартна шкала), або 2..100 блоків { name, abbr }
+    let normalizedRatingSystem = ratingSystem;
+    if (Array.isArray(ratingSystem) && ratingSystem.length > 0) {
+      if (ratingSystem.length < 2 || ratingSystem.length > 100) {
+        return res.status(400).json({ title: "Rating system error", message: "rating system must have between 2 and 100 levels" });
+      }
+      if (ratingSystem.some((b) => !b || typeof b.name !== "string" || !b.name.trim())) {
+        return res.status(400).json({ title: "Rating system error", message: "each level must have a name" });
+      }
+      if (ratingSystem.some((b) => typeof b.abbr === "string" && b.abbr.length > 2)) {
+        return res.status(400).json({ title: "Rating system error", message: "abbreviation must be at most 2 characters" });
+      }
+      // Нормалізуємо до { name, abbr, color }
+      normalizedRatingSystem = ratingSystem.map((b) => ({
+        name: b.name.trim(),
+        abbr: (b.abbr || "").trim(),
+        color: typeof b.color === "string" ? b.color : "",
+      }));
     }
 
     const user = await UserModel.findByIdAndUpdate(
@@ -316,6 +336,7 @@ export const updateSettings = async (req, res) => {
         themeMode,
         language,
         typeCustom,
+        ratingSystem: normalizedRatingSystem,
       },
       { new: true }
     ).exec();
@@ -330,6 +351,7 @@ export const updateSettings = async (req, res) => {
         themeMode: user.themeMode,
         language: user.language,
         typeCustom: user.typeCustom,
+        ratingSystem: user.ratingSystem,
       },
     });
   } catch (error) {

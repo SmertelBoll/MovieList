@@ -37,6 +37,12 @@ const UserSchema = new mongoose.Schema(
     typeCustom: {
       type: [String],
       default: [],
+    },
+    // Власна система оцінок: блоки { name, abbr } від найвищого (індекс 0) до найнижчого.
+    // Порожній масив = стандартна 100-бальна шкала.
+    ratingSystem: {
+      type: Array,
+      default: [],
     }
   },
   {

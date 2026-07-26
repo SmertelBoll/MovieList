@@ -5,6 +5,7 @@ import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import DropdownMenu from '../_customMUI/DropdownMenu';
+import { formatRatingLabel } from '../../utils/ratingSystem';
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // базовий URL для отримання зображень
@@ -29,6 +30,11 @@ function ItemCart({
     const navigate = useNavigate();
 
     const isAuth = useSelector(selectIsAuth);
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
+
+    // Текст оцінки: для mongo — назва рівня (якщо збігається) або "rating/100"; для tmdb — "x/10"
+    const mongoRatingText = item.rating == null ? '-' : formatRatingLabel(item.rating, ratingSystem);
+    const tmdbRatingText = `${Math.round((item.vote_average || 0) * 10) / 10}/10`;
 
     const handleCardClick = (e) => {
         e.stopPropagation();
@@ -208,17 +214,7 @@ function ItemCart({
                     />
                     <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                         <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                            {
-                                {
-                                    tmdb: Math.round(item.vote_average * 10) / 10, // TMDb дає рейтинг від 0 до 10, MUI Rating - від 0 до 5
-                                    mongo: item.rating
-                                }[dbType] ?? "-"
-                            }/{
-                                {
-                                    tmdb: 10,
-                                    mongo: 100
-                                }[dbType] ?? "-"
-                            }
+                            {dbType === "mongo" ? mongoRatingText : tmdbRatingText}
                         </Typography>
                         {isVoteCount && <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
                             {item.vote_count} votes

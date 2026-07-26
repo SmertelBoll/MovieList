@@ -9,6 +9,8 @@ import { selectIsAuth, setUserTypeCustom, updateUserData } from '../../redux/sli
 import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
 import SortableTypeItem from './SortableTypeItem'
+import SortableRatingBlock from './SortableRatingBlock'
+import { getContrastText } from '../../utils/ratingSystem'
 
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import CloseIcon from '@mui/icons-material/Close'
@@ -47,6 +49,14 @@ function ProfilePage() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
     const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
+    // Власна система оцінок
+    const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
+    const [ratingBlocks, setRatingBlocks] = useState([]) // [{ id, name }] — від найвищого до найнижчого
+    const [savingRating, setSavingRating] = useState(false)
+    const ratingSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    )
+
     const [pwdDialogOpen, setPwdDialogOpen] = useState(false)
     const [oldPassword, setOldPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
@@ -55,6 +65,12 @@ function ProfilePage() {
 
     const fileInputRef = useRef(null)
     const userTypes = user?.typeCustom || []
+    const userRatingSystem = user?.ratingSystem || []
+    const uidRef = useRef(0)
+    const nextUid = () => `b_${uidRef.current++}`
+
+    // Значення оцінки для блока: top (індекс 0) = 100, далі рівними кроками вниз
+    const blockValue = (index, total) => Math.round(((total - index) * 100) / total)
 
     // Локальний порядок типів для drag-and-drop (синхронізується з даними користувача)
     const [orderedTypes, setOrderedTypes] = useState(userTypes)
@@ -275,6 +291,87 @@ function ProfilePage() {
         saveTypes(reordered)         // зберігаємо новий порядок
     }
 
+    // -- RATING SYSTEM -- //
+    const handleOpenRatingDialog = () => {
+        const blocks = userRatingSystem.length >= 2
+            ? userRatingSystem.map((lvl) => {
+                const obj = typeof lvl === 'string' ? { name: lvl, abbr: '', color: '' } : lvl
+                return { id: nextUid(), name: obj.name || '', abbr: obj.abbr || '', color: obj.color || '' }
+            })
+            : [{ id: nextUid(), name: '', abbr: '', color: '' }, { id: nextUid(), name: '', abbr: '', color: '' }] // мінімум 2 блоки
+        setRatingBlocks(blocks)
+        setRatingDialogOpen(true)
+    }
+
+    const handleCloseRatingDialog = () => {
+        if (savingRating) return
+        setRatingDialogOpen(false)
+    }
+
+    const addRatingBlock = () => {
+        if (ratingBlocks.length >= 100) return
+        setRatingBlocks((prev) => [...prev, { id: nextUid(), name: '', abbr: '', color: '' }])
+    }
+
+    const removeRatingBlock = (id) => {
+        if (ratingBlocks.length <= 2) return
+        setRatingBlocks((prev) => prev.filter((b) => b.id !== id))
+    }
+
+    const updateRatingBlock = (id, patch) => {
+        setRatingBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+    }
+
+    const handleRatingDragEnd = (event) => {
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+        const oldIndex = ratingBlocks.findIndex((b) => b.id === active.id)
+        const newIndex = ratingBlocks.findIndex((b) => b.id === over.id)
+        if (oldIndex === -1 || newIndex === -1) return
+        setRatingBlocks((prev) => arrayMove(prev, oldIndex, newIndex))
+    }
+
+    const saveRatingSystem = async () => {
+        const levels = ratingBlocks.map((b) => ({ name: b.name.trim(), abbr: (b.abbr || '').trim(), color: b.color || '' }))
+        if (levels.length < 2 || levels.length > 100) {
+            alertError(null, 'Invalid rating system', 'You need between 2 and 100 levels')
+            return
+        }
+        if (levels.some((l) => !l.name)) {
+            alertError(null, 'Missing name', 'Every level must have a name')
+            return
+        }
+
+        try {
+            setSavingRating(true)
+            await instance.patch('/auth/settings', { ratingSystem: levels })
+            dispatch(updateUserData({ ratingSystem: levels }))
+            setRatingDialogOpen(false)
+            alertSuccess('Rating system saved')
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        } finally {
+            setSavingRating(false)
+        }
+    }
+
+    const deleteRatingSystem = () => {
+        alertConfirm(
+            'Delete your custom rating system? Ratings will be shown on the default 100-point scale.',
+            async () => {
+                try {
+                    await instance.patch('/auth/settings', { ratingSystem: [] })
+                    dispatch(updateUserData({ ratingSystem: [] }))
+                    setRatingDialogOpen(false)
+                } catch (err) {
+                    console.warn(err)
+                    alertError(err)
+                }
+            }
+        )
+    }
+
     const nameChanged = fullName.trim() && fullName.trim() !== user?.fullName
 
     const cardSx = {
@@ -454,6 +551,68 @@ function ProfilePage() {
                 </Box>
             </Box>
 
+            {/* RATING SYSTEM */}
+            <Box sx={cardSx}>
+                <Box>
+                    <Typography variant="h6" sx={sectionTitleSx}>
+                        Rating system
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                        Build your own rating scale instead of the default 1–100.
+                    </Typography>
+                </Box>
+
+                {userRatingSystem.length >= 2 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {userRatingSystem.map((lvl, i) => {
+                            const obj = typeof lvl === 'string' ? { name: lvl, abbr: '', color: '' } : lvl
+                            return (
+                                <Box
+                                    key={`${obj.name}_${i}`}
+                                    sx={{
+                                        display: 'flex', alignItems: 'center', gap: 1,
+                                        pl: 0.5, pr: 2, py: 0.5, borderRadius: 5, bgcolor: 'bg.main',
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            minWidth: 40, height: 28, px: 1, borderRadius: 4,
+                                            bgcolor: obj.color || 'yellow.main',
+                                            color: obj.color ? getContrastText(obj.color) : 'text.dark',
+                                            fontWeight: 700,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}
+                                    >
+                                        {blockValue(i, userRatingSystem.length)}
+                                    </Box>
+                                    <Typography variant="body2" sx={{ color: 'text.main', fontWeight: 600 }}>
+                                        {obj.name}{obj.abbr ? ` (${obj.abbr})` : ''}
+                                    </Typography>
+                                </Box>
+                            )
+                        })}
+                    </Box>
+                ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Using the default 100-point scale.
+                    </Typography>
+                )}
+
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <MainButton onClick={handleOpenRatingDialog} sx={{ m: 0 }}>
+                        {userRatingSystem.length >= 2 ? 'Edit rating system' : 'Create rating system'}
+                    </MainButton>
+                    {userRatingSystem.length >= 2 && (
+                        <MainButton
+                            onClick={deleteRatingSystem}
+                            sx={{ m: 0, bgcolor: '#d33', color: '#fff', ':hover': { bgcolor: '#b32020' } }}
+                        >
+                            Delete custom system
+                        </MainButton>
+                    )}
+                </Box>
+            </Box>
+
             {/* LOGIN & SECURITY */}
             <Box sx={cardSx}>
                 <Box>
@@ -575,6 +734,61 @@ function ProfilePage() {
                         sx={{ m: 0 }}
                     >
                         {savingPassword ? 'Saving...' : 'Save'}
+                    </MainButton>
+                </DialogActions>
+            </Dialog>
+
+            {/* RATING SYSTEM DIALOG */}
+            <Dialog open={ratingDialogOpen} onClose={handleCloseRatingDialog} fullWidth maxWidth="xs">
+                <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
+                    Rating system
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Each level maps to a score from 1 to 100 (top = 100). Drag to reorder. Between 2 and 100 levels. Pick a color and a 2-letter code — they're used on the TV ratings grid.
+                    </Typography>
+
+                    <DndContext sensors={ratingSensors} collisionDetection={closestCenter} onDragEnd={handleRatingDragEnd}>
+                        <SortableContext items={ratingBlocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {ratingBlocks.map((block, i) => (
+                                    <SortableRatingBlock
+                                        key={block.id}
+                                        id={block.id}
+                                        name={block.name}
+                                        abbr={block.abbr}
+                                        color={block.color}
+                                        value={blockValue(i, ratingBlocks.length)}
+                                        canDelete={ratingBlocks.length > 2}
+                                        onNameChange={(name) => updateRatingBlock(block.id, { name })}
+                                        onAbbrChange={(abbr) => updateRatingBlock(block.id, { abbr })}
+                                        onColorChange={(color) => updateRatingBlock(block.id, { color })}
+                                        onDelete={() => removeRatingBlock(block.id)}
+                                    />
+                                ))}
+                            </Box>
+                        </SortableContext>
+                    </DndContext>
+
+                    <MainButton
+                        onClick={addRatingBlock}
+                        disabled={ratingBlocks.length >= 100}
+                        startIcon={<AddIcon />}
+                        sx={{ m: 0, alignSelf: 'flex-start' }}
+                    >
+                        Add level
+                    </MainButton>
+                </DialogContent>
+                <DialogActions sx={{ bgcolor: 'bg.second', p: 2, gap: 1 }}>
+                    <MainButton
+                        onClick={handleCloseRatingDialog}
+                        disabled={savingRating}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', ':hover': { bgcolor: 'bg.selected' } }}
+                    >
+                        Cancel
+                    </MainButton>
+                    <MainButton onClick={saveRatingSystem} disabled={savingRating} sx={{ m: 0 }}>
+                        {savingRating ? 'Saving...' : 'Save'}
                     </MainButton>
                 </DialogActions>
             </Dialog>

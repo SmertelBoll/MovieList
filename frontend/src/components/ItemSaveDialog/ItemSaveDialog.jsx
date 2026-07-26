@@ -9,6 +9,7 @@ import instance from '../../axios';
 import { alertError, alertConfirm, alertSuccess, alertInput } from '../../alerts';
 import SideBar from '../SideBar/SideBar';
 import DropdownMenu from '../_customMUI/DropdownMenu';
+import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserTypeCustom } from '../../redux/slices/AuthSlice';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -43,6 +44,10 @@ function ItemSaveDialog({
     const dispatch = useDispatch();
     // Список кастомних типів користувача (свій у кожного)
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
+    // Власна система оцінок користувача
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
+    const hasRatingSystem = hasRatingSystemUtil(ratingSystem);
+    const ratingLevels = getRatingLevels(ratingSystem);
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
@@ -70,7 +75,9 @@ function ItemSaveDialog({
 
         const curDate = selectedItem.dateAdded || ""
         setRating(selectedItem.rating);
-        setSelectedDate(new Date(curDate.replace('Z', '')));
+        // Не прибираємо 'Z' — інакше дата трактується як локальна і при збереженні
+        // зсувається на зміщення часового поясу, через що змінюється порядок сортування
+        setSelectedDate(curDate ? new Date(curDate) : new Date());
         setText(selectedItem.comment);
         setTypeCustom(selectedItem.customType || null);
     }, [isOpenDialogEdit]);
@@ -315,34 +322,87 @@ function ItemSaveDialog({
                             }
 
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
-                            <Slider
-                                value={typeof rating === 'number' ? rating : 0}
-                                onChange={handleSliderChange}
-                                min={0}
-                                max={100}
-                                step={1}
-                                marks={marks}
-                                valueLabelDisplay="auto"
-                                color="text.dark"
-                            />
-                            <InputBox
-                                value={rating ? rating : ''}
-                                size="small"
-                                onChange={handleInputSliderChange}
-                                onBlur={handleBlur}
-                                inputProps={{
-                                    step: 1,
-                                    min: 1,
-                                    max: 100,
-                                    type: 'number',
-                                }}
-                                sx={{ '& .MuiInput-underline': { display: 'none' } }}
-                            />
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                        {hasRatingSystem ? (
+                            // Власна система оцінок — вибір рівня через випадайку
+                            (() => {
+                                const current = ratingLevels.find((l) => l.value === rating);
+                                return (
+                                    <Box sx={{ pt: 1 }}>
+                                        <DropdownMenu
+                                            width={240}
+                                            items={[
+                                                ...ratingLevels.map((lvl) => ({
+                                                    key: lvl.value,
+                                                    label: lvl.name,
+                                                    selected: rating === lvl.value,
+                                                    icon: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
+                                                    onClick: () => setRating(lvl.value),
+                                                })),
+                                                { key: '__divider__', divider: true },
+                                                {
+                                                    key: '__none__',
+                                                    label: 'No rating',
+                                                    selected: rating == null,
+                                                    onClick: () => setRating(null),
+                                                },
+                                            ]}
+                                            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                                            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                            renderTrigger={({ onClick }) => (
+                                                <Box
+                                                    onClick={onClick}
+                                                    sx={{
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                        gap: 1, width: '100%', height: 40, boxSizing: 'border-box', p: 1,
+                                                        borderRadius: '4px', cursor: 'pointer', border: '1px solid',
+                                                        borderColor: 'text.main',
+                                                        '&:hover': { borderColor: 'text.main' },
+                                                    }}
+                                                >
+                                                    <Typography
+                                                        variant="body2"
+                                                        noWrap
+                                                        sx={{ color: current ? 'text.main' : 'text.secondary', minWidth: 0 }}
+                                                    >
+                                                        {current ? current.name : 'Rating'}
+                                                    </Typography>
+                                                    <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                                                </Box>
+                                            )}
+                                        />
+                                    </Box>
+                                );
+                            })()
+                        ) : (
+                            <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
+                                <Slider
+                                    value={typeof rating === 'number' ? rating : 0}
+                                    onChange={handleSliderChange}
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    marks={marks}
+                                    valueLabelDisplay="auto"
+                                    color="text.dark"
+                                />
+                                <InputBox
+                                    value={rating ? rating : ''}
+                                    size="small"
+                                    onChange={handleInputSliderChange}
+                                    onBlur={handleBlur}
+                                    inputProps={{
+                                        step: 1,
+                                        min: 1,
+                                        max: 100,
+                                        type: 'number',
+                                    }}
+                                    sx={{ '& .MuiInput-underline': { display: 'none' } }}
+                                />
+                            </Box>
+                        )}
+                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, width: '100%' }}>
                             {/* Дата — зліва */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                                     <DatePicker
                                         label="Choose date"
@@ -359,8 +419,8 @@ function ItemSaveDialog({
                                 </LocalizationProvider>
                             </Box>
 
-                            {/* Випадайка тегів — справа, така ж ширина як дата */}
-                            <Box sx={{ flex: 1, minWidth: 0, '& > div': { width: '100%' } }}>
+                            {/* Випадайка тегів — справа, така ж ширина і висота як дата */}
+                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', '& > div': { width: '100%', display: 'flex' } }}>
                             <DropdownMenu
                                 width={200}
                                 items={[
@@ -390,9 +450,9 @@ function ItemSaveDialog({
                                             justifyContent: 'space-between',
                                             gap: 0.5,
                                             width: '100%',
-                                            height: 40,           // як у поля вибору дати
+                                            minHeight: 40,        // тягнеться до висоти поля дати
                                             boxSizing: 'border-box',
-                                            p: 1,
+                                            px: 1,
                                             borderRadius: '4px', // як у блока вибору дати
                                             cursor: 'pointer',
                                             border: '1px solid',

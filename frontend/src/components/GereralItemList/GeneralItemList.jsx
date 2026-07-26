@@ -357,7 +357,7 @@ function GeneralItemList({
     const renderedItemGrid = React.useMemo(() => (
         <Grid2 container spacing={2} justifyContent="center">
             {items.slice(0, displayedItems).map((item, i) => (
-                <Grid2 item size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={`${item?.title}_${i}`}>
+                <Grid2 item size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={item?._id || item?.id || i}>
                     <ItemCart
                         item={item}
                         onAddItem={handleDialogAddItem}

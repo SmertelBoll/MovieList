@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { formatRatingLabel } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
@@ -19,6 +20,7 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 function MoviePage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
     const [movie, setMovie] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -388,7 +390,7 @@ function MoviePage({ isSaved = false }) {
                                 readOnly
                             />
                             <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
-                                {movie.rating ?? "-"}/100
+                                {movie.rating == null ? "-" : formatRatingLabel(movie.rating, ratingSystem)}
                             </Typography>
                         </Box>
                         {movie.dateAdded && (

@@ -1,10 +1,15 @@
 import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, Typography } from '@mui/material';
 import React, { useMemo, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
+import DropdownMenu from '../_customMUI/DropdownMenu';
+import { getRatingLevels, hasRatingSystem } from '../../utils/ratingSystem';
+import CheckIcon from '@mui/icons-material/Check';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 function SeasonEpisodeDialog({
     open,
@@ -25,6 +30,11 @@ function SeasonEpisodeDialog({
         [theme.palette.bg.second, theme.palette.text.main]
     );
 
+    // Власна система оцінок користувача
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
+    const useRatingSystem = hasRatingSystem(ratingSystem);
+    const ratingLevels = getRatingLevels(ratingSystem);
+
     const [rating, setRating] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [text, setText] = useState("");
@@ -34,7 +44,8 @@ function SeasonEpisodeDialog({
     useEffect(() => {
         if (!open) return;
         setRating(initial.rating ?? null);
-        setSelectedDate(initial.dateAdded ? new Date(String(initial.dateAdded).replace('Z', '')) : new Date());
+        // Не прибираємо 'Z' — інакше дата зсувається на зміщення часового поясу
+        setSelectedDate(initial.dateAdded ? new Date(String(initial.dateAdded)) : new Date());
         setText(initial.comment ?? "");
         setWatchedCount(initial.watchedCount ?? 1);
     }, [open]);
@@ -83,26 +94,74 @@ function SeasonEpisodeDialog({
                     {title}
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
-                    <Slider
-                        value={typeof rating === 'number' ? rating : 0}
-                        onChange={handleSliderChange}
-                        min={0}
-                        max={100}
-                        step={1}
-                        marks={marks}
-                        valueLabelDisplay="auto"
-                        color="text.dark"
-                    />
-                    <InputBox
-                        value={rating ?? ''}
-                        size="small"
-                        onChange={handleInputSliderChange}
-                        onBlur={handleBlur}
-                        inputProps={{ step: 1, min: 0, max: 100, type: 'number' }}
-                        sx={{ '& .MuiInput-underline': { display: 'none' } }}
-                    />
-                </Box>
+                {useRatingSystem ? (
+                    // Власна система оцінок — вибір рівня через випадайку
+                    (() => {
+                        const current = ratingLevels.find((l) => l.value === rating);
+                        return (
+                            <Box sx={{ pt: 1 }}>
+                                <DropdownMenu
+                                    width={240}
+                                    items={[
+                                        ...ratingLevels.map((lvl) => ({
+                                            key: lvl.value,
+                                            label: lvl.name,
+                                            selected: rating === lvl.value,
+                                            icon: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
+                                            onClick: () => setRating(lvl.value),
+                                        })),
+                                        { key: '__divider__', divider: true },
+                                        {
+                                            key: '__none__',
+                                            label: 'No rating',
+                                            selected: rating == null,
+                                            onClick: () => setRating(null),
+                                        },
+                                    ]}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                    renderTrigger={({ onClick }) => (
+                                        <Box
+                                            onClick={onClick}
+                                            sx={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                gap: 1, width: '100%', minHeight: 40, boxSizing: 'border-box', px: 1,
+                                                borderRadius: '4px', cursor: 'pointer', border: '1px solid',
+                                                borderColor: 'text.main',
+                                            }}
+                                        >
+                                            <Typography variant="body2" noWrap sx={{ color: current ? 'text.main' : 'text.secondary' }}>
+                                                {current ? current.name : 'Rating'}
+                                            </Typography>
+                                            <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                                        </Box>
+                                    )}
+                                />
+                            </Box>
+                        );
+                    })()
+                ) : (
+                    <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
+                        <Slider
+                            value={typeof rating === 'number' ? rating : 0}
+                            onChange={handleSliderChange}
+                            min={0}
+                            max={100}
+                            step={1}
+                            marks={marks}
+                            valueLabelDisplay="auto"
+                            color="text.dark"
+                        />
+                        <InputBox
+                            value={rating ?? ''}
+                            size="small"
+                            onChange={handleInputSliderChange}
+                            onBlur={handleBlur}
+                            inputProps={{ step: 1, min: 0, max: 100, type: 'number' }}
+                            sx={{ '& .MuiInput-underline': { display: 'none' } }}
+                        />
+                    </Box>
+                )}
 
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: mode === "episode" ? 'space-between' : 'flex-end', width: '100%' }}>
                     {mode === "episode" && (

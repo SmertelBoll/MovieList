@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { alertError, alertSuccess } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
@@ -65,6 +66,8 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
 function TVPage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
+    const useRatingSystem = hasRatingSystem(ratingSystem)
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true)
@@ -397,7 +400,16 @@ function TVPage({ isSaved = false }) {
         if (rating == null) {
             return { bg: "#ffffff", text: "black", content: "-" };
         }
-        return { bg: getRatingColor(rating / 10), text: getTextColor(rating / 10), content: `${rating}` };
+        // Якщо оцінка збігається з рівнем системи — показуємо 2 букви та колір рівня
+        const abbr = getRatingAbbr(rating, ratingSystem);
+        const content = abbr || `${rating}`;
+        const customColor = getRatingLevelColor(rating, ratingSystem);
+        // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
+        const bg = useRatingSystem ? (customColor || "#ffffff") : getRatingColor(rating / 10);
+        const text = useRatingSystem
+            ? (customColor ? getContrastText(customColor) : "black")
+            : getTextColor(rating / 10);
+        return { bg, text, content };
     };
 
     // Стан клітинки серії у вигляді ПРИМІТИВІВ (для React.memo).
@@ -422,7 +434,16 @@ function TVPage({ isSaved = false }) {
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
-                return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true, watched, dateAdded };
+                // Скорочення + колір з системи оцінок, якщо оцінка (0-100) збігається з рівнем
+                const abbr = getRatingAbbr(ep.rating, ratingSystem);
+                const content = abbr || rating.toFixed(1);
+                const customColor = getRatingLevelColor(ep.rating, ratingSystem);
+                // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
+                const bg = useRatingSystem ? (customColor || "#ffffff") : getRatingColor(rating);
+                const text = useRatingSystem
+                    ? (customColor ? getContrastText(customColor) : "black")
+                    : getTextColor(rating);
+                return { bg, text, kind: "rating", content, active: true, watched, dateAdded };
             }
             return { bg: "#ffffff", text: "black", kind: "checked", content: "", active: true, watched, dateAdded };
         }
@@ -476,24 +497,29 @@ function TVPage({ isSaved = false }) {
         [seasonNumbers, seasonDetails]
     );
 
-    // Legend Component
-    const Legend = () => (
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3, justifyContent: "center" }}>
-            {[
-                { label: "Awesome", color: "#1b5e20" },
-                { label: "Great", color: "#4caf50" },
-                { label: "Good", color: "#fbc02d", textColor: "black" },
-                { label: "Regular", color: "#ff9800" },
-                { label: "Bad", color: "#f44336" },
-                { label: "Garbage", color: "#9c27b0" },
-            ].map((item) => (
-                <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box sx={{ width: 16, height: 16, borderRadius: "4px", backgroundColor: item.color }} />
-                    <Typography variant="caption" sx={{ fontWeight: "bold", opacity: 0.8 }}>{item.label}</Typography>
-                </Box>
-            ))}
-        </Box>
-    );
+    // Legend Component.
+    // Якщо в користувача власна система оцінок — легенду не показуємо (кольори свої, на рівнях).
+    // Для дефолтної шкали показуємо діапазони оцінок замість слів.
+    const Legend = () => {
+        if (useRatingSystem) return null;
+        return (
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3, justifyContent: "center" }}>
+                {[
+                    { label: "90-100", color: "#1b5e20" },
+                    { label: "80-89", color: "#4caf50" },
+                    { label: "70-79", color: "#fbc02d" },
+                    { label: "60-69", color: "#ff9800" },
+                    { label: "50-59", color: "#f44336" },
+                    { label: "1-49", color: "#9c27b0" },
+                ].map((item) => (
+                    <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ width: 16, height: 16, borderRadius: "4px", backgroundColor: item.color }} />
+                        <Typography variant="caption" sx={{ fontWeight: "bold", opacity: 0.8 }}>{item.label}</Typography>
+                    </Box>
+                ))}
+            </Box>
+        );
+    };
 
     // Таблиця серій. Мемоїзуємо, щоб зміна стану меню/діалогів НЕ перемальовувала сотні клітинок.
     // Перераховується лише коли реально змінюються дані (seasonDetails / serial.seasons / isSaved).
@@ -647,7 +673,7 @@ function TVPage({ isSaved = false }) {
             })}
         </Box>
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets]);
+    ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets, ratingSystem]);
 
     if (isLoading) {
         return (
@@ -877,7 +903,7 @@ function TVPage({ isSaved = false }) {
                                 readOnly
                             />
                             <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
-                                {serial.rating ?? "-"}/100
+                                {serial.rating == null ? "-" : formatRatingLabel(serial.rating, ratingSystem)}
                             </Typography>
                         </Box>
                         {serial.dateAdded && (
