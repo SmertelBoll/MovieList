@@ -173,8 +173,20 @@ function ItemCart({
                 />
             }
 
-            <CardContent>
-                {isTitle && <Typography variant="h6" component="div" gutterBottom>
+            <CardContent sx={{
+                p: { xs: 1, sm: 2 },
+                "&:last-child": { pb: { xs: 1, sm: 2 } }
+            }}>
+                {isTitle && <Typography
+                    variant="h6"
+                    component="div"
+                    gutterBottom
+                    sx={{
+                        fontSize: { xs: "0.95rem", sm: "1.25rem" },
+                        lineHeight: 1.3,
+                        overflowWrap: "anywhere"
+                    }}
+                >
                     {mediaType === "movie" ? item.title : mediaType === "tv" ? item.name : "No title"}
                 </Typography>}
 
@@ -182,7 +194,12 @@ function ItemCart({
                     {`Job: ${item.job}`}
                 </Typography>}
 
-                {isDescription && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {/* На вузьких екранах картка вдвічі вужча — опис туди не влазить */}
+                {isDescription && <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1, display: { xs: "none", sm: "block" } }}
+                >
                     {`${item?.overview.substring(0, 100)}${item?.overview?.length > 100 ? "..." : ""}` || "No description"}
                 </Typography>}
 
@@ -191,10 +208,14 @@ function ItemCart({
                 </Typography>}
 
                 {isDate && <Typography variant="body2" color="text.secondary">
+                    {/* На вузькій картці лишаємо саму дату — підпис з'їдає місце */}
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                        {{ tmdb: "Release: ", mongo: "Added: " }[dbType]}
+                    </Box>
                     {
                         {
-                            tmdb: `Release: ${mediaType === "movie" ? item.release_date : mediaType === "tv" ? item.first_air_date : "No date"}`,
-                            mongo: `Added: ${item.dateAdded?.split('T')[0] || item.dateAdded}`
+                            tmdb: mediaType === "movie" ? item.release_date : mediaType === "tv" ? item.first_air_date : "No date",
+                            mongo: item.dateAdded?.split('T')[0] || item.dateAdded
                         }[dbType] || "Error dbType"
                     }
                 </Typography>}
@@ -211,12 +232,23 @@ function ItemCart({
                         precision={0.1}
                         readOnly
                         size="small"
+                        // Зірочки на вузькій картці не влазять — лишається саме значення оцінки
+                        sx={{ display: { xs: "none", sm: "inline-flex" } }}
                     />
-                    <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                    <Box sx={{
+                        width: "100%",
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: { xs: 'flex-start', sm: 'flex-end' }
+                    }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ ml: { xs: 0, sm: 1 } }}>
                             {dbType === "mongo" ? mongoRatingText : tmdbRatingText}
                         </Typography>
-                        {isVoteCount && <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        {isVoteCount && <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ ml: { xs: 0, sm: 1 }, display: { xs: "none", sm: "block" } }}
+                        >
                             {item.vote_count} votes
                         </Typography>}
                     </Box>

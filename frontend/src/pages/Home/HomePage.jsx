@@ -1,4 +1,5 @@
-import { Box } from '@mui/material'
+import { Box, useMediaQuery } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import React, { useEffect, useMemo, useState } from 'react'
 import SideBar from '../../components/SideBar/SideBar'
 import { useSelector } from 'react-redux'
@@ -21,8 +22,16 @@ function HomePage() {
   const [sidebarHeight, setSidebarHeight] = useState(0);
   const sidebarRef = React.useRef(null);
 
+  // Колонка сайдбару — 280px. Нижче md на неї немає місця поруч зі списком,
+  // тому там вона не рендериться взагалі: папки доступні через бургер-меню.
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+
   // Логіка для показу/приховування SideBar при прокручуванні
   useEffect(() => {
+    // У компактному режимі колонки немає — ховати нема чого
+    if (isCompact) return;
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
@@ -39,7 +48,7 @@ function HomePage() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [sidebarHeight]);
+  }, [sidebarHeight, isCompact]);
 
   // Вимірюємо висоту SideBar після рендеру
   useEffect(() => {
@@ -47,7 +56,7 @@ function HomePage() {
       const height = sidebarRef.current.offsetHeight;
       setSidebarHeight(height);
     }
-  }, [folders]); // Перераховуємо висоту коли змінюються папки
+  }, [folders, isCompact]); // Перераховуємо висоту коли змінюються папки
 
 
   //-- GET -- //
@@ -96,33 +105,38 @@ function HomePage() {
   ), [folders, isAuth]);
 
   return (
-    <Box sx={{ display: "flex", gap: 3, width: "100%" }}>
-      <Box
-        ref={sidebarRef}
-        sx={{
-          flexBasis: isAuth && showSidebar ? "30%" : "0%",
-          flexGrow: isAuth && showSidebar ? 1 : 0,
-          maxWidth: isAuth && showSidebar ? "280px" : "0px",
-          overflow: "hidden",
-          transition: "all 0.7s ease-in-out",
-          opacity: isAuth && showSidebar ? 1 : 0,
-          transform: isAuth && showSidebar ? "translateX(0)" : "translateX(-100%)"
-        }}
-      >
-        {isAuth && (
-          <SideBar
-            folders={folders}
-            setFolders={setFolders}
-            setIsGetFolders={setIsGetFolders}
-            handleClickToFolder={handleOpenFolder}
-            selectedFolder={false}
-          />
-        )}
-      </Box>
+    <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, width: "100%" }}>
+      {/* Колонка сайдбару — тільки від md */}
+      {!isCompact && (
+        <Box
+          ref={sidebarRef}
+          sx={{
+            flexBasis: isAuth && showSidebar ? "30%" : "0%",
+            flexGrow: isAuth && showSidebar ? 1 : 0,
+            maxWidth: isAuth && showSidebar ? "280px" : "0px",
+            overflow: "hidden",
+            transition: "all 0.7s ease-in-out",
+            opacity: isAuth && showSidebar ? 1 : 0,
+            transform: isAuth && showSidebar ? "translateX(0)" : "translateX(-100%)"
+          }}
+        >
+          {isAuth && (
+            <SideBar
+              folders={folders}
+              setFolders={setFolders}
+              setIsGetFolders={setIsGetFolders}
+              handleClickToFolder={handleOpenFolder}
+              selectedFolder={false}
+            />
+          )}
+        </Box>
+      )}
 
       <Box sx={{
-        flexBasis: isAuth && showSidebar ? "70%" : "100%",
+        flexBasis: !isCompact && isAuth && showSidebar ? "70%" : "100%",
         flexGrow: 1,
+        // Без цього флекс-дитина не дає списку стискатись і сторінка їде вбік
+        minWidth: 0,
         transition: "flex-basis 0.7s ease-in-out"
       }}>
         {generalItemList}

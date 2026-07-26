@@ -357,7 +357,7 @@ function GeneralItemList({
     const renderedItemGrid = React.useMemo(() => (
         <Grid2 container spacing={2} justifyContent="center">
             {items.slice(0, displayedItems).map((item, i) => (
-                <Grid2 item size={{ xs: 12, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={item?._id || item?.id || i}>
+                <Grid2 item size={{ xs: 6, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={item?._id || item?.id || i}>
                     <ItemCart
                         item={item}
                         onAddItem={handleDialogAddItem}
@@ -399,9 +399,12 @@ function GeneralItemList({
                 </Typography>
                 : <>
                     {(isSearch || isSort) &&
-                        <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
+                        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
 
-                            {isSearch && <Box sx={{ flex: isSort ? "75%" : "100%" }}>
+                            {isSearch && <Box sx={{
+                                flex: { xs: "0 0 auto", sm: isSort ? "75%" : "100%" },
+                                width: { xs: "100%", sm: "auto" }
+                            }}>
                                 <Search inputText={inputText} onChangeInput={onChangeInput} />
                             </Box>}
 
@@ -413,7 +416,10 @@ function GeneralItemList({
                                         arrow
                                         placement="top"
                                     >
-                                        <Box sx={{ flex: isSearch ? "25%" : "0%" }}>
+                                        <Box sx={{
+                                            flex: { xs: "0 0 auto", sm: isSearch ? "25%" : "0%" },
+                                            width: { xs: "100%", sm: "auto" }
+                                        }}>
                                             <Box sx={{
                                                 opacity: isSortDisabled ? 0.5 : 1,
                                                 pointerEvents: isSortDisabled ? "none" : "auto"

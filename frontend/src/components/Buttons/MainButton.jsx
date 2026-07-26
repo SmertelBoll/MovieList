@@ -10,7 +10,8 @@ function MainButton(props) {
         backgroundColor: "yellow.main",
         color: "text.dark",
         borderRadius: 4,
-        px: 5,
+        // 48px падінгу з боків завеликі для вузьких екранів — кнопка вилазила за межі
+        px: { xs: 3, sm: 5 },
         alignSelf: "center",
 
         ":hover": {
