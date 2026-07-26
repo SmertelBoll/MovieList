@@ -6,6 +6,10 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import {
+    heroSectionSx, heroInnerSx, heroLandscapeSx,
+    heroInfoSx, heroTitleSx, heroStatsSx, heroStatValueSx
+} from './heroStyles'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
@@ -102,32 +106,13 @@ function GenrePage() {
                 <>
                     {/* Hero Section */}
                     <Box sx={{
-                        position: "relative",
-                        height: "400px",
-                        borderRadius: 2,
-                        overflow: "hidden",
+                        ...heroSectionSx,
                         bgcolor: 'bg.second',
-                        // backgroundSize: "cover",
-                        // backgroundPosition: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
                     }}>
-                        <Box sx={{
-                            display: "flex",
-                            gap: 3,
-                            alignItems: "center",
-                            maxWidth: "1200px",
-                            width: "100%",
-                            p: 3
-                        }}>
+                        <Box sx={heroInnerSx}>
                             {/* Genre Icon */}
                             <Card sx={{
-                                width: 300,
-                                height: 200,
-                                flexShrink: 0,
-                                boxShadow: 3,
-                                borderRadius: 2,
+                                ...heroLandscapeSx,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -146,7 +131,7 @@ function GenrePage() {
                                 }}>
                                     <Typography variant="h1" color="text.main" sx={{
                                         fontWeight: 'bold',
-                                        fontSize: '4rem',
+                                        fontSize: { xs: '3rem', md: '4rem' },
                                         lineHeight: 1,
                                         mb: 1
                                     }}>
@@ -163,15 +148,15 @@ function GenrePage() {
                             </Card>
 
                             {/* Genre Info */}
-                            <Box sx={{ color: "text.main", flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-                                <Typography variant="h3" sx={{ fontWeight: "bold" }}>
+                            <Box sx={{ color: "text.main", ...heroInfoSx }}>
+                                <Typography variant="h3" sx={heroTitleSx}>
                                     {genre.name || 'Unknown Genre'}
                                 </Typography>
 
                                 {/* Statistics in Hero Section */}
-                                <Box sx={{ mt: 3, display: "flex" }}>
+                                <Box sx={heroStatsSx}>
                                     <Box sx={{ textAlign: "center" }}>
-                                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                                        <Typography variant="h4" sx={heroStatValueSx}>
                                             {totalItems}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>

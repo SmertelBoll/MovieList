@@ -1,4 +1,4 @@
-import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, Typography } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, useMediaQuery, Typography } from '@mui/material';
 import React, { useMemo, useState, useEffect } from 'react';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
@@ -41,6 +41,9 @@ function ItemSaveDialog({
     setIsGetFolders,
 }) {
     const theme = useTheme();
+    // Нижче sm діалог на весь екран, нижче md дві колонки складаються в одну
+    const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+    const isStacked = useMediaQuery(theme.breakpoints.down('md'));
     const dispatch = useDispatch();
     // Список кастомних типів користувача (свій у кожного)
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
@@ -278,21 +281,38 @@ function ItemSaveDialog({
     };
 
     return (
-        <Dialog open={isOpenDialogAdd || isOpenDialogEdit} onClose={handleCloseDialog} fullWidth maxWidth="md" disableEnforceFocus>
+        <Dialog
+            open={isOpenDialogAdd || isOpenDialogEdit}
+            onClose={handleCloseDialog}
+            fullWidth
+            maxWidth="md"
+            fullScreen={isFullScreen}
+            disableEnforceFocus
+        >
             <DialogContent
                 sx={{
                     display: 'flex',
-                    flexDirection: 'row',
-                    gap: 3,
-                    minHeight: 450,
-                    maxHeight: 450,
-                    overflow: 'visible',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: { xs: 2, md: 3 },
+                    // На весь екран висоту диктує вікно, інакше — фіксовані 450px
+                    minHeight: { xs: 'auto', md: 450 },
+                    maxHeight: { xs: 'none', md: 450 },
+                    overflowY: { xs: 'auto', md: 'visible' },
+                    overflowX: 'visible',
                     backgroundColor: theme.palette.bg.second,
                     p: 2
                 }}
             >
                 {/* LEFT: Folders */}
-                <Box sx={{ flex: 1, borderRight: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{
+                    flex: { xs: '0 0 auto', md: 1 },
+                    minWidth: 0,
+                    // У колонку розділювач має бути знизу, а не збоку
+                    borderRight: { xs: 'none', md: '1px solid' },
+                    borderBottom: { xs: '1px solid', md: 'none' },
+                    borderColor: 'divider',
+                    pb: { xs: 2, md: 0 }
+                }}>
                     <SideBar
                         folders={folders}
                         setFolders={setFolders}
@@ -300,18 +320,21 @@ function ItemSaveDialog({
                         handleClickToFolder={handleFolderClick}
                         selectedFolder={selectedFolder}
                         sx={{
-                            maxHeight: '100%',
+                            // Складеним списком папок не даємо з'їсти весь екран
+                            maxHeight: { xs: '30vh', md: '100%' },
                             overflowY: 'auto',
                             p: 0,
                             backgroundColor: theme.palette.bg.second,
-                            pr: 2
+                            pr: { xs: 0, md: 2 }
                         }}
                     />
                 </Box>
 
                 {/* RIGHT: Description */}
-                <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ flex: { xs: '1 1 auto', md: 2 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* flex: 1 притискає кнопки до низу — доречно лише при фіксованій
+                        висоті 450px. На весь екран це давало величезну порожнечу. */}
+                    <Box sx={{ flex: { xs: '0 0 auto', md: 1 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography variant="p" sx={{ textAlign: 'left' }}>
                             Save {selectedItem.tmdbType} to {
                                 selectedFolder?.name
@@ -322,12 +345,89 @@ function ItemSaveDialog({
                             }
 
                         </Typography>
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: 'stretch',
+                            gap: 2,
+                            width: '100%'
+                        }}>
+                            {/* Дата — зліва */}
+                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <DatePicker
+                                        label="Choose date"
+                                        value={selectedDate}
+                                        onChange={handleDateChange}
+                                        renderInput={(params) => (
+                                            <InputBox
+                                                {...params}
+                                                fullWidth
+                                                sx={{ width: '100%', mb: 0 }}
+                                            />
+                                        )}
+                                    />
+                                </LocalizationProvider>
+                            </Box>
+
+                            {/* Випадайка тегів — справа, така ж ширина і висота як дата */}
+                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', '& > div': { width: '100%', display: 'flex' } }}>
+                            <DropdownMenu
+                                width={200}
+                                items={[
+                                    ...userTypes.map((type) => ({
+                                        key: type,
+                                        label: type,
+                                        selected: typeCustom === type,
+                                        icon: typeCustom === type ? <CheckIcon fontSize="small" /> : null,
+                                        onClick: () => handleSelectType(type),
+                                    })),
+                                    ...(userTypes.length > 0 ? [{ key: '__divider__', divider: true }] : []),
+                                    {
+                                        key: '__add__',
+                                        label: 'Add tag',
+                                        icon: <AddIcon fontSize="small" />,
+                                        onClick: handleAddType,
+                                    },
+                                ]}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                renderTrigger={({ onClick }) => (
+                                    <Box
+                                        onClick={onClick}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 0.5,
+                                            width: '100%',
+                                            minHeight: 40,        // тягнеться до висоти поля дати
+                                            boxSizing: 'border-box',
+                                            px: 1,
+                                            borderRadius: '4px', // як у блока вибору дати
+                                            cursor: 'pointer',
+                                            border: '1px solid',
+                                            borderColor: 'text.main',
+                                            color: typeCustom ? 'text.main' : 'text.secondary',
+                                            transition: 'border-color 0.15s',
+                                            '&:hover': { borderColor: 'text.main' },
+                                        }}
+                                    >
+                                        <Typography variant="body2" noWrap>
+                                            {typeCustom || 'Tag'}
+                                        </Typography>
+                                        <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                                    </Box>
+                                )}
+                            />
+                            </Box>
+                        </Box>
                         {hasRatingSystem ? (
                             // Власна система оцінок — вибір рівня через випадайку
                             (() => {
                                 const current = ratingLevels.find((l) => l.value === rating);
                                 return (
-                                    <Box sx={{ pt: 1 }}>
+                                    <Box>
                                         <DropdownMenu
                                             width={240}
                                             items={[
@@ -400,90 +500,21 @@ function ItemSaveDialog({
                                 />
                             </Box>
                         )}
-                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 2, width: '100%' }}>
-                            {/* Дата — зліва */}
-                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
-                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                    <DatePicker
-                                        label="Choose date"
-                                        value={selectedDate}
-                                        onChange={handleDateChange}
-                                        renderInput={(params) => (
-                                            <InputBox
-                                                {...params}
-                                                fullWidth
-                                                sx={{ width: '100%', mb: 0 }}
-                                            />
-                                        )}
-                                    />
-                                </LocalizationProvider>
-                            </Box>
-
-                            {/* Випадайка тегів — справа, така ж ширина і висота як дата */}
-                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', '& > div': { width: '100%', display: 'flex' } }}>
-                            <DropdownMenu
-                                width={200}
-                                items={[
-                                    ...userTypes.map((type) => ({
-                                        key: type,
-                                        label: type,
-                                        selected: typeCustom === type,
-                                        icon: typeCustom === type ? <CheckIcon fontSize="small" /> : null,
-                                        onClick: () => handleSelectType(type),
-                                    })),
-                                    ...(userTypes.length > 0 ? [{ key: '__divider__', divider: true }] : []),
-                                    {
-                                        key: '__add__',
-                                        label: 'Add tag',
-                                        icon: <AddIcon fontSize="small" />,
-                                        onClick: handleAddType,
-                                    },
-                                ]}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                renderTrigger={({ onClick }) => (
-                                    <Box
-                                        onClick={onClick}
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: 0.5,
-                                            width: '100%',
-                                            minHeight: 40,        // тягнеться до висоти поля дати
-                                            boxSizing: 'border-box',
-                                            px: 1,
-                                            borderRadius: '4px', // як у блока вибору дати
-                                            cursor: 'pointer',
-                                            border: '1px solid',
-                                            borderColor: 'text.main',
-                                            color: typeCustom ? 'text.main' : 'text.secondary',
-                                            transition: 'border-color 0.15s',
-                                            '&:hover': { borderColor: 'text.main' },
-                                        }}
-                                    >
-                                        <Typography variant="body2" noWrap>
-                                            {typeCustom || 'Tag'}
-                                        </Typography>
-                                        <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
-                                    </Box>
-                                )}
-                            />
-                            </Box>
-                        </Box>
                         <InputBox
                             label="Enter text..."
                             fullWidth
                             multiline
-                            rows={6}
+                            rows={isStacked ? 4 : 6}
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                         />
                     </Box>
 
-                    <DialogActions sx={{ p: 0 }}>
-                        <MainButton onClick={handleCloseDialog}>Cancel</MainButton>
-                        <MainButton onClick={handleSubmit}>
+                    <DialogActions sx={{ p: 0, gap: 1 }}>
+                        <MainButton onClick={handleCloseDialog} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
+                            Cancel
+                        </MainButton>
+                        <MainButton onClick={handleSubmit} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
                             {isOpenDialogAdd ? 'Add' : isOpenDialogEdit ? 'Update' : 'Ops.. Error'}
                         </MainButton>
                     </DialogActions>

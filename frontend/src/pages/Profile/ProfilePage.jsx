@@ -1,4 +1,4 @@
-import { Avatar, Box, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useTheme } from '@mui/material'
+import { Avatar, Box, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -26,6 +26,8 @@ const fileToBase = (file) =>
 
 function ProfilePage() {
     const theme = useTheme()
+    // Конструктор рівнів оцінювання не влазить у вузьке вікно діалогу
+    const isFullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'))
     const dispatch = useDispatch()
     const isAuth = useSelector(selectIsAuth)
     const user = useSelector((state) => state.auth.data)
@@ -506,7 +508,7 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Tags
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
                         Your personal tags for movies and TV shows.
                     </Typography>
                 </Box>
@@ -557,7 +559,7 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Rating system
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
                         Build your own rating scale instead of the default 1–100.
                     </Typography>
                 </Box>
@@ -571,7 +573,7 @@ function ProfilePage() {
                                     key={`${obj.name}_${i}`}
                                     sx={{
                                         display: 'flex', alignItems: 'center', gap: 1,
-                                        pl: 0.5, pr: 2, py: 0.5, borderRadius: 5, bgcolor: 'bg.main',
+                                        pl: '4px', pr: 2, py: '4px', borderRadius: 5, bgcolor: 'bg.main',
                                     }}
                                 >
                                     <Box
@@ -619,33 +621,55 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Login & security
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
                         Manage the email and password you use to sign in.
                     </Typography>
                 </Box>
 
                 {/* Email */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                {/* На телефоні кнопка завжди під значенням. Через flexWrap вона
+                    переносилась лише коли текст довгий — довга пошта переносила,
+                    короткі крапки пароля лишали кнопку збоку. */}
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    flexWrap: 'wrap'
+                }}>
                     <Box>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>Email</Typography>
                         <Typography variant="body1" sx={{ color: 'text.main', wordBreak: 'break-word' }}>
                             {user?.email}
                         </Typography>
                     </Box>
-                    <MainButton onClick={handleOpenEmailDialog} sx={{ m: 0 }}>
+                    {/* MainButton має вшите alignSelf: 'center' — перебиваємо, інакше
+                        кнопка стоятиме по центру, а не під значенням зліва */}
+                    <MainButton onClick={handleOpenEmailDialog} sx={{ m: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
                         Change email
                     </MainButton>
                 </Box>
 
                 {/* Password */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                {/* На телефоні кнопка завжди під значенням. Через flexWrap вона
+                    переносилась лише коли текст довгий — довга пошта переносила,
+                    короткі крапки пароля лишали кнопку збоку. */}
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    flexWrap: 'wrap'
+                }}>
                     <Box>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>Password</Typography>
                         <Typography variant="body1" sx={{ color: 'text.main' }}>
                             ••••••••
                         </Typography>
                     </Box>
-                    <MainButton onClick={handleOpenPwdDialog} sx={{ m: 0 }}>
+                    <MainButton onClick={handleOpenPwdDialog} sx={{ m: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
                         Change password
                     </MainButton>
                 </Box>
@@ -739,7 +763,13 @@ function ProfilePage() {
             </Dialog>
 
             {/* RATING SYSTEM DIALOG */}
-            <Dialog open={ratingDialogOpen} onClose={handleCloseRatingDialog} fullWidth maxWidth="xs">
+            <Dialog
+                open={ratingDialogOpen}
+                onClose={handleCloseRatingDialog}
+                fullWidth
+                maxWidth="xs"
+                fullScreen={isFullScreenDialog}
+            >
                 <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
                     Rating system
                 </DialogTitle>

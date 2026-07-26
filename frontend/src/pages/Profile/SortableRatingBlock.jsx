@@ -8,6 +8,14 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import CloseIcon from '@mui/icons-material/Close'
 
 // Один перетягуваний блок системи оцінок: бейдж зі значенням + назва + скорочення + колір
+//
+// Розкладка. На десктопі — один рядок, елементи в порядку DOM.
+// На телефоні шість елементів у рядок не влазять, тому вони перерозподіляються
+// через flex `order` у два рядки:
+//     [ручка] [назва.................................]
+//     [колір] [значення] ........... [скорочення] [x]
+// `order` дозволяє змінити тільки візуальний порядок, не чіпаючи DOM,
+// тож десктопна розкладка лишається такою, якою була.
 function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbbrChange, onColorChange, onDelete, canDelete }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
@@ -23,7 +31,11 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
             sx={{
                 display: 'flex',
                 alignItems: 'center',
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
                 gap: 1,
+                // Розрив рядка — це елемент нульової висоти, який займає власний
+                // «рядок». Половинимо вертикальний проміжок, щоб сумарно вийшло 8px.
+                rowGap: { xs: '4px', sm: 1 },
                 px: 1,
                 py: '6px',
                 borderRadius: 2,
@@ -40,17 +52,28 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
+                    flexShrink: 0,
                     cursor: 'grab',
                     touchAction: 'none',
                     color: 'text.secondary',
+                    order: { xs: 1, sm: 0 },
                     '&:active': { cursor: 'grabbing' },
                 }}
             >
                 <DragIndicatorIcon fontSize="small" />
             </Box>
 
-            {/* Вибір кольору з палітри */}
-            <ColorSwatchPicker color={color} onChange={onColorChange} />
+            {/* Вибір кольору — на телефоні їде в нижній рядок, до лівого краю */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    order: { xs: 4, sm: 0 },
+                }}
+            >
+                <ColorSwatchPicker color={color} onChange={onColorChange} />
+            </Box>
 
             {/* Значення оцінки (у кольорі рівня) */}
             <Box
@@ -66,19 +89,31 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    order: { xs: 5, sm: 0 },
+                    // Відштовхує скорочення й хрестик до правого краю
+                    mr: { xs: 'auto', sm: 0 },
                 }}
             >
                 {value}
             </Box>
 
-            {/* Назва блоку */}
+            {/* Назва блоку — на телефоні забирає решту першого рядка */}
             <InputBase
                 value={name}
                 onChange={(e) => onNameChange(e.target.value)}
                 placeholder="Level name..."
                 inputProps={{ maxLength: 50 }}
-                sx={{ flexGrow: 1, minWidth: 0, color: 'text.main', fontWeight: 600 }}
+                sx={{
+                    flexGrow: 1,
+                    minWidth: 0,
+                    color: 'text.main',
+                    fontWeight: 600,
+                    order: { xs: 2, sm: 0 },
+                }}
             />
+
+            {/* Розрив рядка — тільки на телефоні */}
+            <Box sx={{ flexBasis: '100%', height: 0, order: 3, display: { xs: 'block', sm: 'none' } }} />
 
             {/* Скорочення (2 букви) */}
             <InputBase
@@ -87,8 +122,9 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                 placeholder="AB"
                 inputProps={{ maxLength: 2, style: { textAlign: 'center', textTransform: 'uppercase' } }}
                 sx={{
-                    flexShrink: 0, width: 44, px: '4px', borderRadius: 1,
+                    flexShrink: 0, width: 44, height: 32, px: '4px', borderRadius: 1,
                     bgcolor: 'bg.second', color: 'text.main', fontWeight: 700,
+                    order: { xs: 6, sm: 0 },
                 }}
             />
 
@@ -97,7 +133,12 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                 size="small"
                 onClick={onDelete}
                 disabled={!canDelete}
-                sx={{ color: 'text.secondary', '&:hover': { color: '#d33' } }}
+                sx={{
+                    flexShrink: 0,
+                    color: 'text.secondary',
+                    order: { xs: 7, sm: 0 },
+                    '&:hover': { color: '#d33' },
+                }}
             >
                 <CloseIcon fontSize="small" />
             </IconButton>

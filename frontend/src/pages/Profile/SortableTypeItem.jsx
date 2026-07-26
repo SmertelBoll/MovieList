@@ -24,7 +24,7 @@ function SortableTypeItem({ type, onRename, onDelete }) {
                 alignItems: 'center',
                 gap: 1,
                 px: 1,
-                py: 0.5,
+                py: '4px',
                 borderRadius: 2,
                 bgcolor: 'yellow.main',
                 color: 'text.dark',

@@ -192,7 +192,7 @@ function FoldersPage() {
     const sorted = [...folders].sort((a, b) => b.order - a.order)
 
     return (
-        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {/* Прихований input для вибору картинки папки */}
             <input
                 ref={fileInputRef}
@@ -213,9 +213,14 @@ function FoldersPage() {
             ) : (
                 <Box sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    // На телефоні рівно дві колонки: auto-fill з мінімумом 200px
+                    // згортався б в одну, бо стільки місця там просто немає
+                    gridTemplateColumns: {
+                        xs: 'repeat(2, 1fr)',
+                        sm: 'repeat(auto-fill, minmax(200px, 1fr))'
+                    },
                     gridAutoRows: '1fr',
-                    gap: 4,
+                    gap: { xs: 2, sm: 4 },
                 }}>
                     {sorted.map((folder) => {
                         const count = getCount(folder)
@@ -227,6 +232,8 @@ function FoldersPage() {
                                 sx={{
                                     position: 'relative',
                                     height: '100%',
+                                    // Інакше вміст не дає колонці стиснутись і сітка їде вбік
+                                    minWidth: 0,
                                     borderRadius: 2,
                                     transition: 'background-color 0.15s, transform 0.15s',
                                     ...(!isRenaming && {
@@ -252,7 +259,7 @@ function FoldersPage() {
                                 >
                                     {/* Картинка папки або стандартна іконка */}
                                     {uploadingFolder === folder.name ? (
-                                        <Box sx={{ height: '11rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Box sx={{ height: { xs: '7rem', sm: '11rem' }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <CircularProgress color="primary" />
                                         </Box>
                                     ) : folder.image ? (
@@ -261,14 +268,16 @@ function FoldersPage() {
                                             src={folder.image}
                                             alt={folder.name}
                                             sx={{
-                                                height: '11rem',
-                                                width: '11rem',
+                                                // 11rem (176px) не влазить у колонку ~124px на телефоні
+                                                height: { xs: '7rem', sm: '11rem' },
+                                                width: { xs: '7rem', sm: '11rem' },
+                                                maxWidth: '100%',
                                                 objectFit: 'cover',
                                                 borderRadius: 2,
                                             }}
                                         />
                                     ) : (
-                                        <FolderIcon sx={{ fontSize: '11rem', color: 'text.main' }} />
+                                        <FolderIcon sx={{ fontSize: { xs: '7rem', sm: '11rem' }, color: 'text.main' }} />
                                     )}
 
                                     {/* Назва або input для перейменування */}

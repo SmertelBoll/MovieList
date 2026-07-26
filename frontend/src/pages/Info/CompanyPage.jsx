@@ -6,6 +6,10 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import {
+    heroSectionSx, heroInnerSx, heroLandscapeSx,
+    heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
+} from './heroStyles'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;         // базовий URL для отримання зображень
@@ -104,32 +108,18 @@ function CompanyPage() {
                 <>
                     {/* Hero Section */}
                     <Box sx={{
-                        position: "relative",
-                        height: "400px",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${company.logo_path})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        ...heroSectionSx,
+                        // Саме backgroundImage, а не background: скорочений запис скинув би
+                        // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
+                        backgroundImage: [
+                            "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                            company.logo_path && `url(${IMAGE_BASE_URL_ORIGINAL}${company.logo_path})`,
+                        ].filter(Boolean).join(", "),
                     }}>
-                        <Box sx={{
-                            display: "flex",
-                            gap: 3,
-                            alignItems: "center",
-                            maxWidth: "1200px",
-                            width: "100%",
-                            p: 3
-                        }}>
+                        <Box sx={heroInnerSx}>
                             {/* Company Logo */}
                             <Card sx={{
-                                width: 300,
-                                height: 200,
-                                flexShrink: 0,
-                                boxShadow: 3,
-                                borderRadius: 2,
+                                ...heroLandscapeSx,
                                 backgroundColor: 'white',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -145,8 +135,8 @@ function CompanyPage() {
                                             objectFit: 'contain',
                                             width: '100%',
                                             height: '100%',
-                                            maxWidth: '280px',
-                                            maxHeight: '180px',
+                                            maxWidth: { xs: '100%', md: '280px' },
+                                            maxHeight: { xs: '100%', md: '180px' },
                                             p: 2
                                         }}
                                         onError={(e) => {
@@ -171,28 +161,28 @@ function CompanyPage() {
                             </Card>
 
                             {/* Company Info */}
-                            <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-                                <Typography variant="h3" sx={{ fontWeight: "bold" }}>
+                            <Box sx={{ color: "white", ...heroInfoSx }}>
+                                <Typography variant="h3" sx={heroTitleSx}>
                                     {company.name || 'Unknown Company'}
                                 </Typography>
 
                                 {company.origin_country && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Country: {company.origin_country}
                                     </Typography>
                                 )}
                                 {company.headquarters && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Headquarters: {company.headquarters}
                                     </Typography>
                                 )}
                                 {company.parent_company && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Parent: {company.parent_company.name}
                                     </Typography>
                                 )}
                                 {company.homepage && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         <a
                                             href={company.homepage}
                                             target="_blank"
@@ -206,9 +196,9 @@ function CompanyPage() {
 
 
                                 {/* Statistics in Hero Section */}
-                                <Box sx={{ mt: 3, display: "flex", gap: 4 }}>
+                                <Box sx={heroStatsSx}>
                                     <Box sx={{ textAlign: "center" }}>
-                                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                                        <Typography variant="h4" sx={heroStatValueSx}>
                                             {totalItems ? totalItems : "-"}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>

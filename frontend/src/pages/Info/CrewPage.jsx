@@ -6,6 +6,10 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import {
+    heroSectionSx, heroInnerSx, heroPortraitSx, heroMediaSx,
+    heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
+} from './heroStyles'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
@@ -107,52 +111,36 @@ function CrewPage() {
                 <>
                     {/* Hero Section */}
                     <Box sx={{
-                        position: "relative",
-                        height: "400px",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                        background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${crew.profile_path})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        ...heroSectionSx,
+                        // Саме backgroundImage, а не background: скорочений запис скинув би
+                        // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
+                        backgroundImage: [
+                            "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                            crew.profile_path && `url(${IMAGE_BASE_URL_ORIGINAL}${crew.profile_path})`,
+                        ].filter(Boolean).join(", "),
                     }}>
-                        <Box sx={{
-                            display: "flex",
-                            gap: 3,
-                            alignItems: "center",
-                            maxWidth: "1200px",
-                            width: "100%",
-                            p: 3
-                        }}>
+                        <Box sx={heroInnerSx}>
                             {/* Profile Photo */}
-                            <Card sx={{
-                                width: 200,
-                                height: 300,
-                                flexShrink: 0,
-                                boxShadow: 3,
-                                borderRadius: 2
-                            }}>
+                            <Card sx={heroPortraitSx}>
                                 <CardMedia
                                     component="img"
-                                    height="300"
                                     image={crew.profile_path
                                         ? `${IMAGE_BASE_URL_W500}${crew.profile_path}`
                                         : IMAGE_DEFAULT
                                     }
                                     alt={crew.name}
+                                    sx={heroMediaSx}
                                 />
                             </Card>
 
                             {/* Crew Info */}
-                            <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-                                <Typography variant="h3" sx={{ fontWeight: "bold" }}>
+                            <Box sx={{ color: "white", ...heroInfoSx }}>
+                                <Typography variant="h3" sx={heroTitleSx}>
                                     {crew.name}
                                 </Typography>
 
                                 {crew.birthday && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Born: {new Date(crew.birthday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -161,12 +149,12 @@ function CrewPage() {
                                     </Typography>
                                 )}
                                 {crew.place_of_birth && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         {crew.place_of_birth}
                                     </Typography>
                                 )}
                                 {crew.deathday && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Died: {new Date(crew.deathday).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
@@ -175,15 +163,15 @@ function CrewPage() {
                                     </Typography>
                                 )}
                                 {crew.known_for_department && (
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" sx={heroSubtitleSx}>
                                         Known for: {crew.known_for_department}
                                     </Typography>
                                 )}
 
                                 {/* Statistics in Hero Section */}
-                                <Box sx={{ mt: 3, display: "flex", gap: 4 }}>
+                                <Box sx={heroStatsSx}>
                                     <Box sx={{ textAlign: "center" }}>
-                                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                                        <Typography variant="h4" sx={heroStatValueSx}>
                                             {uniqueItems.length}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
@@ -191,7 +179,7 @@ function CrewPage() {
                                         </Typography>
                                     </Box>
                                     <Box sx={{ textAlign: "center" }}>
-                                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                                        <Typography variant="h4" sx={heroStatValueSx}>
                                             {crewCredits.length}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
@@ -199,7 +187,7 @@ function CrewPage() {
                                         </Typography>
                                     </Box>
                                     <Box sx={{ textAlign: "center" }}>
-                                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                                        <Typography variant="h4" sx={heroStatValueSx}>
                                             {Math.round(crew.popularity)}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
