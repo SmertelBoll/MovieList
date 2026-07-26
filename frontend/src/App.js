@@ -50,7 +50,9 @@ function App() {
         <Header
           mode={mode}
         />
-        <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "80px" }}>
+        {/* Відступ = реальна висота фіксованої шапки (її публікує Header).
+            80px — лише запасне значення до першого виміру. */}
+        <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "var(--header-height, 80px)" }}>
           <ContainerCustom paddingY bgcolor="bg.main">
             <Routes>
               <Route path="/" element={<HomePage />} />

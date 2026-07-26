@@ -1,5 +1,5 @@
 import { Box, IconButton } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useTheme } from "@mui/material/styles";
@@ -27,6 +27,22 @@ function Header({ mode }) {
 
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Шапка position: fixed, тож контент під нею треба відсунути на її висоту.
+  // Публікуємо реальну висоту в CSS-змінну — щоб не тримати це числом у коді
+  // і щоб відступ сам підлаштувався, коли шапка стане вищою (напр. на телефоні).
+  const headerRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const applyHeight = () => {
+      document.documentElement.style.setProperty("--header-height", `${el.offsetHeight}px`);
+    };
+    applyHeight();
+    const observer = new ResizeObserver(applyHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -64,6 +80,7 @@ function Header({ mode }) {
   return (
     <Box
       component="header"
+      ref={headerRef}
       bgcolor="bg.second"
       sx={{
         boxShadow: 0,

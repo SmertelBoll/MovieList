@@ -1,5 +1,6 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip, useMediaQuery } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -16,7 +17,38 @@ import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;         // горизонтальний кадр для вузьких екранів
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
+
+// Заголовок секції: на вузьких екранах h5 (1.5rem) завеликий
+const sectionTitleSx = { mb: 2, fontSize: { xs: "1.25rem", sm: "1.5rem" } }
+
+// Горизонтальна стрічка карток. Тримається в межах падінгу контейнера,
+// щоб смуга прокрутки не впиралась у краї екрана.
+const scrollStripSx = {
+    display: "flex",
+    gap: 2,
+    overflowX: "auto",
+    pt: 1,
+    pb: 2,
+    scrollSnapType: { xs: "x proximity", sm: "none" },
+    WebkitOverflowScrolling: "touch",
+    "& > *": { scrollSnapAlign: { xs: "start", sm: "none" } },
+    "&::-webkit-scrollbar": {
+        height: { xs: 4, sm: 8 },
+    },
+    "&::-webkit-scrollbar-track": {
+        backgroundColor: "action.hover",
+        borderRadius: 4,
+    },
+    "&::-webkit-scrollbar-thumb": {
+        backgroundColor: "text.secondary",
+        borderRadius: 4,
+        "&:hover": {
+            backgroundColor: "text.primary",
+        },
+    },
+}
 
 function MoviePage({ isSaved = false }) {
     const { id } = useParams()
@@ -41,6 +73,13 @@ function MoviePage({ isSaved = false }) {
 
     // Колекція TMDB (франшиза) — усі частини цього фільму
     const [collection, setCollection] = useState(null)
+
+    // На вузьких екранах опис згортаємо і розкриваємо кліком
+    const theme = useTheme()
+    const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
+    const overviewRef = useRef(null)
+    const [overviewExpanded, setOverviewExpanded] = useState(false)
+    const [overviewOverflows, setOverviewOverflows] = useState(false)
 
     const navigate = useNavigate()
 
@@ -173,6 +212,24 @@ function MoviePage({ isSaved = false }) {
         })
     }, [collection])
 
+    // Чи справді опис не влазить у згорнутий вигляд — інакше кнопка "Show more" бреше.
+    // У розгорнутому стані не переобчислюємо: там scrollHeight завжди дорівнює clientHeight.
+    useEffect(() => {
+        if (!isSmall) {
+            setOverviewOverflows(false)
+            return
+        }
+        if (overviewExpanded) return
+        const el = overviewRef.current
+        if (!el) return
+        setOverviewOverflows(el.scrollHeight > el.clientHeight + 1)
+    }, [movie?.overview, isSmall, overviewExpanded])
+
+    // Скидаємо стан при переході на інший фільм
+    useEffect(() => {
+        setOverviewExpanded(false)
+    }, [movie?.tmdbId])
+
     // TMDB називає колекції "<Франшиза> Collection" — прибираємо хвіст, щоб не дублювати слово
     const franchiseName = (collection?.name || '').replace(/\s*collection\s*$/i, '')
 
@@ -229,15 +286,32 @@ function MoviePage({ isSaved = false }) {
         )
     }
 
+    // Постер вертикальний, backdrop горизонтальний. Картка і фон завжди беруть різні
+    // зображення, щоб на жодній ширині не дублювалось одне й те саме:
+    //   телефон  — картка backdrop (горизонтальна), фон постер (вертикальний)
+    //   десктоп  — картка постер (вертикальна),     фон backdrop (горизонтальний)
+    const posterUrl = movie.poster_path ? `${IMAGE_BASE_URL_W500}${movie.poster_path}` : null
+    const backdropUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_W780}${movie.backdrop_path}` : null
+    const backdropFullUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${movie.backdrop_path}` : null
+
+    const heroImage = (isSmall ? backdropUrl || posterUrl : posterUrl || backdropUrl) || IMAGE_DEFAULT
+    const heroBackground = isSmall
+        ? posterUrl || backdropFullUrl
+        : backdropFullUrl || posterUrl
+
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
             {/* Hero Section */}
             <Box sx={{
                 position: "relative",
-                height: "400px",
+                // На мобільному висоту диктує вміст, на десктопі — фіксовані 400px
+                minHeight: { xs: "auto", sm: 400 },
                 borderRadius: 2,
                 overflow: "hidden",
-                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${movie.backdrop_path})`,
+                background: [
+                    "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                    heroBackground && `url(${heroBackground})`,
+                ].filter(Boolean).join(", "),
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 display: "flex",
@@ -259,8 +333,8 @@ function MoviePage({ isSaved = false }) {
                                         onClick={onClick}
                                         sx={{
                                             position: "absolute",
-                                            right: 20,
-                                            top: 20,
+                                            right: { xs: 12, sm: 20 },
+                                            top: { xs: 12, sm: 20 },
                                             backgroundColor: "white",
                                             opacity: 0.9,
                                             zIndex: 2,
@@ -283,8 +357,8 @@ function MoviePage({ isSaved = false }) {
                                 onClick={handleOpenDialogAdd}
                                 sx={{
                                     position: "absolute",
-                                    right: 20,
-                                    top: 20,
+                                    right: { xs: 12, sm: 20 },
+                                    top: { xs: 12, sm: 20 },
                                     backgroundColor: "white",
                                     opacity: 0.9,
                                     zIndex: 2,
@@ -302,19 +376,25 @@ function MoviePage({ isSaved = false }) {
                 )}
                 <Box sx={{
                     display: "flex",
-                    gap: 3,
+                    // Вертикально на телефоні, горизонтально від sm — інакше на 360px
+                    // постер з'їдає майже всю ширину і тексту не лишається місця
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: { xs: 2, sm: 3 },
                     alignItems: "center",
                     maxWidth: "1200px",
                     width: "100%",
-                    p: 3
+                    minWidth: 0,
+                    p: { xs: 2, sm: 3 }
                 }}>
                     {/* Poster */}
                     <Tooltip title={isSaved ? "Open the movie page" : ""} arrow placement="top">
                         <Card
                             onClick={isSaved ? () => navigate(`/movie/${movie.tmdbId}`) : undefined}
                             sx={{
-                                width: 200,
-                                height: 300,
+                                // На телефоні — широкий кадр 16:9 на всю ширину:
+                                // вертикальний постер з'їдав забагато висоти
+                                width: { xs: "100%", sm: 170, md: 200 },
+                                height: { xs: "auto", sm: 255, md: 300 },
                                 flexShrink: 0,
                                 boxShadow: 3,
                                 borderRadius: 2,
@@ -330,24 +410,51 @@ function MoviePage({ isSaved = false }) {
                         >
                             <CardMedia
                                 component="img"
-                                height="300"
-                                image={movie.poster_path
-                                    ? `${IMAGE_BASE_URL_W500}${movie.poster_path}`
-                                    : IMAGE_DEFAULT
-                                }
+                                image={heroImage}
+                                sx={{
+                                    width: "100%",
+                                    height: { xs: "auto", sm: "100%" },
+                                    aspectRatio: { xs: "16 / 9", sm: "auto" },
+                                    objectFit: "cover",
+                                    display: "block"
+                                }}
                             />
                         </Card>
                     </Tooltip>
 
                     {/* Movie Info */}
-                    <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box sx={{
+                        color: "white",
+                        flex: 1,
+                        minWidth: 0,
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: { xs: 1, sm: 2 },
+                        textAlign: { xs: "center", sm: "left" },
+                        alignItems: { xs: "center", sm: "stretch" }
+                    }}>
                         {/* Title */}
-                        <Typography variant="h3" sx={{ fontWeight: "bold" }}>
+                        <Typography
+                            variant="h3"
+                            sx={{
+                                fontWeight: "bold",
+                                fontSize: { xs: "1.5rem", sm: "2.125rem", md: "3rem" },
+                                lineHeight: 1.2,
+                                overflowWrap: "anywhere"
+                            }}
+                        >
                             {movie.title}
                         </Typography>
 
                         {/* Genres */}
-                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <Box sx={{
+                            display: "flex",
+                            gap: 1,
+                            flexWrap: "wrap",
+                            width: "100%",
+                            justifyContent: { xs: "center", sm: "flex-start" }
+                        }}>
                             {movie.genres?.map((genre) => (
                                 <Chip
                                     key={genre.id}
@@ -369,13 +476,59 @@ function MoviePage({ isSaved = false }) {
                             ))}
                         </Box>
 
-                        {/* Overview */}
-                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                            {movie.overview}
-                        </Typography>
+                        {/* Overview — на вузькому екрані згорнутий до 4 рядків, розкривається кліком */}
+                        <Box sx={{ width: "100%" }}>
+                            <Typography
+                                ref={overviewRef}
+                                variant="body1"
+                                onClick={overviewOverflows ? () => setOverviewExpanded((v) => !v) : undefined}
+                                sx={{
+                                    opacity: 0.9,
+                                    // Довгий абзац читається погано по центру — завжди зліва
+                                    textAlign: "left",
+                                    ...(overviewOverflows && { cursor: "pointer" }),
+                                    ...(isSmall && !overviewExpanded && {
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 4,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden"
+                                    })
+                                }}
+                            >
+                                {movie.overview}
+                            </Typography>
+
+                            {overviewOverflows && (
+                                <Typography
+                                    component="button"
+                                    variant="body2"
+                                    onClick={() => setOverviewExpanded((v) => !v)}
+                                    sx={{
+                                        mt: 1,
+                                        p: 0,
+                                        border: "none",
+                                        background: "none",
+                                        font: "inherit",
+                                        fontWeight: 700,
+                                        color: "yellow.main",
+                                        cursor: "pointer",
+                                        display: "block"
+                                    }}
+                                >
+                                    {overviewExpanded ? "Show less" : "Show more"}
+                                </Typography>
+                            )}
+                        </Box>
 
                         {/* Rating and Release Date */}
-                        <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
+                        <Box sx={{
+                            display: "flex",
+                            gap: { xs: 2, sm: 3 },
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            width: "100%",
+                            justifyContent: { xs: "center", sm: "flex-start" }
+                        }}>
                             <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                                 ⭐ {movie.vote_average?.toFixed(1)}
                             </Typography>
@@ -386,8 +539,14 @@ function MoviePage({ isSaved = false }) {
 
                         {/* Block with saved folders */}
                         {isAuth && !isLoadingItemFolders && itemFolders.length > 0 && (
-                            <Box>
-                                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+                            <Box sx={{ width: "100%" }}>
+                                <Box sx={{
+                                    display: "flex",
+                                    gap: { xs: 1, sm: 2 },
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    justifyContent: { xs: "center", sm: "flex-start" }
+                                }}>
                                     <Typography variant="body1">
                                         Saved in:
                                     </Typography>
@@ -420,17 +579,17 @@ function MoviePage({ isSaved = false }) {
 
             {/* User review (тільки для збереженого фільму) */}
             {isSaved && (
-                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3 }}>
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 3 } }}>
                     {/* Коментар (займає всю решту місця) */}
-                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <Typography variant="h5" color="text.main">My review</Typography>
+                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <Typography variant="h5" color="text.main" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>My review</Typography>
                         <Typography variant="body1" color="text.main" sx={{ whiteSpace: "pre-wrap" }}>
                             {movie.comment || "No comment"}
                         </Typography>
                     </Box>
 
                     {/* Оцінка та дати (під розмір вмісту) */}
-                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Rating
                                 name="user-rating"
@@ -460,34 +619,14 @@ function MoviePage({ isSaved = false }) {
             {timelineParts.length > 1 && (
                 <Box>
                     <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: 2, flexWrap: "wrap" }}>
-                        <Typography variant="h5">
+                        <Typography variant="h5" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
                             Timeline
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             {franchiseName} · {timelineParts.length} parts
                         </Typography>
                     </Box>
-                    <Box sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pt: 1,
-                        pb: 2,
-                        "&::-webkit-scrollbar": {
-                            height: 8,
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            backgroundColor: "action.hover",
-                            borderRadius: 4,
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "text.secondary",
-                            borderRadius: 4,
-                            "&:hover": {
-                                backgroundColor: "text.primary",
-                            },
-                        },
-                    }}>
+                    <Box sx={scrollStripSx}>
                         {timelineParts.map((part) => (
                             <TimelineCart
                                 key={part.id}
@@ -502,29 +641,10 @@ function MoviePage({ isSaved = false }) {
             {/* Cast Section */}
             {movie.credits?.cast && movie.credits.cast.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
+                    <Typography variant="h5" sx={sectionTitleSx}>
                         Cast
                     </Typography>
-                    <Box sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pb: 2,
-                        "&::-webkit-scrollbar": {
-                            height: 8,
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            backgroundColor: "action.hover",
-                            borderRadius: 4,
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "text.secondary",
-                            borderRadius: 4,
-                            "&:hover": {
-                                backgroundColor: "text.primary",
-                            },
-                        },
-                    }}>
+                    <Box sx={scrollStripSx}>
                         {movie.credits.cast.map((actor) => (
                             <ActorCart
                                 key={actor.id}
@@ -539,29 +659,10 @@ function MoviePage({ isSaved = false }) {
             {/* Crew Section */}
             {movie.credits?.crew && movie.credits.crew.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
+                    <Typography variant="h5" sx={sectionTitleSx}>
                         Crew
                     </Typography>
-                    <Box sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pb: 2,
-                        "&::-webkit-scrollbar": {
-                            height: 8,
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            backgroundColor: "action.hover",
-                            borderRadius: 4,
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "text.secondary",
-                            borderRadius: 4,
-                            "&:hover": {
-                                backgroundColor: "text.primary",
-                            },
-                        },
-                    }}>
+                    <Box sx={scrollStripSx}>
                         {movie.credits.crew
                             .filter(member => ['Director', 'Producer', 'Writer', 'Screenplay'].includes(member.job))
                             .map((member) => (
@@ -578,10 +679,10 @@ function MoviePage({ isSaved = false }) {
             {/* Production Info */}
             {movie.production_companies && movie.production_companies.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
+                    <Typography variant="h5" sx={sectionTitleSx}>
                         Production Companies
                     </Typography>
-                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <Box sx={scrollStripSx}>
                         {movie.production_companies.map((company) => (
                             <Chip
                                 key={company.id}
@@ -590,6 +691,7 @@ function MoviePage({ isSaved = false }) {
                                 onClick={() => navigate(`/company/${company.id}`)}
                                 sx={{
                                     cursor: 'pointer',
+                                    flexShrink: 0,
                                     transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                     '&.MuiChip-root:hover': {
                                         backgroundColor: 'yellow.main',
