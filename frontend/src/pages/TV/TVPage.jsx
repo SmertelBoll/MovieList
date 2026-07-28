@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem } from '../../utils/ratingSystem'
 import instance from '../../axios'
+import { getTmdbLanguage } from '../../utils/languages'
 import { alertError, alertSuccess } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -67,6 +68,8 @@ function TVPage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
+    const { language } = useSelector((state) => state.config)
+    const tmdbLanguage = getTmdbLanguage(language)
     const useRatingSystem = hasRatingSystem(ratingSystem)
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
@@ -101,7 +104,7 @@ function TVPage({ isSaved = false }) {
                 .get(`${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}`, {
                     params: {
                         api_key: API_KEY,
-                        language: "en-US",
+                        language: tmdbLanguage,
                         append_to_response: "credits"
                     }
                 })
@@ -114,7 +117,7 @@ function TVPage({ isSaved = false }) {
                         .map(s =>
                             instance.get(
                                 `${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}/season/${s.season_number}`,
-                                { params: { api_key: API_KEY, language: "en-US" } }
+                                { params: { api_key: API_KEY, language: tmdbLanguage } }
                             )
                         );
 
@@ -170,7 +173,7 @@ function TVPage({ isSaved = false }) {
         } else {
             loadTmdb(id)
         }
-    }, [id, isSaved])
+    }, [id, isSaved, tmdbLanguage])
 
     // Завантаження папок користувача
     useEffect(() => {

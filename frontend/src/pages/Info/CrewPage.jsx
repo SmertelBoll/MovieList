@@ -6,6 +6,7 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import { getTmdbLanguage } from '../../utils/languages'
 import {
     heroSectionSx, heroInnerSx, heroPortraitSx, heroMediaSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
@@ -19,7 +20,8 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 function CrewPage() {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
-    const { typeTMDB } = useSelector((state) => state.config);
+    const { typeTMDB, language } = useSelector((state) => state.config);
+    const tmdbLanguage = getTmdbLanguage(language);
 
     // Дані про людину
     const [crew, setCrew] = useState(null)
@@ -38,7 +40,7 @@ function CrewPage() {
             .get(`${process.env.REACT_APP_URL_TMDB}/person/${id}`, {
                 params: {
                     api_key: API_KEY,
-                    language: "en-US",
+                    language: tmdbLanguage,
                     append_to_response: "combined_credits"
                 }
             })
@@ -51,7 +53,7 @@ function CrewPage() {
                 alertError(err, "Failed to load crew member")
                 setIsLoading(false)
             })
-    }, [id])
+    }, [id, tmdbLanguage])
 
     // Завантаження папок користувача
     useEffect(() => {
@@ -141,7 +143,7 @@ function CrewPage() {
 
                                 {crew.birthday && (
                                     <Typography variant="h6" sx={heroSubtitleSx}>
-                                        Born: {new Date(crew.birthday).toLocaleDateString('en-US', {
+                                        Born: {new Date(crew.birthday).toLocaleDateString(tmdbLanguage, {
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric'
@@ -155,7 +157,7 @@ function CrewPage() {
                                 )}
                                 {crew.deathday && (
                                     <Typography variant="h6" sx={heroSubtitleSx}>
-                                        Died: {new Date(crew.deathday).toLocaleDateString('en-US', {
+                                        Died: {new Date(crew.deathday).toLocaleDateString(tmdbLanguage, {
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric'

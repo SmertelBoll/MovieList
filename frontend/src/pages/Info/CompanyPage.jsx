@@ -6,6 +6,7 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import { getTmdbLanguage } from '../../utils/languages'
 import {
     heroSectionSx, heroInnerSx, heroLandscapeSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
@@ -18,7 +19,8 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 function CompanyPage() {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
-    const { typeTMDB } = useSelector((state) => state.config);
+    const { typeTMDB, language } = useSelector((state) => state.config);
+    const tmdbLanguage = getTmdbLanguage(language);
 
 
     // Дані про компанію
@@ -40,7 +42,7 @@ function CompanyPage() {
             .get(`${process.env.REACT_APP_URL_TMDB}/company/${id}`, {
                 params: {
                     api_key: API_KEY,
-                    language: "en-US"
+                    language: tmdbLanguage
                 }
             })
             .then((res) => {
@@ -51,7 +53,7 @@ function CompanyPage() {
 
                 let params = {
                     api_key: API_KEY,
-                    language: "en-US",
+                    language: tmdbLanguage,
                     with_companies: id,
                     page: 1
                 };
@@ -74,7 +76,7 @@ function CompanyPage() {
                         setIsLoading(false)
                     });
             })
-    }, [id, typeTMDB])
+    }, [id, typeTMDB, tmdbLanguage])
 
     // Завантаження папок користувача
     useEffect(() => {

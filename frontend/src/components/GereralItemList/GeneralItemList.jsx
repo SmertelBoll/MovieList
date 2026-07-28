@@ -1,6 +1,7 @@
 import { Box, CircularProgress, debounce, Grid2, Tooltip, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { getTmdbLanguage } from '../../utils/languages'
 import Search from '../Sorting/Search'
 import ItemCart from './ItemCart';
 import instance from '../../axios';
@@ -75,7 +76,8 @@ function GeneralItemList({
     isSort = false,
     ...props
 }) {
-    const { typeTMDB, customTypes } = useSelector((state) => state.config);
+    const { typeTMDB, customTypes, language } = useSelector((state) => state.config);
+    const tmdbLanguage = getTmdbLanguage(language);
     // Кастомні типи застосовуються лише для mongo-сторінок; для tmdb їх ігноруємо повністю
     const effectiveCustomTypes = dbType === "mongo" ? customTypes : [];
     const customTypesKey = effectiveCustomTypes.join(",");
@@ -139,7 +141,7 @@ function GeneralItemList({
     const getItemsById = useCallback(async (item) => {
         const params = {
             api_key: API_KEY,
-            language: "en-US",
+            language: tmdbLanguage,
         };
 
         try {
@@ -153,7 +155,7 @@ function GeneralItemList({
             alertError(err);
             return null;
         }
-    }, []);
+    }, [tmdbLanguage]);
 
 
     // -- USE EFFECTS -- //
@@ -174,7 +176,8 @@ function GeneralItemList({
         setDisplayedItems(0)
         setTotalPages(1)
         setPage(0)
-    }, [searchValue, nameSortBy, sortDirection, typeTMDB, customTypesKey])
+        // tmdbLanguage теж скидає список: при зміні мови треба перезапитати назви й описи
+    }, [searchValue, nameSortBy, sortDirection, typeTMDB, customTypesKey, tmdbLanguage])
 
     // Загрузка даних
     useEffect(() => {
@@ -210,7 +213,7 @@ function GeneralItemList({
 
             let params = {
                 api_key: API_KEY,
-                language: "en-US",
+                language: tmdbLanguage,
                 page: page,
                 ...urlParams
             };

@@ -218,12 +218,12 @@ function LoginForm() {
               ordinary user
             </DialogTitle>
             <DialogContentText variant="p" sx={{ color: "text.second" }}>
-              login: user@gmail.com
+              login: test@gmail.com
             </DialogContentText>
             <DialogContentText variant="p" sx={{ color: "text.second" }}>
-              password: 12345
+              password: test123
             </DialogContentText>
-            <DialogTitle variant="p" sx={{ color: "text.main" }}>
+            {/* <DialogTitle variant="p" sx={{ color: "text.main" }}>
               admin user
             </DialogTitle>
             <DialogContentText variant="p" sx={{ color: "text.second" }}>
@@ -231,7 +231,7 @@ function LoginForm() {
             </DialogContentText>
             <DialogContentText variant="p" sx={{ color: "text.second" }}>
               password: 12345
-            </DialogContentText>
+            </DialogContentText> */}
           </DialogContent>
           <DialogActions>
             <SecondaryButton onClick={handleClose}>OK</SecondaryButton>

@@ -4,6 +4,9 @@ const MovieSchema = new mongoose.Schema(
     {
         tmdbId: { type: Number, required: true },
         tmdbTitle: { type: String, required: true },
+        // Мова, якою було збережено tmdbTitle (короткий код: "en", "uk", ...).
+        // Старі документи її не мають — вважаємо їх англійськими.
+        language: { type: String, default: "en" },
         dateAdded: { type: Date },
         rating: { type: Number },
         comment: { type: String },

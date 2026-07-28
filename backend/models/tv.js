@@ -32,6 +32,9 @@ const TvSchema = new mongoose.Schema(
     {
         tmdbId: { type: Number, required: true },
         tmdbTitle: { type: String, required: true },
+        // Мова, якою було збережено tmdbTitle (короткий код: "en", "uk", ...).
+        // Старі документи її не мають — вважаємо їх англійськими.
+        language: { type: String, default: "en" },
 
         // Поля для всього серіалу
         dateAdded: { type: Date },

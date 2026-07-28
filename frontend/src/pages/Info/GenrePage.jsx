@@ -6,6 +6,7 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
+import { getTmdbLanguage } from '../../utils/languages'
 import {
     heroSectionSx, heroInnerSx, heroLandscapeSx,
     heroInfoSx, heroTitleSx, heroStatsSx, heroStatValueSx
@@ -16,7 +17,8 @@ const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 function GenrePage() {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
-    const { typeTMDB } = useSelector((state) => state.config);
+    const { typeTMDB, language } = useSelector((state) => state.config);
+    const tmdbLanguage = getTmdbLanguage(language);
 
     // Дані про жанр
     const [genre, setGenre] = useState(null)
@@ -37,7 +39,7 @@ function GenrePage() {
             .get(`${process.env.REACT_APP_URL_TMDB}/genre/movie/list`, {
                 params: {
                     api_key: API_KEY,
-                    language: "en-US"
+                    language: tmdbLanguage
                 }
             })
             .then((res) => {
@@ -49,7 +51,7 @@ function GenrePage() {
 
                 let params = {
                     api_key: API_KEY,
-                    language: "en-US",
+                    language: tmdbLanguage,
                     with_genres: id,
                     page: 1
                 };
@@ -72,7 +74,7 @@ function GenrePage() {
                         setIsLoading(false)
                     });
             })
-    }, [id, typeTMDB])
+    }, [id, typeTMDB, tmdbLanguage])
 
     // Завантаження папок користувача
     useEffect(() => {

@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { formatRatingLabel } from '../../utils/ratingSystem'
 import instance from '../../axios'
+import { getTmdbLanguage } from '../../utils/languages'
 import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -54,6 +55,8 @@ function MoviePage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
+    const { language } = useSelector((state) => state.config)
+    const tmdbLanguage = getTmdbLanguage(language)
     const [movie, setMovie] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -92,7 +95,7 @@ function MoviePage({ isSaved = false }) {
                 .get(`${process.env.REACT_APP_URL_TMDB}/movie/${tmdbId}`, {
                     params: {
                         api_key: API_KEY,
-                        language: "en-US",
+                        language: tmdbLanguage,
                         append_to_response: "credits"
                     }
                 })
@@ -131,7 +134,7 @@ function MoviePage({ isSaved = false }) {
         } else {
             loadTmdb(id)
         }
-    }, [id, isSaved])
+    }, [id, isSaved, tmdbLanguage])
 
     // Завантаження папок користувача
     useEffect(() => {
@@ -184,7 +187,7 @@ function MoviePage({ isSaved = false }) {
             .get(`${process.env.REACT_APP_URL_TMDB}/collection/${collectionId}`, {
                 params: {
                     api_key: API_KEY,
-                    language: "en-US"
+                    language: tmdbLanguage
                 }
             })
             .then((res) => {
@@ -197,7 +200,9 @@ function MoviePage({ isSaved = false }) {
             })
 
         return () => { cancelled = true }
-    }, [movie?.belongs_to_collection?.id])
+        // tmdbLanguage — інакше при зміні мови назви частин лишились би старими:
+        // id колекції не змінюється, тож без цієї залежності запит не повторився б
+    }, [movie?.belongs_to_collection?.id, tmdbLanguage])
 
     // Частини колекції в хронологічному порядку; без дати виходу — в кінець
     const timelineParts = useMemo(() => {

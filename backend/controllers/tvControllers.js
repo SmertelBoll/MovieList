@@ -11,6 +11,7 @@ export const addTvToFolder = async (req, res) => {
       folderName,
       tmdbId,
       tmdbTitle,
+      language,
       dateAdded,
       rating,
       comment,
@@ -27,6 +28,8 @@ export const addTvToFolder = async (req, res) => {
     const doc = new TvModel({
       tmdbId,
       tmdbTitle,
+      // Мова, якою користувач бачив назву в момент збереження
+      language,
       dateAdded,
       rating,
       comment,

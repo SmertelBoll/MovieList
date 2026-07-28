@@ -11,6 +11,7 @@ export const addMovieToFolder = async (req, res) => {
       folderName,
       tmdbId,
       tmdbTitle,
+      language,
       dateAdded,
       rating,
       comment,
@@ -27,6 +28,8 @@ export const addMovieToFolder = async (req, res) => {
     const doc = new MovieModel({
       tmdbId,
       tmdbTitle,
+      // Мова, якою користувач бачив назву в момент збереження
+      language,
       dateAdded,
       rating,
       comment,
