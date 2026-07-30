@@ -10,8 +10,6 @@ const PALETTE = [
     '#d19a7a', '#e0c9a0', '#c4c4c4', '#a0a0a0',
 ]
 
-// УВАГА: theme.spacing — масив, тож дробові значення (p: 1.5, gap: 0.75) дають undefined
-// і відступ просто зникає. Тут усі відступи задані явними px.
 function ColorSwatchPicker({ color, onChange }) {
     const [anchorEl, setAnchorEl] = useState(null)
     const open = Boolean(anchorEl)
@@ -56,7 +54,7 @@ function ColorSwatchPicker({ color, onChange }) {
                 slotProps={{
                     paper: {
                         sx: {
-                            mt: '6px',
+                            mt: 0.75,
                             bgcolor: 'bg.second',
                             backgroundImage: 'none',
                             borderRadius: '14px',
@@ -72,10 +70,10 @@ function ColorSwatchPicker({ color, onChange }) {
                     sx={{
                         boxSizing: 'border-box',
                         width: 232,
-                        p: '14px',
+                        p: 1.75,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '12px',
+                        gap: 1.5,
                         // Стилі для react-colorful (бібліотека жорстко задає 200x200)
                         '& .react-colorful': { width: '100%', height: 168 },
                         '& .react-colorful__saturation': {
@@ -131,10 +129,10 @@ function ColorSwatchPicker({ color, onChange }) {
                         />
                     </Box>
 
-                    <Divider sx={{ mx: '-14px' }} />
+                    <Divider sx={{ mx: -1.75 }} />
 
                     {/* Швидкі кольори */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.75 }}>
                         {PALETTE.map((c) => (
                             <Box
                                 key={c}
@@ -149,7 +147,7 @@ function ColorSwatchPicker({ color, onChange }) {
                                     boxShadow:
                                         selected === c
                                             ? `0 0 0 2px ${theme.palette.bg.second}, 0 0 0 4px ${theme.palette.text.main}`
-                                            : 'inset 0 0 0 1px rgba(0,0,0,0.2)',
+                                            : `inset 0 0 0 1px ${theme.palette.overlay.hairline}`,
                                     transition: 'transform 0.12s',
                                     '&:hover': { transform: 'scale(1.15)' },
                                 })}

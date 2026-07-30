@@ -22,7 +22,7 @@ const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;         //
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 // Заголовок секції: на вузьких екранах h5 (1.5rem) завеликий
-const sectionTitleSx = { mb: 2, fontSize: { xs: "1.25rem", sm: "1.5rem" } }
+const sectionTitleSx = { mb: 2, color: "text.main" }
 
 // Горизонтальна стрічка карток. Тримається в межах падінгу контейнера,
 // щоб смуга прокрутки не впиралась у краї екрана.
@@ -35,18 +35,22 @@ const scrollStripSx = {
     scrollSnapType: { xs: "x proximity", sm: "none" },
     WebkitOverflowScrolling: "touch",
     "& > *": { scrollSnapAlign: { xs: "start", sm: "none" } },
+    // Такий самий вигляд, як у скролу сторінки (styles/index.css):
+    // жовта «пігулка» з рамкою кольору доріжки
     "&::-webkit-scrollbar": {
-        height: { xs: 4, sm: 8 },
+        height: { xs: 10, sm: 14 },
     },
     "&::-webkit-scrollbar-track": {
-        backgroundColor: "action.hover",
-        borderRadius: 4,
+        backgroundColor: "scrollbar.track",
+        borderRadius: "100vw",
     },
     "&::-webkit-scrollbar-thumb": {
-        backgroundColor: "text.secondary",
-        borderRadius: 4,
+        backgroundColor: "scrollbar.thumb",
+        borderRadius: "100vw",
+        border: "3px solid",
+        borderColor: "scrollbar.track",
         "&:hover": {
-            backgroundColor: "text.primary",
+            backgroundColor: "scrollbar.thumbHover",
         },
     },
 }
@@ -314,7 +318,7 @@ function MoviePage({ isSaved = false }) {
                 borderRadius: 2,
                 overflow: "hidden",
                 background: [
-                    "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                    `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
                     heroBackground && `url(${heroBackground})`,
                 ].filter(Boolean).join(", "),
                 backgroundSize: "cover",
@@ -340,7 +344,7 @@ function MoviePage({ isSaved = false }) {
                                             position: "absolute",
                                             right: { xs: 12, sm: 20 },
                                             top: { xs: 12, sm: 20 },
-                                            backgroundColor: "white",
+                                            backgroundColor: "overlay.onImage",
                                             opacity: 0.9,
                                             zIndex: 2,
                                             borderRadius: 2,
@@ -351,7 +355,7 @@ function MoviePage({ isSaved = false }) {
                                             }
                                         }}
                                     >
-                                        <MoreVertIcon sx={{ opacity: 1, color: "text.main" }} />
+                                        <MoreVertIcon sx={{ opacity: 1, color: "text.dark" }} />
                                     </IconButton>
                                 )}
                             />
@@ -364,7 +368,7 @@ function MoviePage({ isSaved = false }) {
                                     position: "absolute",
                                     right: { xs: 12, sm: 20 },
                                     top: { xs: 12, sm: 20 },
-                                    backgroundColor: "white",
+                                    backgroundColor: "overlay.onImage",
                                     opacity: 0.9,
                                     zIndex: 2,
                                     borderRadius: 2,
@@ -375,7 +379,7 @@ function MoviePage({ isSaved = false }) {
                                     }
                                 }}
                             >
-                                <AddIcon sx={{ opacity: 1, color: "text.main" }} />
+                                <AddIcon sx={{ opacity: 1, color: "text.dark" }} />
                             </IconButton>
                         )
                 )}
@@ -429,7 +433,7 @@ function MoviePage({ isSaved = false }) {
 
                     {/* Movie Info */}
                     <Box sx={{
-                        color: "white",
+                        color: "overlay.onImage",
                         flex: 1,
                         minWidth: 0,
                         width: "100%",
@@ -441,13 +445,8 @@ function MoviePage({ isSaved = false }) {
                     }}>
                         {/* Title */}
                         <Typography
-                            variant="h3"
-                            sx={{
-                                fontWeight: "bold",
-                                fontSize: { xs: "1.5rem", sm: "2.125rem", md: "3rem" },
-                                lineHeight: 1.2,
-                                overflowWrap: "anywhere"
-                            }}
+                            variant="heroTitle"
+                            sx={{ overflowWrap: "anywhere" }}
                         >
                             {movie.title}
                         </Typography>
@@ -468,8 +467,8 @@ function MoviePage({ isSaved = false }) {
                                     onClick={() => navigate(`/genre/${genre.id}`)}
                                     sx={{
                                         cursor: 'pointer',
-                                        backgroundColor: "rgba(255,255,255,0.2)",
-                                        color: "white",
+                                        backgroundColor: "overlay.chip",
+                                        color: "overlay.onImage",
                                         transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                         '&.MuiChip-root:hover': {
                                             backgroundColor: 'yellow.main',
@@ -563,9 +562,9 @@ function MoviePage({ isSaved = false }) {
                                             onClick={() => navigate(`/folders/${folder.name}?filter=${encodeURIComponent(movie.title)}`)}
                                             sx={{
                                                 cursor: 'pointer',
-                                                backgroundColor: "rgba(255,255,255,0.05)",
-                                                color: "white",
-                                                borderColor: "rgba(255,255,255,0.2)",
+                                                backgroundColor: "overlay.chipSubtle",
+                                                color: "overlay.onImage",
+                                                borderColor: "overlay.chip",
                                                 transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                                 '&.MuiChip-root:hover': {
                                                     backgroundColor: 'yellow.main',
@@ -624,7 +623,7 @@ function MoviePage({ isSaved = false }) {
             {timelineParts.length > 1 && (
                 <Box>
                     <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: 2, flexWrap: "wrap" }}>
-                        <Typography variant="h5" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+                        <Typography variant="sectionTitle" color="text.main">
                             Timeline
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -646,7 +645,7 @@ function MoviePage({ isSaved = false }) {
             {/* Cast Section */}
             {movie.credits?.cast && movie.credits.cast.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={sectionTitleSx}>
+                    <Typography variant="sectionTitle" sx={sectionTitleSx}>
                         Cast
                     </Typography>
                     <Box sx={scrollStripSx}>
@@ -664,7 +663,7 @@ function MoviePage({ isSaved = false }) {
             {/* Crew Section */}
             {movie.credits?.crew && movie.credits.crew.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={sectionTitleSx}>
+                    <Typography variant="sectionTitle" sx={sectionTitleSx}>
                         Crew
                     </Typography>
                     <Box sx={scrollStripSx}>
@@ -684,7 +683,7 @@ function MoviePage({ isSaved = false }) {
             {/* Production Info */}
             {movie.production_companies && movie.production_companies.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={sectionTitleSx}>
+                    <Typography variant="sectionTitle" sx={sectionTitleSx}>
                         Production Companies
                     </Typography>
                     <Box sx={scrollStripSx}>

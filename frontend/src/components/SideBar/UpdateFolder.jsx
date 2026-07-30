@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import React, { useState } from 'react'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
@@ -46,7 +46,7 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
     const statusItems = [
         {
             key: "__back__",
-            label: <Typography variant="body2" sx={{ fontWeight: 700 }}>Status</Typography>,
+            label: "Status",
             icon: <ArrowBackIcon />,
             closeOnClick: false,
             onClick: () => setView('main'),
@@ -71,7 +71,7 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
                         // DropdownMenu не повідомляє про закриття, тож скидаємо тут
                         onClick={(e) => { setView('main'); onClick(e); }}
                         sx={{
-                            py: "12px",
+                            py: 1.5,
                             px: 1,
                             borderRadius: 2,
                             ":hover": {

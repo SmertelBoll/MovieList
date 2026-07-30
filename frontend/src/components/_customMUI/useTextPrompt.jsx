@@ -66,7 +66,7 @@ function useTextPrompt() {
                 {config?.title || 'Enter value'}
             </DialogTitle>
 
-            <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+            <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: (t) => `${t.spacing(1)} !important` }}>
                 <InputBox
                     fullWidth
                     autoFocus

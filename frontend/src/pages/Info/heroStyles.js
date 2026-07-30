@@ -71,18 +71,14 @@ export const heroInfoSx = {
     alignItems: { xs: "center", sm: "stretch" },
 };
 
-// Назва сторінки (замість h3 у 3rem на будь-якій ширині)
+// Назва сторінки. Розміри живуть у варіанті типографіки `heroTitle`,
+// тут лишається тільки поведінка переносу довгих назв.
 export const heroTitleSx = {
-    fontWeight: "bold",
-    fontSize: { xs: "1.5rem", sm: "2.125rem", md: "3rem" },
-    lineHeight: 1.2,
     overflowWrap: "anywhere",
 };
 
-// Рядки під назвою (були h6 = 1.25rem)
-export const heroSubtitleSx = {
-    fontSize: { xs: "0.95rem", sm: "1.25rem" },
-};
+// Рядки під назвою — розміри у варіанті `heroSubtitle`
+export const heroSubtitleSx = {};
 
 // Блок із цифрами під текстом
 export const heroStatsSx = {

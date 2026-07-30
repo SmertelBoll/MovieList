@@ -105,30 +105,32 @@ function HomePage() {
   ), [folders, isAuth]);
 
   return (
-    <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, width: "100%" }}>
-      {/* Колонка сайдбару — тільки від md */}
-      {!isCompact && (
+    // Без gap на контейнері: він створював проміжок навіть біля згорнутої
+    // колонки нульової ширини і зсував контент із центру.
+    // Проміжок живе на самій колонці й зникає разом з нею.
+    <Box sx={{ display: "flex", width: "100%" }}>
+      {/* Колонка сайдбару — тільки від md і тільки для залогінених */}
+      {!isCompact && isAuth && (
         <Box
           ref={sidebarRef}
           sx={{
-            flexBasis: isAuth && showSidebar ? "30%" : "0%",
-            flexGrow: isAuth && showSidebar ? 1 : 0,
-            maxWidth: isAuth && showSidebar ? "280px" : "0px",
+            flexBasis: showSidebar ? "30%" : "0%",
+            flexGrow: showSidebar ? 1 : 0,
+            maxWidth: showSidebar ? "280px" : "0px",
+            mr: showSidebar ? 3 : 0,
             overflow: "hidden",
             transition: "all 0.7s ease-in-out",
-            opacity: isAuth && showSidebar ? 1 : 0,
-            transform: isAuth && showSidebar ? "translateX(0)" : "translateX(-100%)"
+            opacity: showSidebar ? 1 : 0,
+            transform: showSidebar ? "translateX(0)" : "translateX(-100%)"
           }}
         >
-          {isAuth && (
-            <SideBar
-              folders={folders}
-              setFolders={setFolders}
-              setIsGetFolders={setIsGetFolders}
-              handleClickToFolder={handleOpenFolder}
-              selectedFolder={false}
-            />
-          )}
+          <SideBar
+            folders={folders}
+            setFolders={setFolders}
+            setIsGetFolders={setIsGetFolders}
+            handleClickToFolder={handleOpenFolder}
+            selectedFolder={false}
+          />
         </Box>
       )}
 

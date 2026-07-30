@@ -151,7 +151,7 @@ function GenrePage() {
 
                             {/* Genre Info */}
                             <Box sx={{ color: "text.main", ...heroInfoSx }}>
-                                <Typography variant="h3" sx={heroTitleSx}>
+                                <Typography variant="heroTitle" sx={heroTitleSx}>
                                     {genre.name || 'Unknown Genre'}
                                 </Typography>
 

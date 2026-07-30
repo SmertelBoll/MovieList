@@ -250,6 +250,11 @@ function FoldersPage() {
                                         '&:hover': {
                                             transform: 'translateY(-3px)',
                                             bgcolor: 'yellow.main',
+                                            // На жовтому весь вміст картки темніє:
+                                            // і підписи, і іконка папки, і лічильник
+                                            color: 'yellow.contrastText',
+                                            '& .MuiTypography-root': { color: 'yellow.contrastText' },
+                                            '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
                                         },
                                     }),
                                 }}

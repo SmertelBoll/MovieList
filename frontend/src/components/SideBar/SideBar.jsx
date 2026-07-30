@@ -1,7 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import React, { useRef, useState } from 'react'
 import SecondaryButton from '../Buttons/SecondaryButton'
-import { useTheme } from '@emotion/react';
 import AddIcon from '@mui/icons-material/Add';
 import { alertConfirm, alertError } from '../../alerts';
 
@@ -24,7 +23,6 @@ function SideBar({
 }) {
     const isAuth = useSelector(selectIsAuth);
 
-    const theme = useTheme();
 
     const [isInputNewFolder, setIsInputNewFolder] = useState(false)     // чи активовано поле інпуту для створення нової папки (T/F)
     const [curFolderToRename, setCurFolderToRename] = useState(false);  // obj папки, якій міняємо назву
@@ -255,11 +253,10 @@ function SideBar({
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        backgroundColor:
-                                            selectedFolder && selectedFolder.order === folder.order
-                                                ? theme.palette.bg.selected
-                                                : 'inherit',
                                     }}
+                                    // Вибране на сайті завжди жовте з темним текстом,
+                                    // а не сіре. active обробляє SecondaryButton.
+                                    active={Boolean(selectedFolder && selectedFolder.order === folder.order)}
                                 >
                                     <Typography
                                         variant="desc1"

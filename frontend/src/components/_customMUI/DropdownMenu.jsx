@@ -146,14 +146,15 @@ function DropdownMenu({
                                     py: 1,
                                     px: 2,
                                     gap: 1,
+                                    // Жовтий фон -> темний текст; вибране + наведення -> темніший жовтий
                                     '&.Mui-selected': {
                                         bgcolor: 'yellow.main',
-                                        color: 'text.dark',
-                                        '&:hover': { bgcolor: 'yellow.dark', color: 'text.dark' },
+                                        color: 'yellow.contrastText',
+                                        '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' },
                                     },
                                     '&:hover': {
                                         bgcolor: 'yellow.main',
-                                        color: 'text.dark',
+                                        color: 'yellow.contrastText',
                                     },
                                 }}
                             >

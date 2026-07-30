@@ -95,26 +95,6 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                         key={categoryName}
                         value={categoryName}
                         onClick={() => handleMenuItemClick(categoryName)}
-                        sx={{
-                            '&:hover': {
-                                backgroundColor: "yellow.main",
-                            },
-                            '&.Mui-selected': {
-                                backgroundColor: "yellow.main",
-                                '&:hover': {
-                                    backgroundColor: "yellow.dark",
-                                },
-                            },
-                            '&.Mui-selected.Mui-focusVisible': {
-                                backgroundColor: "yellow.main",
-                            },
-                            '&.MuiMenuItem-root.Mui-selected': {
-                                backgroundColor: "yellow.main",
-                                '&:hover': {
-                                    backgroundColor: "yellow.dark",
-                                },
-                            },
-                        }}
                     >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <span>{categoryName}</span>

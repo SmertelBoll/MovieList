@@ -37,7 +37,9 @@ function FolderThumb({ folder, size = 24, loading = false }) {
                     }}
                 />
             ) : (
-                <FolderIcon sx={{ fontSize: size, color: 'text.main' }} />
+                // inherit — щоб на жовтому фоні (наведення / вибрана папка)
+                // іконка темніла разом з текстом кнопки
+                <FolderIcon sx={{ fontSize: size, color: 'inherit' }} />
             )}
         </Box>
     )

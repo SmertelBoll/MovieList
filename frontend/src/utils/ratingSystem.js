@@ -1,3 +1,5 @@
+import { CONTRAST_DARK, CONTRAST_LIGHT } from '../theme/palette';
+
 // Логіка власної системи оцінок користувача.
 // Рівні зберігаються як [{ name, abbr }] від найвищого (індекс 0) до найнижчого.
 // Значення рівня: value(i) = round((N - i) * 100 / N), тож верх = 100.
@@ -10,12 +12,12 @@ const normalizeLevel = (lvl) =>
 
 // Контрастний колір тексту (чорний/білий) для заданого фону hex
 export const getContrastText = (hex) => {
-    if (!hex || hex.length < 7) return '#000';
+    if (!hex || hex.length < 7) return CONTRAST_DARK;
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return lum > 0.6 ? '#000' : '#fff';
+    return lum > 0.6 ? CONTRAST_DARK : CONTRAST_LIGHT;
 };
 
 export const hasRatingSystem = (ratingSystem) => Array.isArray(ratingSystem) && ratingSystem.length >= 2;

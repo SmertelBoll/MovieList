@@ -16,4 +16,112 @@ export const getTheme = (mode) =>
     zIndex: {
       modal: 1000, // Знижуємо для Dialog
     },
+    components: {
+      // Загальне правило сайту: жовтий фон -> темний текст та іконки.
+      // Вибране + наведення -> темніший жовтий (щоб було видно різницю).
+      // Іконки MUI успадковують color, тож стрілки й галочки темніють самі.
+      // Чекбокс за замовчуванням фарбується в primary (жовтий) — на світлому
+      // тлі форми його не видно. Ведемо від text.main: темний у світлій темі,
+      // світлий у темній, тож контраст є завжди.
+      MuiCheckbox: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            color: theme.palette.text.second,
+            "&.Mui-checked": {
+              color: theme.palette.text.main,
+            },
+          }),
+        },
+      },
+      // Календар вибору дати. Без цього він малюється дефолтними стилями MUI:
+      // світла підкладка в темній темі й жовтий акцент зі світлим текстом.
+      MuiPickersPopper: {
+        styleOverrides: {
+          paper: ({ theme }) => ({
+            backgroundColor: theme.palette.bg.second,
+            backgroundImage: "none",
+            color: theme.palette.text.main,
+            border: "1px solid",
+            borderColor: theme.palette.bg.selected,
+          }),
+        },
+      },
+      MuiPickersDay: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            color: theme.palette.text.main,
+            "&:hover": {
+              backgroundColor: theme.palette.yellow.main,
+              color: theme.palette.yellow.contrastText,
+            },
+            "&.Mui-selected": {
+              backgroundColor: theme.palette.yellow.main,
+              color: theme.palette.yellow.contrastText,
+              "&:hover, &:focus": {
+                backgroundColor: theme.palette.yellow.dark,
+                color: theme.palette.yellow.contrastText,
+              },
+            },
+            "&.MuiPickersDay-today": {
+              borderColor: theme.palette.text.main,
+            },
+          }),
+        },
+      },
+      MuiPickersCalendarHeader: {
+        styleOverrides: {
+          root: ({ theme }) => ({ color: theme.palette.text.main }),
+          label: ({ theme }) => ({ color: theme.palette.text.main }),
+          switchViewButton: ({ theme }) => ({ color: theme.palette.text.main }),
+        },
+      },
+      MuiPickersArrowSwitcher: {
+        styleOverrides: {
+          button: ({ theme }) => ({ color: theme.palette.text.main }),
+        },
+      },
+      MuiDayCalendar: {
+        styleOverrides: {
+          weekDayLabel: ({ theme }) => ({ color: theme.palette.text.second }),
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            "&:hover": {
+              backgroundColor: theme.palette.yellow.main,
+              color: theme.palette.yellow.contrastText,
+            },
+            "&.Mui-selected": {
+              backgroundColor: theme.palette.yellow.main,
+              color: theme.palette.yellow.contrastText,
+              "&:hover": {
+                backgroundColor: theme.palette.yellow.dark,
+                color: theme.palette.yellow.contrastText,
+              },
+            },
+            "&.Mui-focusVisible, &.Mui-selected.Mui-focusVisible": {
+              backgroundColor: theme.palette.yellow.main,
+              color: theme.palette.yellow.contrastText,
+            },
+          }),
+        },
+      },
+      MuiTypography: {
+        defaultProps: {
+          // Кастомні варіанти без цієї мапи рендеряться як <span> —
+          // заголовки втратили б і семантику, і блокову поведінку
+          variantMapping: {
+            heroTitle: "h1",
+            sectionTitle: "h2",
+            heroSubtitle: "p",
+            cardTitle: "h3",
+            p: "p",
+            desc1: "p",
+            desc2: "p",
+            logo: "span",
+          },
+        },
+      },
+    },
   });

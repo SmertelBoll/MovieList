@@ -100,8 +100,8 @@ function ActorPage() {
                         ...heroSectionSx,
                         // Саме backgroundImage, а не background: скорочений запис скинув би
                         // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
-                        backgroundImage: [
-                            "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                        backgroundImage: (theme) => [
+                            `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
                             actor.profile_path && `url(${IMAGE_BASE_URL_ORIGINAL}${actor.profile_path})`,
                         ].filter(Boolean).join(", "),
                     }}>
@@ -119,13 +119,13 @@ function ActorPage() {
                             </Card>
 
                             {/* Actor Info */}
-                            <Box sx={{ color: "white", ...heroInfoSx }}>
-                                <Typography variant="h3" sx={heroTitleSx}>
+                            <Box sx={{ color: "overlay.onImage", ...heroInfoSx }}>
+                                <Typography variant="heroTitle" sx={heroTitleSx}>
                                     {actor.name}
                                 </Typography>
 
                                 {actor.birthday && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Born: {new Date(actor.birthday).toLocaleDateString(tmdbLanguage, {
                                             year: 'numeric',
                                             month: 'long',
@@ -135,13 +135,13 @@ function ActorPage() {
                                 )}
 
                                 {actor.place_of_birth && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         {actor.place_of_birth}
                                     </Typography>
                                 )}
 
                                 {actor.deathday && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Died: {new Date(actor.deathday).toLocaleDateString(tmdbLanguage, {
                                             year: 'numeric',
                                             month: 'long',
@@ -151,7 +151,7 @@ function ActorPage() {
                                 )}
 
                                 {actor.known_for_department && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Known for: {actor.known_for_department}
                                     </Typography>
                                 )}

@@ -432,7 +432,7 @@ function ProfilePage() {
                                 position: 'absolute',
                                 inset: 0,
                                 borderRadius: '50%',
-                                bgcolor: 'rgba(0,0,0,0.45)',
+                                bgcolor: 'overlay.scrim',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -467,9 +467,9 @@ function ProfilePage() {
                                 position: 'absolute',
                                 top: 0,
                                 right: 0,
-                                bgcolor: '#d33',
-                                color: '#fff',
-                                '&:hover': { bgcolor: '#b32020' },
+                                bgcolor: 'danger.main',
+                                color: 'danger.contrastText',
+                                '&:hover': { bgcolor: 'danger.dark' },
                             }}
                         >
                             <CloseIcon fontSize="small" />
@@ -516,7 +516,7 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Tags
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                         Your personal tags for movies and TV shows.
                     </Typography>
                 </Box>
@@ -567,7 +567,7 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Rating system
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                         Build your own rating scale instead of the default 1–100.
                     </Typography>
                 </Box>
@@ -581,7 +581,7 @@ function ProfilePage() {
                                     key={`${obj.name}_${i}`}
                                     sx={{
                                         display: 'flex', alignItems: 'center', gap: 1,
-                                        pl: '4px', pr: 2, py: '4px', borderRadius: 5, bgcolor: 'bg.main',
+                                        pl: 0.5, pr: 2, py: 0.5, borderRadius: 5, bgcolor: 'bg.main',
                                     }}
                                 >
                                     <Box
@@ -615,7 +615,7 @@ function ProfilePage() {
                     {userRatingSystem.length >= 2 && (
                         <MainButton
                             onClick={deleteRatingSystem}
-                            sx={{ m: 0, bgcolor: '#d33', color: '#fff', ':hover': { bgcolor: '#b32020' } }}
+                            sx={{ m: 0, bgcolor: 'danger.main', color: 'danger.contrastText', ':hover': { bgcolor: 'danger.dark' } }}
                         >
                             Delete custom system
                         </MainButton>
@@ -629,7 +629,7 @@ function ProfilePage() {
                     <Typography variant="h6" sx={sectionTitleSx}>
                         Login & security
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: '4px' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                         Manage the email and password you use to sign in.
                     </Typography>
                 </Box>
@@ -688,7 +688,7 @@ function ProfilePage() {
                 <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
                     Change email
                 </DialogTitle>
-                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: (theme) => `${theme.spacing(1)} !important` }}>
                     <LabeledInputBox
                         fullWidth
                         label="New email"
@@ -728,7 +728,7 @@ function ProfilePage() {
                 <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
                     Change password
                 </DialogTitle>
-                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: (theme) => `${theme.spacing(1)} !important` }}>
                     <LabeledInputBox
                         fullWidth
                         label="Current password"
@@ -781,7 +781,7 @@ function ProfilePage() {
                 <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', fontWeight: 700 }}>
                     Rating system
                 </DialogTitle>
-                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+                <DialogContent sx={{ bgcolor: 'bg.second', display: 'flex', flexDirection: 'column', gap: 2, pt: (theme) => `${theme.spacing(1)} !important` }}>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                         Each level maps to a score from 1 to 100 (top = 100). Drag to reorder. Between 2 and 100 levels. Pick a color and a 2-letter code — they're used on the TV ratings grid.
                     </Typography>

@@ -369,17 +369,17 @@ function ItemSaveDialog({
                             {/* Дата — зліва */}
                             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    {/* x-date-pickers v7: renderInput видалено. Через нього поле
+                                        лишалось нестилізованим і при фокусі бралo жовту обводку
+                                        з primary. Тепер поле підставляється через slots. */}
                                     <DatePicker
                                         label="Choose date"
                                         value={selectedDate}
                                         onChange={handleDateChange}
-                                        renderInput={(params) => (
-                                            <InputBox
-                                                {...params}
-                                                fullWidth
-                                                sx={{ width: '100%', mb: 0 }}
-                                            />
-                                        )}
+                                        slots={{ textField: InputBox }}
+                                        slotProps={{
+                                            textField: { fullWidth: true, sx: { width: '100%', mb: 0 } },
+                                        }}
                                     />
                                 </LocalizationProvider>
                             </Box>

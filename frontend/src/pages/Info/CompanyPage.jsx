@@ -113,8 +113,8 @@ function CompanyPage() {
                         ...heroSectionSx,
                         // Саме backgroundImage, а не background: скорочений запис скинув би
                         // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
-                        backgroundImage: [
-                            "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))",
+                        backgroundImage: (theme) => [
+                            `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
                             company.logo_path && `url(${IMAGE_BASE_URL_ORIGINAL}${company.logo_path})`,
                         ].filter(Boolean).join(", "),
                     }}>
@@ -122,7 +122,7 @@ function CompanyPage() {
                             {/* Company Logo */}
                             <Card sx={{
                                 ...heroLandscapeSx,
-                                backgroundColor: 'white',
+                                backgroundColor: 'overlay.onImage',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -153,7 +153,7 @@ function CompanyPage() {
                                     justifyContent: 'center',
                                     width: '100%',
                                     height: '100%',
-                                    backgroundColor: 'grey.100',
+                                    backgroundColor: 'bg.selected',
                                     borderRadius: 1
                                 }}>
                                     <Typography variant="h4" color="text.secondary" sx={{ fontWeight: 'bold' }}>
@@ -163,33 +163,33 @@ function CompanyPage() {
                             </Card>
 
                             {/* Company Info */}
-                            <Box sx={{ color: "white", ...heroInfoSx }}>
-                                <Typography variant="h3" sx={heroTitleSx}>
+                            <Box sx={{ color: "overlay.onImage", ...heroInfoSx }}>
+                                <Typography variant="heroTitle" sx={heroTitleSx}>
                                     {company.name || 'Unknown Company'}
                                 </Typography>
 
                                 {company.origin_country && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Country: {company.origin_country}
                                     </Typography>
                                 )}
                                 {company.headquarters && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Headquarters: {company.headquarters}
                                     </Typography>
                                 )}
                                 {company.parent_company && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         Parent: {company.parent_company.name}
                                     </Typography>
                                 )}
                                 {company.homepage && (
-                                    <Typography variant="h6" sx={heroSubtitleSx}>
+                                    <Typography variant="heroSubtitle">
                                         <a
                                             href={company.homepage}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ color: 'white', textDecoration: 'underline' }}
+                                            style={{ color: 'inherit', textDecoration: 'underline' }}
                                         >
                                             Official Website
                                         </a>

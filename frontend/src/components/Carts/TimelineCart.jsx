@@ -5,7 +5,6 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // w342 — щоб постер був чіткий на retina
 
 // Картка однієї частини колекції для блоку Timeline.
-// УВАГА: theme.spacing — масив, тож дробові відступи (p: 1.5) не працюють — тільки цілі або явні px.
 function TimelineCart({ part, isCurrent }) {
     const navigate = useNavigate()
 
@@ -89,8 +88,8 @@ function TimelineCart({ part, isCurrent }) {
                             position: 'absolute',
                             top: 6,
                             right: 6,
-                            px: '6px',
-                            py: '2px',
+                            px: 0.75,
+                            py: 0.25,
                             borderRadius: '6px',
                             fontSize: '0.62rem',
                             fontWeight: 700,

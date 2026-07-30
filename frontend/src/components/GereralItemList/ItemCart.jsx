@@ -178,14 +178,10 @@ function ItemCart({
                 "&:last-child": { pb: { xs: 1, sm: 2 } }
             }}>
                 {isTitle && <Typography
-                    variant="h6"
+                    variant="cardTitle"
                     component="div"
                     gutterBottom
-                    sx={{
-                        fontSize: { xs: "0.95rem", sm: "1.25rem" },
-                        lineHeight: 1.3,
-                        overflowWrap: "anywhere"
-                    }}
+                    sx={{ overflowWrap: "anywhere" }}
                 >
                     {mediaType === "movie" ? item.title : mediaType === "tv" ? item.name : "No title"}
                 </Typography>}

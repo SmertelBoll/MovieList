@@ -198,7 +198,7 @@ function LoginForm() {
           }}
         >
           <InfoOutlinedIcon />
-          <Typography sx={{ ml: "2px" }}>test account</Typography>
+          <Typography sx={{ ml: 0.25 }}>test account</Typography>
         </Button>
 
         <Dialog

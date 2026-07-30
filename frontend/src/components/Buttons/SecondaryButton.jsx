@@ -1,25 +1,32 @@
 import { Button } from "@mui/material";
 import React from "react";
 
-
-function SecondaryButton({ isThreePoints, ...props }) {
-  const { children, sx, active } = props;
-
+/**
+ * Другорядна кнопка (папки в сайдбарі, дії у списках).
+ *
+ * Правило сайту: жовтий фон -> темний текст та іконки.
+ * Вибране (active) — жовте; наведення на вибране — темніший жовтий,
+ * щоб було видно різницю між «вибрано» і «вибрано + курсор».
+ *
+ * active навмисно не потрапляє в ...rest: інакше React віддав би його
+ * у DOM як невідомий атрибут і попередив про це в консолі.
+ */
+function SecondaryButton({ isThreePoints, active = false, children, sx, ...rest }) {
   return (
     <Button
-      {...props}
+      {...rest}
       sx={{
-        backgroundColor: active ? "yellow.main" : "",
-        color: active ? "text.dark" : "text.main",
+        backgroundColor: active ? "yellow.main" : "transparent",
+        color: active ? "yellow.contrastText" : "text.main",
         px: 2,
-        paddingRight: isThreePoints ? "0px" : "Auto",
-        paddingY: isThreePoints ? "0px" : "Auto",
+        paddingRight: isThreePoints ? 0 : "Auto",
+        paddingY: isThreePoints ? 0 : "Auto",
         alignSelf: "center",
         borderRadius: 2,
 
         ":hover": {
-          backgroundColor: "yellow.main",
-          color: "text.dark",
+          backgroundColor: active ? "yellow.dark" : "yellow.main",
+          color: "yellow.contrastText",
         },
         ...sx,
       }}

@@ -37,7 +37,7 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                 // «рядок». Половинимо вертикальний проміжок, щоб сумарно вийшло 8px.
                 rowGap: { xs: '4px', sm: 1 },
                 px: 1,
-                py: '6px',
+                py: 0.75,
                 borderRadius: 2,
                 bgcolor: 'bg.main',
                 boxShadow: isDragging ? 4 : 0,
@@ -122,7 +122,7 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                 placeholder="AB"
                 inputProps={{ maxLength: 2, style: { textAlign: 'center', textTransform: 'uppercase' } }}
                 sx={{
-                    flexShrink: 0, width: 44, height: 32, px: '4px', borderRadius: 1,
+                    flexShrink: 0, width: 44, height: 32, px: 0.5, borderRadius: 1,
                     bgcolor: 'bg.second', color: 'text.main', fontWeight: 700,
                     order: { xs: 6, sm: 0 },
                 }}

@@ -1,4 +1,5 @@
 import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip, Menu, MenuItem } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -66,6 +67,8 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
 
 function TVPage({ isSaved = false }) {
     const { id } = useParams()
+    // Кольори теплової карти беруться з палітри, тож потрібен доступ до теми
+    const theme = useTheme()
     const isAuth = useSelector(selectIsAuth)
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
     const { language } = useSelector((state) => state.config)
@@ -382,18 +385,18 @@ function TVPage({ isSaved = false }) {
 
     // Функція для отримання кольору за оцінкою (шкала 0-10)
     const getRatingColor = (rating) => {
-        if (!rating || rating === 0) return "rgba(255,255,255,0.0)";
-        if (rating >= 9) return "#1b5e20"; // Awesome
-        if (rating >= 8) return "#4caf50"; // Great
-        if (rating >= 7) return "#fbc02d"; // Good
-        if (rating >= 6) return "#ff9800"; // Regular
-        if (rating >= 5) return "#f44336"; // Bad
-        return "#9c27b0"; // Garbage (< 5)
+        if (!rating || rating === 0) return theme.palette.rating.empty;
+        if (rating >= 9) return theme.palette.rating.awesome; // Awesome
+        if (rating >= 8) return theme.palette.rating.great; // Great
+        if (rating >= 7) return theme.palette.rating.good; // Good
+        if (rating >= 6) return theme.palette.rating.regular; // Regular
+        if (rating >= 5) return theme.palette.rating.bad; // Bad
+        return theme.palette.rating.garbage; // Garbage (< 5)
     };
     const getTextColor = (rating) => {
-        if (!rating || rating === 0) return "black";
-        if (rating >= 7.0 && rating < 8.0) return "black"; // Dark text for yellow
-        return "white";
+        if (!rating || rating === 0) return theme.palette.text.dark;
+        if (rating >= 7.0 && rating < 8.0) return theme.palette.text.dark; // Dark text for yellow
+        return theme.palette.text.white;
     };
 
     // Вигляд клітинки оцінки сезону (mongo). Прямокутник із "rating/100"
@@ -401,16 +404,16 @@ function TVPage({ isSaved = false }) {
         const season = findMongoSeason(sNum);
         const rating = season?.rating ? season.rating : null; // 0-100
         if (rating == null) {
-            return { bg: "#ffffff", text: "black", content: "-" };
+            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, content: "-" };
         }
         // Якщо оцінка збігається з рівнем системи — показуємо 2 букви та колір рівня
         const abbr = getRatingAbbr(rating, ratingSystem);
         const content = abbr || `${rating}`;
         const customColor = getRatingLevelColor(rating, ratingSystem);
         // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
-        const bg = useRatingSystem ? (customColor || "#ffffff") : getRatingColor(rating / 10);
+        const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating / 10);
         const text = useRatingSystem
-            ? (customColor ? getContrastText(customColor) : "black")
+            ? (customColor ? getContrastText(customColor) : theme.palette.text.dark)
             : getTextColor(rating / 10);
         return { bg, text, content };
     };
@@ -421,7 +424,7 @@ function TVPage({ isSaved = false }) {
     const getEpisodeCellState = (sNum, eNum) => {
         const exists = Boolean(seasonDetails[sNum]?.[eNum]);
         if (!exists) {
-            return { bg: "rgba(255,255,255,0.0)", text: "black", kind: "none", content: "", active: false };
+            return { bg: theme.palette.rating.empty, text: theme.palette.text.dark, kind: "none", content: "", active: false };
         }
 
         if (isSaved) {
@@ -433,7 +436,7 @@ function TVPage({ isSaved = false }) {
             const dateAdded = ep?.dateAdded ? String(ep.dateAdded).split('T')[0] : null;
 
             if (!isWatched) {
-                return { bg: "#ffffff", text: "black", kind: "empty", content: "", active: true, watched: null, dateAdded: null };
+                return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "empty", content: "", active: true, watched: null, dateAdded: null };
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
@@ -442,20 +445,20 @@ function TVPage({ isSaved = false }) {
                 const content = abbr || rating.toFixed(1);
                 const customColor = getRatingLevelColor(ep.rating, ratingSystem);
                 // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
-                const bg = useRatingSystem ? (customColor || "#ffffff") : getRatingColor(rating);
+                const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating);
                 const text = useRatingSystem
-                    ? (customColor ? getContrastText(customColor) : "black")
+                    ? (customColor ? getContrastText(customColor) : theme.palette.text.dark)
                     : getTextColor(rating);
                 return { bg, text, kind: "rating", content, active: true, watched, dateAdded };
             }
-            return { bg: "#ffffff", text: "black", kind: "checked", content: "", active: true, watched, dateAdded };
+            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "checked", content: "", active: true, watched, dateAdded };
         }
 
         // TMDB: оцінка -> число; без оцінки -> білий квадрат
         const episode = seasonDetails[sNum]?.[eNum];
         const rating = episode?.vote_average ? episode.vote_average : null;
         if (rating == null) {
-            return { bg: "#ffffff", text: "black", kind: "dash", content: "-", active: true };
+            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "dash", content: "-", active: true };
         }
         return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
     };
@@ -508,12 +511,12 @@ function TVPage({ isSaved = false }) {
         return (
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3, justifyContent: "center" }}>
                 {[
-                    { label: "90-100", color: "#1b5e20" },
-                    { label: "80-89", color: "#4caf50" },
-                    { label: "70-79", color: "#fbc02d" },
-                    { label: "60-69", color: "#ff9800" },
-                    { label: "50-59", color: "#f44336" },
-                    { label: "1-49", color: "#9c27b0" },
+                    { label: "90-100", color: theme.palette.rating.awesome },
+                    { label: "80-89", color: theme.palette.rating.great },
+                    { label: "70-79", color: theme.palette.rating.good },
+                    { label: "60-69", color: theme.palette.rating.regular },
+                    { label: "50-59", color: theme.palette.rating.bad },
+                    { label: "1-49", color: theme.palette.rating.garbage },
                 ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: "4px", backgroundColor: item.color }} />
@@ -598,8 +601,8 @@ function TVPage({ isSaved = false }) {
                                         <EpisodeCart
                                             unique_key={`${sNum}_watched`}
                                             width={60}
-                                            backgroundColor={"#ffffff"}
-                                            textColor={"black"}
+                                            backgroundColor={theme.palette.rating.cell}
+                                            textColor={theme.palette.text.dark}
                                             isHoverActive={true}
                                             onClick={onClick}
                                         >
@@ -704,7 +707,10 @@ function TVPage({ isSaved = false }) {
                 height: "400px",
                 borderRadius: 2,
                 overflow: "hidden",
-                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path})`,
+                backgroundImage: [
+                    `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
+                    serial.backdrop_path && `url(${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path})`,
+                ].filter(Boolean).join(", "),
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 display: "flex",
@@ -728,7 +734,7 @@ function TVPage({ isSaved = false }) {
                                             position: "absolute",
                                             right: 20,
                                             top: 20,
-                                            backgroundColor: "white",
+                                            backgroundColor: "text.white",
                                             opacity: 0.9,
                                             zIndex: 2,
                                             borderRadius: 2,
@@ -739,7 +745,7 @@ function TVPage({ isSaved = false }) {
                                             }
                                         }}
                                     >
-                                        <MoreVertIcon sx={{ opacity: 1, color: "text.main" }} />
+                                        <MoreVertIcon sx={{ opacity: 1, color: "text.dark" }} />
                                     </IconButton>
                                 )}
                             />
@@ -752,7 +758,7 @@ function TVPage({ isSaved = false }) {
                                     position: "absolute",
                                     right: 20,
                                     top: 20,
-                                    backgroundColor: "white",
+                                    backgroundColor: "text.white",
                                     opacity: 0.9,
                                     zIndex: 2,
                                     borderRadius: 2,
@@ -763,7 +769,7 @@ function TVPage({ isSaved = false }) {
                                     }
                                 }}
                             >
-                                <AddIcon sx={{ opacity: 1, color: "text.main" }} />
+                                <AddIcon sx={{ opacity: 1, color: "text.dark" }} />
                             </IconButton>
                         )
                 )}
@@ -807,7 +813,7 @@ function TVPage({ isSaved = false }) {
                     </Tooltip>
 
                     {/* Serial Info */}
-                    <Box sx={{ color: "white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box sx={{ color: "text.white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
                         {/* Title */}
                         <Typography variant="h3" sx={{ fontWeight: "bold" }}>
                             {serial.name}
@@ -823,8 +829,8 @@ function TVPage({ isSaved = false }) {
                                     onClick={() => navigate(`/genre/${genre.id}`)}
                                     sx={{
                                         cursor: 'pointer',
-                                        backgroundColor: "rgba(255,255,255,0.2)",
-                                        color: "white",
+                                        backgroundColor: "overlay.chip",
+                                        color: "text.white",
                                         transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                         '&.MuiChip-root:hover': {
                                             backgroundColor: 'yellow.main',
@@ -866,9 +872,9 @@ function TVPage({ isSaved = false }) {
                                             onClick={() => navigate(`/folders/${folder.name}?filter=${encodeURIComponent(serial.name)}`)}
                                             sx={{
                                                 cursor: 'pointer',
-                                                backgroundColor: "rgba(255,255,255,0.05)",
-                                                color: "white",
-                                                borderColor: "rgba(255,255,255,0.2)",
+                                                backgroundColor: "overlay.chipSubtle",
+                                                color: "text.white",
+                                                borderColor: "overlay.chip",
                                                 transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
                                                 '&.MuiChip-root:hover': {
                                                     backgroundColor: 'yellow.main',
@@ -944,18 +950,21 @@ function TVPage({ isSaved = false }) {
                         gap: 2,
                         overflowX: "auto",
                         pb: 2,
+                        // Такий самий вигляд, як у скролу сторінки (styles/index.css)
                         "&::-webkit-scrollbar": {
-                            height: 8,
+                            height: { xs: 10, sm: 14 },
                         },
                         "&::-webkit-scrollbar-track": {
-                            backgroundColor: "action.hover",
-                            borderRadius: 4,
+                            backgroundColor: "scrollbar.track",
+                            borderRadius: "100vw",
                         },
                         "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "text.secondary",
-                            borderRadius: 4,
+                            backgroundColor: "scrollbar.thumb",
+                            borderRadius: "100vw",
+                            border: "3px solid",
+                            borderColor: "scrollbar.track",
                             "&:hover": {
-                                backgroundColor: "text.primary",
+                                backgroundColor: "scrollbar.thumbHover",
                             },
                         },
                     }}>
@@ -981,18 +990,21 @@ function TVPage({ isSaved = false }) {
                         gap: 2,
                         overflowX: "auto",
                         pb: 2,
+                        // Такий самий вигляд, як у скролу сторінки (styles/index.css)
                         "&::-webkit-scrollbar": {
-                            height: 8,
+                            height: { xs: 10, sm: 14 },
                         },
                         "&::-webkit-scrollbar-track": {
-                            backgroundColor: "action.hover",
-                            borderRadius: 4,
+                            backgroundColor: "scrollbar.track",
+                            borderRadius: "100vw",
                         },
                         "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "text.secondary",
-                            borderRadius: 4,
+                            backgroundColor: "scrollbar.thumb",
+                            borderRadius: "100vw",
+                            border: "3px solid",
+                            borderColor: "scrollbar.track",
                             "&:hover": {
-                                backgroundColor: "text.primary",
+                                backgroundColor: "scrollbar.thumbHover",
                             },
                         },
                     }}>

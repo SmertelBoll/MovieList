@@ -44,6 +44,38 @@ const typography = {
     fontWeight: 400,
     textTransform: "unset",
   },
+  // Заголовок секції всередині сторінки (Cast, Crew, Timeline, My review...).
+  // Стандартний h5 (1.5rem) завеликий на вузьких екранах.
+  sectionTitle: {
+    fontSize: "1.25rem",
+    "@media (min-width:600px)": { fontSize: "1.5rem" },
+    fontWeight: 500,
+    textTransform: "unset",
+  },
+  // Назва сторінки в героєві (фільм, актор, компанія, жанр)
+  heroTitle: {
+    fontSize: "1.5rem",
+    "@media (min-width:600px)": { fontSize: "2.125rem" },
+    "@media (min-width:960px)": { fontSize: "3rem" },
+    fontWeight: 700,
+    lineHeight: 1.2,
+    textTransform: "unset",
+  },
+  // Рядок під назвою в героєві
+  heroSubtitle: {
+    fontSize: "0.95rem",
+    "@media (min-width:600px)": { fontSize: "1.25rem" },
+    fontWeight: 400,
+    textTransform: "unset",
+  },
+  // Назва в картці списку
+  cardTitle: {
+    fontSize: "0.95rem",
+    "@media (min-width:600px)": { fontSize: "1.25rem" },
+    fontWeight: 500,
+    lineHeight: 1.3,
+    textTransform: "unset",
+  },
   logo: {
     fontSize: smallFormula(24, 44),
     "@media (min-width:767px)": {

@@ -50,6 +50,7 @@ function ActorCart({ person, role }) {
             <Box sx={{ textAlign: "center", width: "100%" }}>
                 <Typography
                     variant="body2"
+                    color="text.main"
                     sx={{
                         fontWeight: "medium",
                         fontSize: "0.75rem",

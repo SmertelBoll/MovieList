@@ -47,7 +47,9 @@ function Search({ inputText, onChangeInput }) {
             slotProps={{
                 input: {
                     startAdornment: (
-                        <IconButton disabled>
+                        // disabled лише щоб лупа не була клікабельною; колір MUI за
+                        // замовчуванням робить сірим — повертаємо колір обводки
+                        <IconButton disabled sx={{ "&.Mui-disabled": { color: "text.main" } }}>
                             <SearchIcon />
                         </IconButton>
                     ),
