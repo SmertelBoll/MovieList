@@ -6,7 +6,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import instance from '../../axios';
-import { alertError, alertConfirm, alertSuccess, alertInput } from '../../alerts';
+import { alertError, alertConfirm, alertSuccess } from '../../alerts';
+import useTextPrompt from '../_customMUI/useTextPrompt';
 import SideBar from '../SideBar/SideBar';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
@@ -41,6 +42,8 @@ function ItemSaveDialog({
     setIsGetFolders,
 }) {
     const theme = useTheme();
+    // Введення тексту — власний діалог замість swal2-інпута
+    const [promptText, textPromptDialog] = useTextPrompt()
     // Поточна мова — зберігається разом з елементом, щоб було видно,
     // якою мовою записано tmdbTitle
     const { language } = useSelector((state) => state.config)
@@ -136,7 +139,12 @@ function ItemSaveDialog({
 
     // Додавання нового типу до списку користувача (зберігається в акаунті)
     const handleAddType = async () => {
-        const newType = await alertInput('New tag name', 'e.g. Anime, Documentary...');
+        const newType = await promptText({
+            title: 'New tag',
+            label: 'Tag name',
+            placeholder: 'e.g. Anime, Documentary...',
+            confirmLabel: 'Add',
+        });
         if (!newType) return;
 
         if (userTypes.includes(newType)) {
@@ -286,6 +294,7 @@ function ItemSaveDialog({
     };
 
     return (
+        <>
         <Dialog
             open={isOpenDialogAdd || isOpenDialogEdit}
             onClose={handleCloseDialog}
@@ -528,6 +537,10 @@ function ItemSaveDialog({
 
             </DialogContent>
         </Dialog >
+
+        {/* Діалог введення тексту (створення тегу) — рендериться поверх цього */}
+        {textPromptDialog}
+        </>
     );
 }
 

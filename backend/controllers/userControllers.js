@@ -6,6 +6,7 @@ dotenv.config();
 import UserModel from "../models/user.js";
 import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
+import FolderModel, { DEFAULT_FOLDERS } from "../models/folder.js";
 import { destroyImage } from "./imageControllers.js";
 
 const bcrypt_salt = process.env.BCRYPT_SALT;
@@ -32,6 +33,17 @@ export const registerUser = async (req, res) => {
     });
 
     const user = await doc.save();
+
+    // Стартові папки за статусами перегляду.
+    // Помилку тут не піднімаємо вище: користувача вже створено, а email унікальний —
+    // якби ми впали, обліковий запис лишився б, але зареєструватись повторно було б неможливо.
+    try {
+      await FolderModel.insertMany(
+        DEFAULT_FOLDERS.map((folder) => ({ ...folder, user: user._id }))
+      );
+    } catch (folderError) {
+      console.log("failed to create default folders:", folderError);
+    }
 
     const token = jwt.sign(
       {

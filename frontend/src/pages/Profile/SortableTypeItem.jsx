@@ -68,7 +68,7 @@ function SortableTypeItem({ type, onRename, onDelete }) {
             <IconButton
                 size="small"
                 onClick={onDelete}
-                sx={{ color: 'text.dark', '&:hover': { color: '#d33' } }}
+                sx={{ color: 'text.dark', '&:hover': { color: 'danger.main' } }}
             >
                 <CloseIcon fontSize="small" />
             </IconButton>

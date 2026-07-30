@@ -1,5 +1,5 @@
 import UserModel from "../models/user.js";
-import FolderModel from "../models/folder.js";
+import FolderModel, { FOLDER_STATUS_VALUES } from "../models/folder.js";
 import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
 import { destroyImage } from "./imageControllers.js";
@@ -12,7 +12,7 @@ export const getFoldersByUser = async (req, res) => {
 
     const foldersByUser = await FolderModel
       .find({ user: userId })
-      .select("name order image folderElements -_id")
+      .select("name order image status folderElements -_id")
       .exec();
 
     // Дістаємо customType усіх елементів користувача, щоб клієнт міг рахувати
@@ -37,6 +37,7 @@ export const getFoldersByUser = async (req, res) => {
         name: folder.name,
         order: folder.order,
         image: folder.image,
+        status: folder.status ?? null,
         movieCount: elements.filter(el => el.media_type === "movie").length,
         tvCount: elements.filter(el => el.media_type === "tv").length,
         elements,
@@ -118,6 +119,39 @@ export const renameFolder = async (req, res) => {
     });
   }
 }
+
+export const updateFolderStatus = async (req, res) => {
+  try {
+    const folderName = req.params.name;
+    const userId = req.userId;
+    // null дозволений — це «без статусу»
+    const status = req.body.status ?? null;
+
+    if (status !== null && !FOLDER_STATUS_VALUES.includes(status)) {
+      return res.status(400).json({
+        title: "Folders error",
+        message: `status must be one of: ${FOLDER_STATUS_VALUES.join(", ")}`
+      });
+    }
+
+    const currentFolder = await FolderModel.findOne({ name: folderName, user: userId });
+
+    if (!currentFolder) {
+      return res.status(404).json({ title: "Folder not found", message: "no folder found" });
+    }
+
+    currentFolder.status = status;
+    await currentFolder.save();
+
+    res.json({
+      success: true,
+      results: currentFolder
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Folders error", message: "failed to update folder status" });
+  }
+};
 
 export const updateFolderImage = async (req, res) => {
   try {

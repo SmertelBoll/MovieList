@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Box } from '@mui/material'
+import { Box, Chip } from '@mui/material'
 import { useSelector } from 'react-redux';
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList';
+import DropdownMenu from '../../components/_customMUI/DropdownMenu';
+import { getStatusLabel, getStatusChipSx } from '../../utils/folderStatus';
+import { buildStatusMenuItems } from '../../components/FolderStatusMenu';
 
 function FolderPage() {
     const { folderName } = useParams();
@@ -40,6 +43,40 @@ function FolderPage() {
         }
     }, [folders, folderName])
 
+    // Зміна статусу прямо з чіпа біля заголовка
+    const handleChangeStatus = (status) => {
+        instance
+            .patch(`/folders/status/${folderName}`, { status })
+            .then((res) => {
+                const updated = res.data.results
+                setCurFolder(prev => ({ ...prev, status: updated.status }))
+                setFolders(prev => prev.map(f => f.name === folderName ? { ...f, status: updated.status } : f))
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
+    const statusChip = (
+        <DropdownMenu
+            width={180}
+            // Спільний список — той самий, що й у меню «⋮»
+            items={buildStatusMenuItems({ status: curFolder?.status, onChange: handleChangeStatus })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            renderTrigger={({ onClick }) => (
+                <Chip
+                    size="small"
+                    label={getStatusLabel(curFolder?.status)}
+                    onClick={onClick}
+                    sx={{
+                        ...getStatusChipSx(curFolder?.status),
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.85 },
+                    }}
+                />
+            )}
+        />
+    )
+
     return (
         <Box sx={{ display: "flex", gap: 3, width: "100%" }}>
             <Box sx={{
@@ -59,6 +96,7 @@ function FolderPage() {
                     // Інформація сторінки
                     pageType="folder"
                     pageTitle={folderName}
+                    titleAdornment={statusChip}
                     isSearch={true}
                     isSort={true}
                     // Інше

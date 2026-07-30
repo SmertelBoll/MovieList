@@ -29,28 +29,9 @@ export const alertSuccess = (title) => {
   });
 };
 
-// Запитує у користувача текст. Повертає введене значення або null (якщо скасовано/порожньо)
-export const alertInput = async (title, placeholder = "", defaultValue = "") => {
-  const result = await Swal.fire({
-    ...defaultProp,
-    title: title,
-    input: "text",
-    inputPlaceholder: placeholder,
-    inputValue: defaultValue,
-    inputAttributes: { maxlength: 100 },
-    showConfirmButton: true,
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    inputValidator: (value) => {
-      if (!value || !value.trim()) {
-        return "Please enter a value";
-      }
-    },
-  });
-
-  return result.isConfirmed ? result.value.trim() : null;
-};
+// Введення тексту навмисно НЕ через swal2 — для цього є useTextPrompt
+// (components/_customMUI/useTextPrompt.jsx). Тут лишаються тільки повідомлення
+// та підтвердження.
 
 export const alertConfirm = (title, funcIfTrue) => {
   Swal.fire({

@@ -162,6 +162,16 @@ function SideBar({
             .catch((err) => { console.warn(err); alertError(err) })
     }
 
+    //-- STATUS -- //
+    const handleChangeStatus = (folder, status) => {
+        instance
+            .patch(`/folders/status/${folder.name}`, { status })
+            .then((res) => {
+                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, status: res.data.results.status } : f))
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
     //-- CHANGE ORDER -- //
     // Перемістити вверх по черзі
     const handleIncrementOrder = (folder) => {
@@ -266,6 +276,7 @@ function SideBar({
                                     </Typography>
                                     <UpdateFolder
                                         hasImage={Boolean(folder.image)}
+                                        status={folder.status}
                                         actionFunctions={{
                                             handleClickRename: () => handleClickRename(folder),
                                             handleClickAddImage: () => handleClickAddImage(folder),
@@ -273,6 +284,7 @@ function SideBar({
                                             handleClickDelete: () => handleClickDelete(folder),
                                             handleIncrementOrder: () => handleIncrementOrder(folder),
                                             handleDecrementOrder: () => handleDecrementOrder(folder),
+                                            handleChangeStatus: (status) => handleChangeStatus(folder, status),
                                         }}
                                     />
                                 </SecondaryButton>

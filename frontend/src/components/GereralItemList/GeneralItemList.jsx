@@ -72,6 +72,8 @@ function GeneralItemList({
     // Інше
     pageType = "NotFound",
     pageTitle = "Page don't have title",
+    // Довільний вузол праворуч від заголовка (напр. чіп статусу папки)
+    titleAdornment = null,
     isSearch = false,
     isSort = false,
     ...props
@@ -394,7 +396,10 @@ function GeneralItemList({
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
-            <Typography variant="p" color="text.main" >{pageTitle}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
+                <Typography variant="p" color="text.main">{pageTitle}</Typography>
+                {titleAdornment}
+            </Box>
 
             {isEmpty
                 ? <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ py: 4 }}>

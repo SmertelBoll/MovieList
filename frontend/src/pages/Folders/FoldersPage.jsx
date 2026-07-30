@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from '@mui/material'
+import { Box, Chip, CircularProgress, Typography } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -9,6 +9,7 @@ import { alertConfirm, alertError } from '../../alerts'
 import FolderIcon from '@mui/icons-material/Folder'
 import UpdateFolder from '../../components/SideBar/UpdateFolder'
 import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
+import { getStatusLabel, getStatusChipSx } from '../../utils/folderStatus'
 
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
@@ -142,6 +143,15 @@ function FoldersPage() {
     }
 
     // -- ORDER: оновлюємо локально, без рефетчу (без моргання) --
+    const handleChangeStatus = (folder, status) => {
+        instance
+            .patch(`/folders/status/${folder.name}`, { status })
+            .then((res) => {
+                setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, status: res.data.results.status } : f))
+            })
+            .catch((err) => { console.warn(err); alertError(err) })
+    }
+
     const handleIncrementOrder = (folder) => {
         instance
             .patch(`/folders/orderIncrement/${folder.name}`)
@@ -301,6 +311,12 @@ function FoldersPage() {
                                             >
                                                 {folder.name}
                                             </Typography>
+                                            {/* Тут статус тільки показуємо — міняється через меню ⋮ */}
+                                            <Chip
+                                                size="small"
+                                                label={getStatusLabel(folder.status)}
+                                                sx={{ ...getStatusChipSx(folder.status), height: 22, maxWidth: '100%' }}
+                                            />
                                             <Typography variant="caption" color="text.secondary">
                                                 {count} {count === 1 ? 'item' : 'items'}
                                             </Typography>
@@ -315,6 +331,7 @@ function FoldersPage() {
                                 >
                                     <UpdateFolder
                                         hasImage={Boolean(folder.image)}
+                                        status={folder.status}
                                         actionFunctions={{
                                             handleClickRename: () => handleClickRename(folder),
                                             handleClickAddImage: () => handleClickAddImage(folder),
@@ -322,6 +339,7 @@ function FoldersPage() {
                                             handleClickDelete: () => handleClickDelete(folder),
                                             handleIncrementOrder: () => handleIncrementOrder(folder),
                                             handleDecrementOrder: () => handleDecrementOrder(folder),
+                                            handleChangeStatus: (status) => handleChangeStatus(folder, status),
                                         }}
                                     />
                                 </Box>

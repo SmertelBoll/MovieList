@@ -26,7 +26,7 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
-import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, updateFolderImage } from "./controllers/folderControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode } from "./controllers/tvControllers.js";
 
@@ -117,6 +117,7 @@ app.get("/folders", checkAuth, getFoldersByUser);
 app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);
 app.patch("/folders/:oldName", checkAuth, folderCreateValidation, checkValidationError, renameFolder);
 app.patch("/folders/image/:name", checkAuth, updateFolderImage);
+app.patch("/folders/status/:name", checkAuth, updateFolderStatus);
 app.patch("/folders/orderIncrement/:name", checkAuth, orderIncrement);
 app.patch("/folders/orderDecrement/:name", checkAuth, orderDecrement);
 app.delete("/folders/:name", checkAuth, removeFolder);

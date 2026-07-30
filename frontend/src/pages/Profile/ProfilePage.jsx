@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import instance from '../../axios'
-import { alertError, alertSuccess, alertConfirm, alertInput } from '../../alerts'
+import { alertError, alertSuccess, alertConfirm } from '../../alerts'
+import useTextPrompt from '../../components/_customMUI/useTextPrompt'
 import { selectIsAuth, setUserTypeCustom, updateUserData } from '../../redux/slices/AuthSlice'
 import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
@@ -26,6 +27,8 @@ const fileToBase = (file) =>
 
 function ProfilePage() {
     const theme = useTheme()
+    // Введення тексту — власний діалог замість swal2-інпута
+    const [promptText, textPromptDialog] = useTextPrompt()
     // Конструктор рівнів оцінювання не влазить у вузьке вікно діалогу
     const isFullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'))
     const dispatch = useDispatch()
@@ -267,7 +270,12 @@ function ProfilePage() {
     }
 
     const handleRenameType = async (oldName) => {
-        const newName = await alertInput('Rename tag', 'New tag name', oldName)
+        const newName = await promptText({
+            title: 'Rename tag',
+            label: 'Tag name',
+            initialValue: oldName,
+            confirmLabel: 'Rename',
+        })
         if (!newName || newName === oldName) return
 
         try {
@@ -822,6 +830,9 @@ function ProfilePage() {
                     </MainButton>
                 </DialogActions>
             </Dialog>
+
+            {/* Діалог введення тексту (перейменування тегу) */}
+            {textPromptDialog}
         </Box>
     )
 }

@@ -1,10 +1,36 @@
 import mongoose from "mongoose";
 
+// Статуси перегляду. Значення — короткі машинні ключі, назви папок
+// для показу лежать окремо в DEFAULT_FOLDERS нижче.
+export const FOLDER_STATUSES = {
+    PLANNED: "planned",
+    WATCHING: "watching",
+    WATCHED: "watched",
+    DROPPED: "dropped",
+};
+
+export const FOLDER_STATUS_VALUES = Object.values(FOLDER_STATUSES);
+
+// Папки, які створюються автоматично при реєстрації.
+export const DEFAULT_FOLDERS = [
+    { name: "Planned", status: FOLDER_STATUSES.PLANNED, order: 0 },
+    { name: "Watching", status: FOLDER_STATUSES.WATCHING, order: 1 },
+    { name: "Watched", status: FOLDER_STATUSES.WATCHED, order: 2 },
+    { name: "Dropped", status: FOLDER_STATUSES.DROPPED, order: 3 },
+];
+
 const FolderSchema = new mongoose.Schema(
     {
         name: {
             type: String, // Назва папки
             required: true, // Обов'язкове поле
+        },
+        // Статус перегляду. У папок, створених користувачем вручну, його немає —
+        // тому null дозволений і стоїть за замовчуванням.
+        status: {
+            type: String,
+            enum: [...FOLDER_STATUS_VALUES, null],
+            default: null,
         },
         order: {
             type: Number,

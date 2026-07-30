@@ -61,7 +61,7 @@ function TimelineCart({ part, isCurrent }) {
                     sx={{
                         position: 'absolute',
                         inset: 0,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 45%)',
+                        background: (theme) => `linear-gradient(to top, ${theme.palette.overlay.strong} 0%, ${theme.palette.overlay.none} 45%)`,
                         pointerEvents: 'none',
                     }}
                 />
@@ -72,11 +72,11 @@ function TimelineCart({ part, isCurrent }) {
                         position: 'absolute',
                         left: 8,
                         bottom: 6,
-                        color: '#fff',
+                        color: 'overlay.onImage',
                         fontWeight: 700,
                         fontSize: '0.8rem',
                         letterSpacing: '0.5px',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+                        textShadow: (theme) => `0 1px 3px ${theme.palette.overlay.soft}`,
                     }}
                 >
                     {year || 'TBA'}
@@ -96,8 +96,8 @@ function TimelineCart({ part, isCurrent }) {
                             fontWeight: 700,
                             textTransform: 'uppercase',
                             letterSpacing: '0.5px',
-                            bgcolor: isCurrent ? 'yellow.main' : 'rgba(0,0,0,0.75)',
-                            color: isCurrent ? 'text.dark' : '#fff',
+                            bgcolor: isCurrent ? 'yellow.main' : 'overlay.medium',
+                            color: isCurrent ? 'text.dark' : 'overlay.onImage',
                         }}
                     >
                         {isCurrent ? 'Now' : 'Soon'}
