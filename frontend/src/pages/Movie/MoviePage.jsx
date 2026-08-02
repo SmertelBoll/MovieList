@@ -7,6 +7,7 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { formatRatingLabel } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
+import { cleanCollectionName } from '../../utils/tmdb'
 import { alertError } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -239,8 +240,8 @@ function MoviePage({ isSaved = false }) {
         setOverviewExpanded(false)
     }, [movie?.tmdbId])
 
-    // TMDB називає колекції "<Франшиза> Collection" — прибираємо хвіст, щоб не дублювати слово
-    const franchiseName = (collection?.name || '').replace(/\s*collection\s*$/i, '')
+    // Суфікс у назві колекції локалізований, тож чистимо спільним хелпером
+    const franchiseName = cleanCollectionName(collection?.name)
 
     // Функції для роботи з діалогом
     const handleOpenDialogAdd = () => {
@@ -411,7 +412,7 @@ function MoviePage({ isSaved = false }) {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
                                     "&:hover": {
-                                        transform: "translateY(-4px)",
+                                        transform: (theme) => theme.hoverLift,
                                         boxShadow: 6
                                     }
                                 })

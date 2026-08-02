@@ -248,7 +248,7 @@ function FoldersPage() {
                                     transition: 'background-color 0.15s, transform 0.15s',
                                     ...(!isRenaming && {
                                         '&:hover': {
-                                            transform: 'translateY(-3px)',
+                                            transform: (theme) => theme.hoverLift,
                                             bgcolor: 'yellow.main',
                                             // На жовтому весь вміст картки темніє:
                                             // і підписи, і іконка папки, і лічильник

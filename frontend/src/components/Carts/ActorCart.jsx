@@ -30,7 +30,7 @@ function ActorCart({ person, role }) {
             cursor: "pointer",
             transition: "transform 0.2s ease-in-out",
             "&:hover": {
-                transform: "translateY(-2px)"
+                transform: (theme) => theme.hoverLift
             }
         }}
             onClick={handleClick}

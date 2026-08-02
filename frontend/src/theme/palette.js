@@ -54,7 +54,9 @@ const SHARED = {
     chip: "rgba(255,255,255,0.2)",
     chipSubtle: "rgba(255,255,255,0.05)",
   },
-  // Шкала оцінок у тепловій карті епізодів
+  // Шкала оцінок у тепловій карті епізодів. Самі кольори шкали однакові
+  // в обох темах, а от нейтральна клітинка (cell/cellText) — ні: у темній
+  // темі сітка з білих квадратів сліпить, тож вона задається окремо нижче.
   rating: {
     awesome: "#1b5e20",
     great: "#4caf50",
@@ -63,7 +65,6 @@ const SHARED = {
     bad: "#f44336",
     garbage: "#9c27b0",
     empty: "rgba(255,255,255,0)",
-    cell: "#ffffff",
   },
   danger: {
     main: "#dd3333",
@@ -93,6 +94,8 @@ const palette = (mode) => {
         dark: CONTRAST_DARK,
         white: CONTRAST_LIGHT,
       },
+      // Нейтральна клітинка теплової карти (без оцінки / чекбокс)
+      rating: { ...SHARED.rating, cell: "#ffffff", cellText: CONTRAST_DARK },
     };
 
   return {
@@ -110,7 +113,8 @@ const palette = (mode) => {
       dark: CONTRAST_DARK,
       white: CONTRAST_LIGHT,
     },
-    // У темній темі повзунок світлий — інакше зливається з фоном
+    // Темна клітинка зі світлим значком — інакше сітка світиться білим
+    rating: { ...SHARED.rating, cell: "#1f1f1f", cellText: CONTRAST_LIGHT },
   };
 };
 

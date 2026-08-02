@@ -6,6 +6,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { formatRatingLabel } from '../../utils/ratingSystem';
+import { formatDateOnly } from '../../utils/dates';
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // базовий URL для отримання зображень
@@ -83,7 +84,7 @@ function ItemCart({
                 cursor: "pointer",
                 transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
                 "&:hover": {
-                    transform: "translateY(-4px)",
+                    transform: (theme) => theme.hoverLift,
                     boxShadow: 4
                 }
             }}
@@ -211,7 +212,8 @@ function ItemCart({
                     {
                         {
                             tmdb: mediaType === "movie" ? item.release_date : mediaType === "tv" ? item.first_air_date : "No date",
-                            mongo: item.dateAdded?.split('T')[0] || item.dateAdded
+                            // Дата не обов'язкова — без неї показуємо прочерк
+                            mongo: formatDateOnly(item.dateAdded) || "—"
                         }[dbType] || "Error dbType"
                     }
                 </Typography>}
@@ -225,7 +227,11 @@ function ItemCart({
                                 mongo: item.rating / 20
                             }[dbType] || 0
                         }
-                        precision={0.1}
+                        // precision 0.1 змушує MUI малювати по 10 сегментів на зірку —
+                        // 50 SVG на картку, ~94% її DOM. У списках це сотні карток,
+                        // через що перемикання теми перемальовувало десятки тисяч вузлів.
+                        // Точне значення однаково показане цифрою поруч.
+                        precision={0.5}
                         readOnly
                         size="small"
                         // Зірочки на вузькій картці не влазять — лишається саме значення оцінки

@@ -21,8 +21,10 @@ function TypeTMDBSelector() {
     const theme = useTheme();
     const location = useLocation();
 
-    // Кастомні типи доступні на сторінках папок (дані з mongo): /folders та /folders/<name>
-    const isFolderPage = location.pathname.startsWith('/folders');
+    // Кастомні типи доступні там, де дані беруться з mongo:
+    // сторінки папок і сторінка нових релізів
+    const isFolderPage = location.pathname.startsWith('/folders')
+        || location.pathname.startsWith('/updates');
 
     // Залишаючи сторінки папок, скидаємо фільтр кастомних типів,
     // щоб при поверненні був активний обраний tmdbType

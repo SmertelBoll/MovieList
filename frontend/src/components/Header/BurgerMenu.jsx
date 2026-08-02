@@ -16,6 +16,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import PersonIcon from "@mui/icons-material/Person";
 import CommentOutlinedIcon from "@mui/icons-material/CommentOutlined";
 import FolderIcon from "@mui/icons-material/Folder";
+import NewReleasesIcon from "@mui/icons-material/NewReleases";
 
 
 
@@ -28,6 +29,7 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
     { title: "Home", link: "/", auth: -1, icon: <HomeIcon />, func: null },
     { title: "Profile", link: "/profile", auth: -1, icon: <PersonIcon />, func: null },
     { title: "Folders", link: "/folders", auth: true, icon: <FolderIcon />, func: null },
+    { title: "New releases", link: "/updates", auth: true, icon: <NewReleasesIcon />, func: null },
     { title: "Log in", link: "/login", auth: false, icon: <LoginIcon />, func: null },
     { title: "Sign up", link: "/register", auth: false, icon: <PersonAddIcon />, func: null },
     { title: "Log out", link: "", auth: true, icon: <LogoutIcon />, func: onClickLogout },

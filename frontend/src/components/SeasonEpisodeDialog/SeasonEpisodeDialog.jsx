@@ -8,6 +8,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem } from '../../utils/ratingSystem';
+import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
@@ -16,6 +17,9 @@ function SeasonEpisodeDialog({
     mode = "season", // "season" | "episode"
     title = "",
     initial = {},
+    // Запису ще немає в базі — тоді дату підставляємо сьогоднішню.
+    // Для наявного запису порожня дата означає, що її навмисно видалили.
+    isNew = false,
     onClose,
     onSave,
 }) {
@@ -36,7 +40,7 @@ function SeasonEpisodeDialog({
     const ratingLevels = getRatingLevels(ratingSystem);
 
     const [rating, setRating] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(null);
     const [text, setText] = useState("");
     const [watchedCount, setWatchedCount] = useState(1);
 
@@ -44,8 +48,7 @@ function SeasonEpisodeDialog({
     useEffect(() => {
         if (!open) return;
         setRating(initial.rating ?? null);
-        // Не прибираємо 'Z' — інакше дата зсувається на зміщення часового поясу
-        setSelectedDate(initial.dateAdded ? new Date(String(initial.dateAdded)) : new Date());
+        setSelectedDate(parseDateOnly(initial.dateAdded) || (isNew ? new Date() : null));
         setText(initial.comment ?? "");
         setWatchedCount(initial.watchedCount ?? 1);
     }, [open]);
@@ -71,7 +74,7 @@ function SeasonEpisodeDialog({
         onSave({
             rating,
             comment: text,
-            dateAdded: selectedDate,
+            dateAdded: toDateOnlyISO(selectedDate),
             ...(mode === "episode" ? { watchedCount } : {})
         });
     };
@@ -174,13 +177,19 @@ function SeasonEpisodeDialog({
                         />
                     )}
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        {/* x-date-pickers v7: renderInput видалено. Через нього поле
+                            лишалось нестилізованим і при фокусі брало жовту обводку
+                            з primary. Поле підставляється через slots. */}
                         <DatePicker
                             label="Choose date"
                             value={selectedDate}
                             onChange={(newDate) => setSelectedDate(newDate)}
-                            renderInput={(params) => (
-                                <InputBox {...params} sx={{ mb: 0 }} />
-                            )}
+                            slots={{ textField: InputBoxRegular }}
+                            slotProps={{
+                                textField: { fullWidth: true, sx: { mb: 0 } },
+                                // Хрестик очищення — серію можна зберегти без дати
+                                field: { clearable: true },
+                            }}
                         />
                     </LocalizationProvider>
                 </Box>

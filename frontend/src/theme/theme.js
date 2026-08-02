@@ -13,6 +13,10 @@ export const getTheme = (mode) =>
       ...createTheme({}).shadows.map((shadow, i) => (i === 0 ? "4px 4px 24px rgba(0, 0, 0, 0.25)" : shadow)),
     ],
     breakpoints,
+    // Наскільки картка піднімається при наведенні. Одне значення на весь сайт —
+    // до цього по коду було розкидано -2px, -3px і -4px. Береться зі шкали
+    // відступів, тож без хардкоду: spacing(1) = 8px.
+    hoverLift: `translateY(-${spacing(1)})`,
     zIndex: {
       modal: 1000, // Знижуємо для Dialog
     },

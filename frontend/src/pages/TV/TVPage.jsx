@@ -7,6 +7,7 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
+import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
 import { alertError, alertSuccess } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -28,8 +29,8 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 // Важливо: onClick має бути стабільним (useCallback), а content/kind — примітивами.
 const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, content, active, onClick, watched, dateAdded }) {
     let node = content
-    if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "text.dark" }} />
-    else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "text.dark" }} />
+    if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
+    else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
 
     const cart = (
         <EpisodeCart
@@ -255,6 +256,7 @@ function TVPage({ isSaved = false }) {
     const [ratingMode, setRatingMode] = useState("season")
     const [ratingTarget, setRatingTarget] = useState({ season: null, episode: null })
     const [ratingInitial, setRatingInitial] = useState({})
+    const [ratingIsNew, setRatingIsNew] = useState(false)
 
     const findMongoSeason = (sNum) => serial?.seasons?.find(s => s.season === Number(sNum))
     const findMongoEpisode = (sNum, eNum) => findMongoSeason(sNum)?.episodes?.find(e => e.episode === Number(eNum))
@@ -283,6 +285,8 @@ function TVPage({ isSaved = false }) {
         const s = findMongoSeason(sNum)
         setRatingMode("season")
         setRatingTarget({ season: Number(sNum), episode: null })
+        // Нового сезону в базі ще немає -> діалог підставить сьогоднішню дату
+        setRatingIsNew(!s)
         setRatingInitial({ rating: s?.rating, comment: s?.comment, dateAdded: s?.dateAdded })
         setRatingDialogOpen(true)
     }
@@ -290,6 +294,7 @@ function TVPage({ isSaved = false }) {
         const ep = findMongoEpisode(sNum, eNum)
         setRatingMode("episode")
         setRatingTarget({ season: Number(sNum), episode: Number(eNum) })
+        setRatingIsNew(!ep)
         setRatingInitial({ rating: ep?.rating, comment: ep?.comment, dateAdded: ep?.dateAdded, watchedCount: ep?.watchedCount })
         setRatingDialogOpen(true)
     }
@@ -367,7 +372,7 @@ function TVPage({ isSaved = false }) {
             instance
                 .patch(`/tv/${current._id}/season/${sNum}/episode/${eNum}`, {
                     watchedCount: 1,
-                    dateAdded: new Date(),
+                    dateAdded: toDateOnlyISO(new Date()),
                     rating: ep?.rating ?? null,
                     comment: ep?.comment ?? ""
                 })
@@ -394,7 +399,7 @@ function TVPage({ isSaved = false }) {
         return theme.palette.rating.garbage; // Garbage (< 5)
     };
     const getTextColor = (rating) => {
-        if (!rating || rating === 0) return theme.palette.text.dark;
+        if (!rating || rating === 0) return theme.palette.text.main;
         if (rating >= 7.0 && rating < 8.0) return theme.palette.text.dark; // Dark text for yellow
         return theme.palette.text.white;
     };
@@ -404,7 +409,7 @@ function TVPage({ isSaved = false }) {
         const season = findMongoSeason(sNum);
         const rating = season?.rating ? season.rating : null; // 0-100
         if (rating == null) {
-            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, content: "-" };
+            return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, content: "-" };
         }
         // Якщо оцінка збігається з рівнем системи — показуємо 2 букви та колір рівня
         const abbr = getRatingAbbr(rating, ratingSystem);
@@ -413,7 +418,7 @@ function TVPage({ isSaved = false }) {
         // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
         const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating / 10);
         const text = useRatingSystem
-            ? (customColor ? getContrastText(customColor) : theme.palette.text.dark)
+            ? (customColor ? getContrastText(customColor) : theme.palette.rating.cellText)
             : getTextColor(rating / 10);
         return { bg, text, content };
     };
@@ -424,7 +429,7 @@ function TVPage({ isSaved = false }) {
     const getEpisodeCellState = (sNum, eNum) => {
         const exists = Boolean(seasonDetails[sNum]?.[eNum]);
         if (!exists) {
-            return { bg: theme.palette.rating.empty, text: theme.palette.text.dark, kind: "none", content: "", active: false };
+            return { bg: theme.palette.rating.empty, text: theme.palette.text.main, kind: "none", content: "", active: false };
         }
 
         if (isSaved) {
@@ -433,10 +438,10 @@ function TVPage({ isSaved = false }) {
             const ep = mongoEpisodeMap[`${sNum}_${eNum}`];
             const isWatched = (ep?.watchedCount ?? 0) > 0;
             const watched = isWatched ? ep.watchedCount : null;
-            const dateAdded = ep?.dateAdded ? String(ep.dateAdded).split('T')[0] : null;
+            const dateAdded = ep?.dateAdded ? formatDateOnly(ep.dateAdded) : null;
 
             if (!isWatched) {
-                return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "empty", content: "", active: true, watched: null, dateAdded: null };
+                return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "empty", content: "", active: true, watched: null, dateAdded: null };
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
@@ -447,18 +452,18 @@ function TVPage({ isSaved = false }) {
                 // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
                 const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating);
                 const text = useRatingSystem
-                    ? (customColor ? getContrastText(customColor) : theme.palette.text.dark)
+                    ? (customColor ? getContrastText(customColor) : theme.palette.rating.cellText)
                     : getTextColor(rating);
                 return { bg, text, kind: "rating", content, active: true, watched, dateAdded };
             }
-            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "checked", content: "", active: true, watched, dateAdded };
+            return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "checked", content: "", active: true, watched, dateAdded };
         }
 
         // TMDB: оцінка -> число; без оцінки -> білий квадрат
         const episode = seasonDetails[sNum]?.[eNum];
         const rating = episode?.vote_average ? episode.vote_average : null;
         if (rating == null) {
-            return { bg: theme.palette.rating.cell, text: theme.palette.text.dark, kind: "dash", content: "-", active: true };
+            return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "dash", content: "-", active: true };
         }
         return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
     };
@@ -520,7 +525,7 @@ function TVPage({ isSaved = false }) {
                 ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Box sx={{ width: 16, height: 16, borderRadius: "4px", backgroundColor: item.color }} />
-                        <Typography variant="caption" sx={{ fontWeight: "bold", opacity: 0.8 }}>{item.label}</Typography>
+                        <Typography variant="caption" color="text.main" sx={{ fontWeight: "bold", opacity: 0.8 }}>{item.label}</Typography>
                     </Box>
                 ))}
             </Box>
@@ -536,7 +541,7 @@ function TVPage({ isSaved = false }) {
                 <EpisodeCart
                     unique_key={'A1'}
                     backgroundColor={getRatingColor()}
-                    textColor={getTextColor()}
+                    textColor={theme.palette.text.main}
                     isHoverActive={false}
                 />
                 {isSaved && (
@@ -544,7 +549,7 @@ function TVPage({ isSaved = false }) {
                         unique_key={'A_watched'}
                         width={60}
                         backgroundColor={getRatingColor()}
-                        textColor={getTextColor()}
+                        textColor={theme.palette.text.main}
                         isHoverActive={false}
                     >
                         Seen
@@ -555,7 +560,7 @@ function TVPage({ isSaved = false }) {
                         unique_key={'A_season'}
                         width={80}
                         backgroundColor={getRatingColor()}
-                        textColor={getTextColor()}
+                        textColor={theme.palette.text.main}
                         isHoverActive={false}
                     >
                         Rate
@@ -566,7 +571,7 @@ function TVPage({ isSaved = false }) {
                         <EpisodeCart
                             unique_key={i}
                             backgroundColor={getRatingColor()}
-                            textColor={getTextColor()}
+                            textColor={theme.palette.text.main}
                             isHoverActive={false}
                         >
                             E{i + 1}
@@ -583,7 +588,7 @@ function TVPage({ isSaved = false }) {
                         <EpisodeCart
                             unique_key={sNum}
                             backgroundColor={getRatingColor()}
-                            textColor={getTextColor()}
+                            textColor={theme.palette.text.main}
                             isHoverActive={isSaved}
                             onClick={isSaved ? () => openSeasonDialog(sNum) : undefined}
                         >
@@ -602,7 +607,7 @@ function TVPage({ isSaved = false }) {
                                             unique_key={`${sNum}_watched`}
                                             width={60}
                                             backgroundColor={theme.palette.rating.cell}
-                                            textColor={theme.palette.text.dark}
+                                            textColor={theme.palette.rating.cellText}
                                             isHoverActive={true}
                                             onClick={onClick}
                                         >
@@ -678,8 +683,12 @@ function TVPage({ isSaved = false }) {
                 );
             })}
         </Box>
+        // theme обов'язково в залежностях: кольори клітинок беруться з палітри
+        // ЗНАЧЕННЯМИ (не через sx-шляхи), тож без нього після зміни теми сітка
+        // лишалася зі старими кольорами — білі клітинки в темній темі.
+        // theme стабільний (useMemo від mode в App.js), тож мемоїзація не ламається.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets, ratingSystem]);
+    ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets, ratingSystem, theme]);
 
     if (isLoading) {
         return (
@@ -795,7 +804,7 @@ function TVPage({ isSaved = false }) {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
                                     "&:hover": {
-                                        transform: "translateY(-4px)",
+                                        transform: (theme) => theme.hoverLift,
                                         boxShadow: 6
                                     }
                                 })
@@ -931,7 +940,7 @@ function TVPage({ isSaved = false }) {
 
             {/* Ratings Heatmap Section */}
             <Box>
-                <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
+                <Typography variant="h4" color="text.main" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
 
                 <Box sx={{ overflowX: "auto", pb: 2, px: 1 }}>
                     <Legend />
@@ -942,7 +951,7 @@ function TVPage({ isSaved = false }) {
             {/* Top Cast Section */}
             {serial.credits?.cast && serial.credits.cast.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
+                    <Typography variant="h5" color="text.main" sx={{ mb: 2 }}>
                         Top Cast
                     </Typography>
                     <Box sx={{
@@ -982,7 +991,7 @@ function TVPage({ isSaved = false }) {
             {/* Top Crew Section */}
             {serial.credits.crew && serial.credits.crew.length > 0 && (
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
+                    <Typography variant="h5" color="text.main" sx={{ mb: 2 }}>
                         Top Crew
                     </Typography>
                     <Box sx={{
@@ -1045,6 +1054,7 @@ function TVPage({ isSaved = false }) {
                     ? `S${ratingTarget.season} · E${ratingTarget.episode}`
                     : `Season ${ratingTarget.season}`}
                 initial={ratingInitial}
+                isNew={ratingIsNew}
                 onClose={() => setRatingDialogOpen(false)}
                 onSave={handleSaveRating}
             />

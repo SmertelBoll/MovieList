@@ -23,13 +23,20 @@ function TimelineCart({ part, isCurrent }) {
                 flexDirection: 'column',
                 gap: 1,
                 cursor: isCurrent ? 'default' : 'pointer',
-                // Піднімаємо картку цілком (разом з назвою) — як у Cast / Crew
+                // Піднімаємо картку цілком (разом з назвою). Висота підйому й
+                // підсилення тіні — як у карток фільмів у списках
                 transition: 'transform 0.2s ease-in-out',
-                ...(isCurrent ? {} : { '&:hover': { transform: 'translateY(-2px)' } }),
+                ...(isCurrent ? {} : {
+                    '&:hover': {
+                        transform: (theme) => theme.hoverLift,
+                        '& .timeline-poster': { boxShadow: 6 },
+                    },
+                }),
             }}
         >
             {/* Постер */}
             <Box
+                className="timeline-poster"
                 sx={{
                     position: 'relative',
                     width: 150,
@@ -38,6 +45,7 @@ function TimelineCart({ part, isCurrent }) {
                     overflow: 'hidden',
                     boxShadow: 2,
                     bgcolor: 'bg.second',
+                    transition: 'box-shadow 0.2s ease-in-out',
                 }}
             >
                 <Box

@@ -11,6 +11,7 @@ import useTextPrompt from '../_customMUI/useTextPrompt';
 import SideBar from '../SideBar/SideBar';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
+import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserTypeCustom } from '../../redux/slices/AuthSlice';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -82,11 +83,12 @@ function ItemSaveDialog({
     useEffect(() => {
         if (!selectedItem || !isOpenDialogEdit) return;
 
-        const curDate = selectedItem.dateAdded || ""
         setRating(selectedItem.rating);
-        // Не прибираємо 'Z' — інакше дата трактується як локальна і при збереженні
-        // зсувається на зміщення часового поясу, через що змінюється порядок сортування
-        setSelectedDate(curDate ? new Date(curDate) : new Date());
+        // Календарний день, а не момент часу — інакше дата стрибає на добу
+        // залежно від часового поясу (див. utils/dates.js).
+        // null — дата не вказана; підставляти сьогодні не можна, інакше
+        // видалену дату не вийшло б зберегти видаленою.
+        setSelectedDate(parseDateOnly(selectedItem.dateAdded));
         setText(selectedItem.comment);
         setTypeCustom(selectedItem.customType || null);
     }, [isOpenDialogEdit]);
@@ -189,7 +191,7 @@ function ItemSaveDialog({
             let params = {
                 folderName: selectedFolder.name,
                 tmdbId: selectedItem.id,
-                dateAdded: selectedDate,
+                dateAdded: toDateOnlyISO(selectedDate),
                 rating: rating,
                 comment: text,
                 customType: typeCustom,
@@ -229,7 +231,7 @@ function ItemSaveDialog({
             let params = {
                 folderName: selectedFolder.name,
                 tmdbId: selectedItem.id,
-                dateAdded: selectedDate,
+                dateAdded: toDateOnlyISO(selectedDate),
                 rating: rating,
                 comment: text,
                 customType: typeCustom
@@ -245,7 +247,7 @@ function ItemSaveDialog({
             instance
                 .patch(`/${tmdbType}/${selectedItem._id}`, {
                     folderName: selectedFolder.name,
-                    dateAdded: selectedDate,
+                    dateAdded: toDateOnlyISO(selectedDate),
                     rating: rating,
                     comment: text,
                     customType: typeCustom
@@ -378,7 +380,17 @@ function ItemSaveDialog({
                                         onChange={handleDateChange}
                                         slots={{ textField: InputBox }}
                                         slotProps={{
-                                            textField: { fullWidth: true, sx: { width: '100%', mb: 0 } },
+                                            textField: {
+                                                fullWidth: true,
+                                                // У InputBox зменшений padding, тож поле ~39px, а не 56px.
+                                                // Без size="small" MUI рахує лейбл під повну висоту
+                                                // і в порожньому полі той з'їжджає до низу.
+                                                size: 'small',
+                                                sx: { width: '100%', mb: 0 },
+                                            },
+                                            // Хрестик очищення — дата не обов'язкова,
+                                            // запис може лежати в папці зовсім без неї
+                                            field: { clearable: true },
                                         }}
                                     />
                                 </LocalizationProvider>

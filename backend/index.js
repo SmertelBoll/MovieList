@@ -26,6 +26,7 @@ import {
 import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
+import { getUpdates } from "./controllers/updatesControllers.js";
 import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode } from "./controllers/tvControllers.js";
@@ -112,6 +113,8 @@ app.delete("/tv", checkAuth, removeTvFromFolder)
 app.get("/folders/:name", checkAuth, getItemsFromFolder)
 app.get("/folders/movie/:tmdbId", checkAuth, getFoldersByMovie)
 app.get("/folders/tv/:tmdbId", checkAuth, getFoldersByTV)
+
+app.get("/updates", checkAuth, getUpdates);
 
 app.get("/folders", checkAuth, getFoldersByUser);
 app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);

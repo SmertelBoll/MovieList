@@ -19,6 +19,7 @@ import GenrePage from "./pages/Info/GenrePage";
 import FolderPage from "./pages/SingleFolder/FolderPage";
 import FoldersPage from "./pages/Folders/FoldersPage";
 import ProfilePage from "./pages/Profile/ProfilePage";
+import UpdatesPage from "./pages/Updates/UpdatesPage";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
 import { setMode, setLanguage } from "./redux/slices/ConfigSlice";
@@ -65,6 +66,7 @@ function App() {
               <Route path="/company/:id" element={<CompanyPage />} />
               <Route path="/genre/:id" element={<GenrePage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/updates" element={<UpdatesPage />} />
               <Route path="/folders" element={<FoldersPage />} />
               <Route path="/folders/:folderName" element={<FolderPage />} />
               <Route path="/register" element={<RegistrationForm />} />
