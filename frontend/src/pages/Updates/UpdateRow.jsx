@@ -111,7 +111,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
 
     const subtitle = row.kind === 'collection'
         ? `${row.unwatchedCount} unwatched of ${row.parts.length}`
-        : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'}`
+        : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
 
     return (
         // Card — щоб фон збігався з картками фільмів (background.paper)
@@ -272,7 +272,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                         <Box
                                             onClick={() => toggleSeason(season.seasonNumber)}
                                             sx={{
-                                                display: 'flex', alignItems: 'center', gap: 2, p: 1,
+                                                display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, p: 1,
                                                 cursor: 'pointer',
                                                 transition: 'background-color 0.15s, color 0.15s',
                                                 '&:hover': {
@@ -286,14 +286,23 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 ? <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
                                                 : <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
 
-                                            <Typography variant="body2" color="text.main" sx={{ fontWeight: 600, flexGrow: 1, minWidth: 0 }}>
-                                                {season.name || `Season ${season.seasonNumber}`}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                                                {season.unwatchedCount > 0
-                                                    ? `${season.unwatchedCount} of ${season.episodeCount} new`
-                                                    : 'watched'}
-                                            </Typography>
+                                            {/* На телефоні лічильник іде окремим рядком під назвою:
+                                                в один рядок з кнопкою "Watch all" він ламав назву сезону */}
+                                            <Box sx={{
+                                                flexGrow: 1, minWidth: 0, display: 'flex',
+                                                flexDirection: { xs: 'column', sm: 'row' },
+                                                alignItems: { xs: 'flex-start', sm: 'center' },
+                                                gap: { xs: 0.25, sm: 2 },
+                                            }}>
+                                                <Typography variant="body2" color="text.main" sx={{ fontWeight: 600, flexGrow: 1, minWidth: 0 }}>
+                                                    {season.name || `Season ${season.seasonNumber}`}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+                                                    {season.unwatchedCount > 0
+                                                        ? `${season.unwatchedCount} of ${season.episodeCount} new`
+                                                        : 'watched'}
+                                                </Typography>
+                                            </Box>
 
                                             {/* Позначити весь сезон одним кліком */}
                                             {canEditEpisodes && season.unwatchedCount > 0 && (

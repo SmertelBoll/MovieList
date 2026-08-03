@@ -1,115 +1,74 @@
 import React from 'react'
-import { FormControl, MenuItem, InputLabel, Select, Box } from '@mui/material'
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import { Box, Typography } from '@mui/material'
+import SortIcon from '@mui/icons-material/Sort'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import DropdownMenu from '../_customMUI/DropdownMenu'
 
+/**
+ * Кнопка сортування — спільна для всіх сторінок.
+ *
+ * categoriesSortBy: { [назва категорії]: { order: 'asc' | 'desc', ... } }
+ *   order — напрямок за замовчуванням для цієї категорії. Решта полів
+ *   об'єкта (напр. keys) потрібні сторінці, а не самій кнопці.
+ *
+ * Клік по новій категорії ставить її напрямок за замовчуванням,
+ * повторний клік по вже обраній — перевертає напрямок.
+ */
+function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, categoriesSortBy, width = 200 }) {
 
-function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, categoriesSortBy }) {
-
-    const handleChange = (event) => {
-        const newName = event.target.value;
-
-        if (newName === nameSortBy) {
-            // Якщо вибираємо той самий елемент - змінюємо order
-            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            // Якщо вибираємо новий елемент - встановлюємо його order за замовчуванням
-            const selectedCategory = categoriesSortBy[newName]
-            setSortDirection(selectedCategory.order);
-            setNameSortBy(newName);
-        }
-    };
-
-    const handleMenuItemClick = (categoryName) => {
+    const handleSelect = (categoryName) => {
         if (categoryName === nameSortBy) {
-            // Якщо клікаємо на вже обраний елемент - змінюємо order
-            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+            return
         }
-    };
+        setSortDirection(categoriesSortBy[categoryName].order)
+        setNameSortBy(categoryName)
+    }
+
+    const DirectionIcon = sortDirection === 'asc' ? ArrowUpwardIcon : ArrowDownwardIcon
 
     return (
-        <FormControl fullWidth size="small"
-            sx={{
-                '& .MuiOutlinedInput-root': {
-                    padding: '8px 8px',
-                }
-            }}
-        >
-            <InputLabel
-                id="sort-select-label"
-                sx={{
-                    color: "text.main",
-                    '&.Mui-focused': {
-                        color: "text.main",
-                    }
-                }}
-            >
-                Sorting
-            </InputLabel>
-            <Select
-                labelId="sort-select-label"
-                id="sort-select"
-                value={nameSortBy}
-                label="Sorting"
-                onChange={handleChange}
-                MenuProps={{
-                    disableScrollLock: true,
-                }}
-                sx={{
-                    "& .MuiOutlinedInput-input": {
-                        padding: "8px 14px",
-                        color: "text.main",
-                    },
-                    "& .MuiSelect-icon": {
-                        color: "text.main",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                        "& fieldset": {
-                            borderColor: "text.main",
-                        },
-                        "&:hover fieldset": {
-                            borderColor: "text.main",
-                        },
-                        "&.Mui-focused fieldset": {
-                            borderColor: "text.main",
-                        },
-                    },
-                    // Додаємо більш специфічні селектори для перекриття дефолтних стилів
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "text.main",
-                    },
-                    "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "text.main",
-                    },
-                    // Стилі для лейбла
-                    "& .MuiInputLabel-root": {
-                        color: "text.main",
-                    },
-                    "& .MuiInputLabel-root.Mui-focused": {
-                        color: "text.main",
-                    },
-                }}
-            >
-                {Object.keys(categoriesSortBy).map((categoryName) => (
-                    <MenuItem
-                        key={categoryName}
-                        value={categoryName}
-                        onClick={() => handleMenuItemClick(categoryName)}
-                    >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <span>{categoryName}</span>
-                            {categoryName === nameSortBy && (
-                                sortDirection === 'asc' ? (
-                                    <ArrowUpwardIcon sx={{ fontSize: 16 }} />
-                                ) : (
-                                    <ArrowDownwardIcon sx={{ fontSize: 16 }} />
-                                )
-                            )}
-                        </Box>
-                    </MenuItem>
-                ))}
-            </Select>
-        </FormControl>
+        <DropdownMenu
+            width={width}
+            items={Object.keys(categoriesSortBy).map((categoryName) => ({
+                key: categoryName,
+                label: categoryName,
+                selected: categoryName === nameSortBy,
+                // Стрілка лише в обраної категорії — вона ж показує напрямок
+                endAdornment: categoryName === nameSortBy ? <DirectionIcon sx={{ fontSize: 16 }} /> : null,
+                onClick: () => handleSelect(categoryName),
+            }))}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            renderTrigger={({ onClick }) => (
+                <Box
+                    onClick={onClick}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 2,
+                        height: 40,
+                        boxSizing: 'border-box',
+                        borderRadius: 2,
+                        cursor: 'pointer',
+                        border: '1px solid',
+                        borderColor: 'text.main',
+                        color: 'text.main',
+                        transition: 'background-color 0.15s, color 0.15s',
+                        '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' },
+                    }}
+                >
+                    <SortIcon fontSize="small" />
+                    {/* flexGrow тримає стрілку праворуч, коли кнопку розтягнуто на всю ширину */}
+                    <Typography variant="body2" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
+                        {nameSortBy}
+                    </Typography>
+                    <DirectionIcon sx={{ fontSize: 16 }} />
+                </Box>
+            )}
+        />
     )
 }
 

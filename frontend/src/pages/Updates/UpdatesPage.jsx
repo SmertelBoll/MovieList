@@ -3,19 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
-import { alertError } from '../../alerts'
+import { alertError, alertConfirm } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { cleanCollectionName } from '../../utils/tmdb'
 import { toDateOnlyISO } from '../../utils/dates'
 import { FOLDER_STATUSES } from '../../utils/folderStatus'
 import { NO_TAG } from '../../redux/slices/ConfigSlice'
-import DropdownMenu from '../../components/_customMUI/DropdownMenu'
+import Sort from '../../components/Sorting/Sort'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
 import UpdateRow from './UpdateRow'
-
-import CheckIcon from '@mui/icons-material/Check'
-import SortIcon from '@mui/icons-material/Sort'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const TMDB = process.env.REACT_APP_URL_TMDB
@@ -49,11 +46,20 @@ const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.DROPPED,
 ])
 
-const SORT_OPTIONS = [
-    { key: 'new', label: 'Most new first' },
-    { key: 'recent', label: 'Newest release' },
-    { key: 'title', label: 'Title A–Z' },
-]
+// order — напрямок за замовчуванням: desc дає той самий порядок, що й раніше
+// (спершу найбільше нового / найсвіжіші релізи), Title — за зростанням (A–Z).
+const SORT_OPTIONS = {
+    'New episodes': { order: 'desc' },
+    'Release date': { order: 'desc' },
+    'Title': { order: 'asc' },
+}
+
+// Компаратори завжди за зростанням — напрямок перевертає сортування нижче
+const SORT_COMPARATORS = {
+    'New episodes': (a, b) => a.unwatchedCount - b.unwatchedCount,
+    'Release date': (a, b) => (a.latestDate || '').localeCompare(b.latestDate || ''),
+    'Title': (a, b) => a.title.localeCompare(b.title),
+}
 
 function UpdatesPage() {
     const isAuth = useSelector(selectIsAuth)
@@ -62,7 +68,8 @@ function UpdatesPage() {
 
     const [isLoading, setIsLoading] = useState(true)
     const [rows, setRows] = useState([])
-    const [sortBy, setSortBy] = useState('new')
+    const [nameSortBy, setNameSortBy] = useState('New episodes')
+    const [sortDirection, setSortDirection] = useState(SORT_OPTIONS['New episodes'].order)
 
     // Папки потрібні діалогу збереження (він показує сайдбар з вибором папки)
     const [folders, setFolders] = useState([])
@@ -180,6 +187,9 @@ function UpdatesPage() {
                         }
                     })
                 const unwatchedCount = seasons.reduce((sum, s) => sum + s.unwatchedCount, 0)
+                // Усього серій — по тих самих сезонах, що й лічильник нового
+                // (спецвипуски відфільтровані вище), щоб "X з Y" були співмірні
+                const episodeCount = seasons.reduce((sum, s) => sum + s.episodeCount, 0)
                 return {
                     key: `tv-${entry.tmdbId}`,
                     kind: 'tv',
@@ -192,6 +202,7 @@ function UpdatesPage() {
                     posterPath: data.poster_path,
                     seasons,
                     unwatchedCount,
+                    episodeCount,
                     latestDate: seasons
                         .filter((s) => s.unwatchedCount > 0)
                         .reduce((max, s) => (s.airDate > max ? s.airDate : max), ''),
@@ -231,10 +242,9 @@ function UpdatesPage() {
             return (row.customTypes.length ? row.customTypes : ['']).some((tag) => matchesTag(tag))
         })
 
-        if (sortBy === 'title') return list.sort((a, b) => a.title.localeCompare(b.title))
-        if (sortBy === 'recent') return list.sort((a, b) => (b.latestDate || '').localeCompare(a.latestDate || ''))
-        return list.sort((a, b) => b.unwatchedCount - a.unwatchedCount)
-    }, [rows, sortBy, typeTMDB, customTypes])
+        const compare = SORT_COMPARATORS[nameSortBy] || SORT_COMPARATORS['New episodes']
+        return list.sort((a, b) => sortDirection === 'asc' ? compare(a, b) : -compare(a, b))
+    }, [rows, nameSortBy, sortDirection, typeTMDB, customTypes])
 
     // --- ЛОКАЛЬНЕ ОНОВЛЕННЯ ---
     // Перезавантажувати весь список після кожної дії надто дорого: це десятки
@@ -349,18 +359,26 @@ function UpdatesPage() {
         } catch (err) { console.warn(err); alertError(err) }
     }, [patchEpisodes])
 
-    // Позначити переглянутими всі непереглянуті серії сезону одним запитом
-    const handleSeasonMarkAll = useCallback(async (row, seasonNumber, episodeNumbers) => {
+    // Позначити переглянутими всі непереглянуті серії сезону одним запитом.
+    // Дія масова й скасувати її можна лише вручну по серії — тому питаємо підтвердження.
+    const handleSeasonMarkAll = useCallback((row, seasonNumber, episodeNumbers) => {
         if (!episodeNumbers.length) return
-        const data = { dateAdded: toDateOnlyISO(new Date()), watchedCount: 1, rating: null, comment: '' }
-        try {
-            await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/watched`, { episodes: episodeNumbers })
-            patchEpisodes(
-                row.key,
-                seasonNumber,
-                Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
-            )
-        } catch (err) { console.warn(err); alertError(err) }
+
+        const count = episodeNumbers.length
+        alertConfirm(
+            `Mark ${count} remaining ${count === 1 ? 'episode' : 'episodes'} of season ${seasonNumber} in "${row.title}" as watched?`,
+            async () => {
+                const data = { dateAdded: toDateOnlyISO(new Date()), watchedCount: 1, rating: null, comment: '' }
+                try {
+                    await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/watched`, { episodes: episodeNumbers })
+                    patchEpisodes(
+                        row.key,
+                        seasonNumber,
+                        Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
+                    )
+                } catch (err) { console.warn(err); alertError(err) }
+            }
+        )
     }, [patchEpisodes])
 
     const handleEpisodeEdit = useCallback((row, seasonNumber, episodeNumber, initial) => {
@@ -418,34 +436,12 @@ function UpdatesPage() {
                 </Box>
 
                 {sortedRows.length > 0 && (
-                    <DropdownMenu
-                        width={200}
-                        items={SORT_OPTIONS.map((option) => ({
-                            key: option.key,
-                            label: option.label,
-                            selected: sortBy === option.key,
-                            endAdornment: sortBy === option.key ? <CheckIcon fontSize="small" /> : null,
-                            onClick: () => setSortBy(option.key),
-                        }))}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                        renderTrigger={({ onClick }) => (
-                            <Box
-                                onClick={onClick}
-                                sx={{
-                                    display: 'flex', alignItems: 'center', gap: 1,
-                                    px: 2, height: 40, borderRadius: 2, cursor: 'pointer',
-                                    border: '1px solid', borderColor: 'text.main', color: 'text.main',
-                                    transition: 'background-color 0.15s, color 0.15s',
-                                    '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' },
-                                }}
-                            >
-                                <SortIcon fontSize="small" />
-                                <Typography variant="body2" noWrap>
-                                    {SORT_OPTIONS.find((o) => o.key === sortBy)?.label}
-                                </Typography>
-                            </Box>
-                        )}
+                    <Sort
+                        nameSortBy={nameSortBy}
+                        setNameSortBy={setNameSortBy}
+                        sortDirection={sortDirection}
+                        setSortDirection={setSortDirection}
+                        categoriesSortBy={SORT_OPTIONS}
                     />
                 )}
             </Box>

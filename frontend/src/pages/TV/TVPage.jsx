@@ -8,7 +8,7 @@ import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText,
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
-import { alertError, alertSuccess } from '../../alerts'
+import { alertError, alertSuccess, alertConfirm } from '../../alerts'
 import AddIcon from '@mui/icons-material/Add'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
@@ -324,17 +324,28 @@ function TVPage({ isSaved = false }) {
         return { watched, total }
     }
 
+    // Дія масова, тож питаємо підтвердження — як і "Watch all" на сторінці оновлень
     const handleMarkSeasonWatched = (sNum) => {
         const epNums = Object.keys(seasonDetails[sNum] || {}).map(Number)
-        instance
-            .patch(`/tv/${serial._id}/season/${sNum}/watched`, { episodes: epNums })
-            .then((res) => {
-                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
-            })
-            .catch((err) => {
-                console.warn(err)
-                alertError(err)
-            })
+        const { watched, total } = getSeasonWatchedCount(sNum)
+        const remaining = Math.max(0, total - watched)
+        // Бекенд чіпає лише непереглянуті серії — якщо таких немає, робити нічого
+        if (!remaining) return
+
+        alertConfirm(
+            `Mark ${remaining} remaining ${remaining === 1 ? 'episode' : 'episodes'} of season ${sNum} as watched?`,
+            () => {
+                instance
+                    .patch(`/tv/${serial._id}/season/${sNum}/watched`, { episodes: epNums })
+                    .then((res) => {
+                        setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+                    })
+                    .catch((err) => {
+                        console.warn(err)
+                        alertError(err)
+                    })
+            }
+        )
     }
 
     // -- Дії над серією -- //
@@ -942,8 +953,12 @@ function TVPage({ isSaved = false }) {
             <Box>
                 <Typography variant="h4" color="text.main" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
 
+                {/* Легенда — поза контейнером зі скролом: усередині нього вона
+                    їхала б убік разом із серіями замість того, щоб стояти
+                    по центру під заголовком */}
+                <Legend />
+
                 <Box sx={{ overflowX: "auto", pb: 2, px: 1 }}>
-                    <Legend />
                     {heatmapGrid}
                 </Box>
             </Box>

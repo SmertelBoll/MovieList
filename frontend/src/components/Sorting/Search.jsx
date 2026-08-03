@@ -26,6 +26,8 @@ function Search({ inputText, onChangeInput }) {
             label="Search"
             value={inputText}
             onChange={handleChange}
+            // 40px — рівно як кнопка сортування поруч
+            size="small"
             sx={{
                 width: "100%",
                 "& .Mui-focused .MuiIconButton-root": { color: "text.main" },
@@ -49,16 +51,18 @@ function Search({ inputText, onChangeInput }) {
                     startAdornment: (
                         // disabled лише щоб лупа не була клікабельною; колір MUI за
                         // замовчуванням робить сірим — повертаємо колір обводки
-                        <IconButton disabled sx={{ "&.Mui-disabled": { color: "text.main" } }}>
-                            <SearchIcon />
+                        // size="small": звичайна кнопка (48px) розпирала б поле вище 40px
+                        <IconButton disabled size="small" sx={{ "&.Mui-disabled": { color: "text.main" } }}>
+                            <SearchIcon fontSize="small" />
                         </IconButton>
                     ),
                     endAdornment: (
                         <IconButton
+                            size="small"
                             sx={{ visibility: inputText ? "visible" : "hidden" }}
                             onClick={handleClear}
                         >
-                            <ClearIcon />
+                            <ClearIcon fontSize="small" />
                         </IconButton>
                     ),
                 },
