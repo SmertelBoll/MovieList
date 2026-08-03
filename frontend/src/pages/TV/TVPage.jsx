@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
-import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem } from '../../utils/ratingSystem'
+import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem, getRatingLevels } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
@@ -75,6 +75,8 @@ function TVPage({ isSaved = false }) {
     const { language } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
     const useRatingSystem = hasRatingSystem(ratingSystem)
+    // Рівні власної системи — для легенди під сіткою
+    const ratingLevels = useMemo(() => getRatingLevels(ratingSystem), [ratingSystem])
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true)
@@ -520,22 +522,43 @@ function TVPage({ isSaved = false }) {
     );
 
     // Legend Component.
-    // Якщо в користувача власна система оцінок — легенду не показуємо (кольори свої, на рівнях).
-    // Для дефолтної шкали показуємо діапазони оцінок замість слів.
+    // Легенда повторює те, чим реально пофарбована сітка:
+    //  - власні оцінки (mongo) + своя система -> рівні користувача зі скороченнями;
+    //  - усе інше (зокрема сторінка TMDB, де свої рівні не застосовуються) -> дефолтні діапазони.
     const Legend = () => {
-        if (useRatingSystem) return null;
+        const items = useRatingSystem && isSaved
+            ? ratingLevels.map((level) => ({
+                key: level.name,
+                label: level.name,
+                // Рівень без кольору малюється нейтральним — так само, як у клітинці
+                color: level.color || theme.palette.rating.cell,
+                abbr: level.abbr || level.name.slice(0, 2).toUpperCase(),
+                abbrColor: level.color ? getContrastText(level.color) : theme.palette.rating.cellText,
+            }))
+            : [
+                { key: "90-100", label: "90-100", color: theme.palette.rating.awesome },
+                { key: "80-89", label: "80-89", color: theme.palette.rating.great },
+                { key: "70-79", label: "70-79", color: theme.palette.rating.good },
+                { key: "60-69", label: "60-69", color: theme.palette.rating.regular },
+                { key: "50-59", label: "50-59", color: theme.palette.rating.bad },
+                { key: "1-49", label: "1-49", color: theme.palette.rating.garbage },
+            ];
+
         return (
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3, justifyContent: "center" }}>
-                {[
-                    { label: "90-100", color: theme.palette.rating.awesome },
-                    { label: "80-89", color: theme.palette.rating.great },
-                    { label: "70-79", color: theme.palette.rating.good },
-                    { label: "60-69", color: theme.palette.rating.regular },
-                    { label: "50-59", color: theme.palette.rating.bad },
-                    { label: "1-49", color: theme.palette.rating.garbage },
-                ].map((item) => (
-                    <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Box sx={{ width: 16, height: 16, borderRadius: "4px", backgroundColor: item.color }} />
+                {items.map((item) => (
+                    <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{
+                            minWidth: 16, height: 16, px: item.abbr ? 0.5 : 0, borderRadius: "4px",
+                            backgroundColor: item.color,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                            {item.abbr && (
+                                <Typography variant="caption" sx={{ fontSize: 10, lineHeight: 1, fontWeight: "bold", color: item.abbrColor }}>
+                                    {item.abbr}
+                                </Typography>
+                            )}
+                        </Box>
                         <Typography variant="caption" color="text.main" sx={{ fontWeight: "bold", opacity: 0.8 }}>{item.label}</Typography>
                     </Box>
                 ))}
