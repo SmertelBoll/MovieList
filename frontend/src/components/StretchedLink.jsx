@@ -9,8 +9,10 @@ import { Link } from 'react-router-dom'
  * розтягується на неї поверх контенту. Так працюють звичайний клік, колесо миші та
  * Ctrl/Cmd+клік (нова вкладка), чого не дає onClick з navigate().
  *
- * Батьківська картка має бути position: relative. Кнопки всередині картки мають
- * zIndex ≥ 1, щоб лишатися над посиланням.
+ * Батьківська картка має бути position: relative. Посилання має z-index 1: у картках
+ * є позиціоновані елементи (напр. постер з position: relative), які без цього лягали б
+ * поверх нього й перехоплювали клік. Кнопки всередині картки мають бути в DOM ПІЗНІШЕ
+ * за посилання й теж мати zIndex ≥ 1 — тоді вони лишаються над ним.
  */
 function StretchedLink({ to, label }) {
     return (
@@ -18,7 +20,7 @@ function StretchedLink({ to, label }) {
             component={Link}
             to={to}
             aria-label={label}
-            sx={{ position: 'absolute', inset: 0, zIndex: 0, display: 'block', borderRadius: 'inherit' }}
+            sx={{ position: 'absolute', inset: 0, zIndex: 1, display: 'block', borderRadius: 'inherit' }}
         />
     )
 }

@@ -30,12 +30,14 @@ export const betterStatus = (a, b) => {
 };
 
 // Папки, які створюються автоматично при реєстрації.
+// Список папок на сайті сортується за order від більшого до меншого, тож зверху найбільший.
+// Бажаний порядок згори вниз: Watched, Watching, Planned, Dropped, Skipped.
 export const DEFAULT_FOLDERS = [
-    { name: "Planned", status: FOLDER_STATUSES.PLANNED, order: 0 },
-    { name: "Watching", status: FOLDER_STATUSES.WATCHING, order: 1 },
-    { name: "Watched", status: FOLDER_STATUSES.WATCHED, order: 2 },
-    { name: "Dropped", status: FOLDER_STATUSES.DROPPED, order: 3 },
-    { name: "Skipped", status: FOLDER_STATUSES.SKIPPED, order: 4 },
+    { name: "Watched", status: FOLDER_STATUSES.WATCHED, order: 4 },
+    { name: "Watching", status: FOLDER_STATUSES.WATCHING, order: 3 },
+    { name: "Planned", status: FOLDER_STATUSES.PLANNED, order: 2 },
+    { name: "Dropped", status: FOLDER_STATUSES.DROPPED, order: 1 },
+    { name: "Skipped", status: FOLDER_STATUSES.SKIPPED, order: 0 },
 ];
 
 const FolderSchema = new mongoose.Schema(
