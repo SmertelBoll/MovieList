@@ -5,12 +5,14 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
 
 export const FOLDER_STATUSES = {
     PLANNED: 'planned',
     WATCHING: 'watching',
     WATCHED: 'watched',
     DROPPED: 'dropped',
+    SKIPPED: 'skipped',
 };
 
 // Значок статусу в куті постера (сторінка New releases, Timeline).
@@ -20,6 +22,7 @@ export const STATUS_CORNER_ICON = {
     [FOLDER_STATUSES.WATCHED]: CheckIcon,
     [FOLDER_STATUSES.WATCHING]: AccessTimeFilledIcon,
     [FOLDER_STATUSES.DROPPED]: CloseIcon,
+    [FOLDER_STATUSES.SKIPPED]: SkipNextIcon,
     [FOLDER_STATUSES.PLANNED]: AccessTimeIcon,
 };
 
@@ -29,6 +32,7 @@ export const FOLDER_STATUS_OPTIONS = [
     { value: FOLDER_STATUSES.WATCHING, label: 'Watching' },
     { value: FOLDER_STATUSES.WATCHED, label: 'Watched' },
     { value: FOLDER_STATUSES.DROPPED, label: 'Dropped' },
+    { value: FOLDER_STATUSES.SKIPPED, label: 'Skipped' },
 ];
 
 // Підпис для папки без статусу (створеної вручну)
@@ -48,6 +52,7 @@ const STATUS_COLOR_TOKENS = {
     [FOLDER_STATUSES.WATCHING]: 'status.watching',
     [FOLDER_STATUSES.WATCHED]: 'status.watched',
     [FOLDER_STATUSES.DROPPED]: 'status.dropped',
+    [FOLDER_STATUSES.SKIPPED]: 'status.skipped',
 };
 
 // Токен кольору теми для статусу; null — якщо статусу немає
@@ -72,7 +77,7 @@ export const getStatusChipSx = (status) => {
     };
 };
 
-// Приглушуємо постер лише того, що вже позаду: переглянуте й кинуте.
+// Приглушуємо постер лише того, що вже позаду: переглянуте, кинуте й пропущене.
 // Те, що дивляться зараз або заплановане, лишається яскравим.
 // Однаково на сторінці New releases і в Timeline.
 export const DIMMED_POSTER_SX = {
@@ -80,7 +85,7 @@ export const DIMMED_POSTER_SX = {
     opacity: 0.65,
 };
 export const isDimmedStatus = (status) =>
-    status === FOLDER_STATUSES.WATCHED || status === FOLDER_STATUSES.DROPPED;
+    status === FOLDER_STATUSES.WATCHED || status === FOLDER_STATUSES.DROPPED || status === FOLDER_STATUSES.SKIPPED;
 
 // Порядок блоків у підказці зі списком папок; null — папки без статусу
 export const STATUS_DISPLAY_ORDER = [
@@ -88,16 +93,18 @@ export const STATUS_DISPLAY_ORDER = [
     FOLDER_STATUSES.WATCHING,
     FOLDER_STATUSES.PLANNED,
     FOLDER_STATUSES.DROPPED,
+    FOLDER_STATUSES.SKIPPED,
     null,
 ];
 
 // Найсильніший статус серед списку — той самий порядок, що betterStatus на бекенді
-// (models/folder.js): кинуте > дивлюсь > заплановано > переглянуто. Без статусів — null.
+// (models/folder.js): кинуте > дивлюсь > заплановано > переглянуто > пропущено. Без статусів — null.
 const STATUS_PRIORITY = [
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.WATCHING,
     FOLDER_STATUSES.PLANNED,
     FOLDER_STATUSES.WATCHED,
+    FOLDER_STATUSES.SKIPPED,
 ];
 export const getBestStatus = (statuses) => {
     const known = statuses.filter(Boolean);

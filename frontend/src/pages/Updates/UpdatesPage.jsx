@@ -44,9 +44,12 @@ const SEED_STATUSES = new Set([FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED
 // Опрацьоване — не рахується як нове: переглянуте й кинуте.
 // watching і planned сюди НЕ входять: фільм ще не подивилися, тож він
 // лишається в лічильниках. Через це watching водночас і затравка, і "нове".
+// skipped теж опрацьоване (свідомо пропущена частина не «нова»), але на відміну від dropped
+// не ховає франшизу й не має власного режиму — hasDropped його не враховує.
 const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.WATCHED,
     FOLDER_STATUSES.DROPPED,
+    FOLDER_STATUSES.SKIPPED,
 ])
 
 // Якщо хоча б одна частина франшизи кинута (є в папці зі статусом dropped), увесь Timeline

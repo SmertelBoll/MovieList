@@ -7,18 +7,20 @@ export const FOLDER_STATUSES = {
     WATCHING: "watching",
     WATCHED: "watched",
     DROPPED: "dropped",
+    SKIPPED: "skipped",
 };
 
 export const FOLDER_STATUS_VALUES = Object.values(FOLDER_STATUSES);
 
 // Якщо елемент лежить одразу в кількох папках зі статусами — перемагає найвищий
-// за пріоритетом: кинуте > дивлюсь > заплановано > переглянуто.
+// за пріоритетом: кинуте > дивлюсь > заплановано > переглянуто > пропущено.
 // Тримати синхронно з STATUS_PRIORITY у frontend/src/utils/folderStatus.js.
 const STATUS_PRIORITY = [
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.WATCHING,
     FOLDER_STATUSES.PLANNED,
     FOLDER_STATUSES.WATCHED,
+    FOLDER_STATUSES.SKIPPED,
 ];
 
 export const betterStatus = (a, b) => {
@@ -33,6 +35,7 @@ export const DEFAULT_FOLDERS = [
     { name: "Watching", status: FOLDER_STATUSES.WATCHING, order: 1 },
     { name: "Watched", status: FOLDER_STATUSES.WATCHED, order: 2 },
     { name: "Dropped", status: FOLDER_STATUSES.DROPPED, order: 3 },
+    { name: "Skipped", status: FOLDER_STATUSES.SKIPPED, order: 4 },
 ];
 
 const FolderSchema = new mongoose.Schema(
