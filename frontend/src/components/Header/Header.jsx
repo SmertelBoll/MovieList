@@ -1,4 +1,4 @@
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -96,20 +96,61 @@ function Header({ mode }) {
       <ContainerCustom sx={{ py: 1 }}>
         {/* Три блоки в сітці: лого притиснуте вліво, вибори — по центру, меню / вхід — вправо.
             Крайні колонки однакові (minmax(0, 1fr)), тож середній блок завжди рівно посередині,
-            хоч би яка була ширина лого й кнопок справа. */}
+            хоч би яка була ширина лого й кнопок справа.
+            На телефоні (< sm) усі три в один рядок не влазять: вибори переходять у другий рядок
+            на всю ширину, а лого й меню лишаються нагорі. */}
         <Box sx={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+          gridTemplateColumns: { xs: "minmax(0, 1fr) auto", sm: "minmax(0, 1fr) auto minmax(0, 1fr)" },
+          gridTemplateAreas: { xs: '"logo menu" "controls controls"', sm: '"logo controls menu"' },
           alignItems: "center",
           columnGap: 1,
+          rowGap: { xs: 0.5, sm: 0 },
         }}>
-          <Box sx={{ justifySelf: "start" }}>
-            <Link to="/">
-              logo
+          <Box sx={{ gridArea: "logo", justifySelf: "start" }}>
+            {/* Текстове лого: «Movie» звичайним кольором, «List» на жовтій плашці з темним текстом
+                (жовтий фон → темний текст, правило сайту). Шрифт Bungee вже підключено в styles/index.css. */}
+            <Link to="/" aria-label="MovieList — home" style={{ display: "inline-flex" }}>
+              <Typography
+                variant="logo"
+                component="span"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontFamily: "Bungee, Kanit, sans-serif",
+                  fontWeight: 400,
+                  fontSize: { xs: "1.25rem", sm: "1.75rem" },
+                  lineHeight: 1,
+                  color: "text.main",
+                }}
+              >
+                Movie
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.5,
+                    px: 0.75,
+                    py: 0.5,
+                    borderRadius: 2,
+                    bgcolor: "yellow.main",
+                    color: "yellow.contrastText",
+                  }}
+                >
+                  List
+                </Box>
+              </Typography>
             </Link>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifySelf: "center" }}>
+          <Box sx={{
+            gridArea: "controls",
+            display: "flex",
+            alignItems: "center",
+            // На телефоні — рівномірно по всій ширині другого рядка, від sm — компактно по центру
+            justifyContent: { xs: "space-around", sm: "center" },
+            gap: 1,
+            justifySelf: { xs: "stretch", sm: "center" },
+          }}>
             {/* Вибір мови */}
             <LanguageSelector />
 
@@ -127,7 +168,7 @@ function Header({ mode }) {
           </Box>
 
           {/* button menu */}
-          <Box sx={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{ gridArea: "menu", justifySelf: "end", display: "flex", alignItems: "center", gap: 2 }}>
             {!isAuth ? (
               <>
                 <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, alignItems: "center" }}>

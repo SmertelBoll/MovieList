@@ -258,6 +258,12 @@ function SideBar({
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
+                                        // Кольорова іконка статусу на жовтому фоні (наведення / вибрана папка)
+                                        // стає темною, як і текст — світлі кольори статусів там не читались би
+                                        "&:hover .folder-status-icon": { color: "inherit" },
+                                        ...(selectedFolder && selectedFolder.order === folder.order && {
+                                            "& .folder-status-icon": { color: "inherit" },
+                                        }),
                                     }}
                                     // Вибране на сайті завжди жовте з темним текстом,
                                     // а не сіре. active обробляє SecondaryButton.

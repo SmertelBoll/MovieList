@@ -1,4 +1,4 @@
-import { Avatar, Box, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { Avatar, Box, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -71,6 +71,20 @@ function ProfilePage() {
     const fileInputRef = useRef(null)
     const userTypes = user?.typeCustom || []
     const userRatingSystem = user?.ratingSystem || []
+
+    // Фарбування іконок папок за статусом — вимкнено за замовчуванням. Міняємо одразу (оптимістично),
+    // при помилці повертаємо як було.
+    const colorFolderIcons = Boolean(user?.colorFolderIcons)
+    const handleToggleColorFolderIcons = async (checked) => {
+        dispatch(updateUserData({ colorFolderIcons: checked }))
+        try {
+            await instance.patch('/auth/settings', { colorFolderIcons: checked })
+        } catch (err) {
+            console.warn(err)
+            dispatch(updateUserData({ colorFolderIcons: !checked }))
+            alertError(err)
+        }
+    }
     const uidRef = useRef(0)
     const nextUid = () => `b_${uidRef.current++}`
 
@@ -508,6 +522,32 @@ function ProfilePage() {
                         {savingName ? 'Saving...' : 'Save'}
                     </MainButton>
                 </Box>
+            </Box>
+
+            {/* APPEARANCE */}
+            <Box sx={cardSx}>
+                <Typography variant="h6" sx={sectionTitleSx}>
+                    Appearance
+                </Typography>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={colorFolderIcons}
+                            onChange={(e) => handleToggleColorFolderIcons(e.target.checked)}
+                        />
+                    }
+                    label={
+                        <Box>
+                            <Typography variant="body1" sx={{ color: 'text.main' }}>
+                                Color folder icons by status
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Folders in the sidebar get the color of their status. Folders without a status stay default.
+                            </Typography>
+                        </Box>
+                    }
+                    sx={{ alignItems: 'flex-start', m: 0, gap: 1 }}
+                />
             </Box>
 
             {/* CUSTOM TYPES */}

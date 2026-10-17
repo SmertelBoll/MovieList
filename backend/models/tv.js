@@ -8,6 +8,9 @@ const EpisodeSchema = new mongoose.Schema(
         comment: { type: String },
         dateAdded: { type: Date },
         watchedCount: { type: Number, default: 0 },
+        // Серія свідомо пропущена: не переглянута (watchedCount 0), але й не «нова».
+        // Показується хрестиком замість галочки.
+        skipped: { type: Boolean, default: false },
     },
     {
         timestamps: true, // createdAt / updatedAt (updatedAt = дата редагування)

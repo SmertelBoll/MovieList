@@ -119,6 +119,8 @@ export const getUpdates = async (req, res) => {
             rating: episode.rating ?? null,
             comment: episode.comment || "",
             watchedCount: episode.watchedCount ?? 1,
+            // Пропущена серія теж «опрацьована» (не нова), але показується хрестиком
+            skipped: Boolean(episode.skipped),
           });
         }
       }

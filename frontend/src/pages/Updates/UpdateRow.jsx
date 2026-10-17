@@ -10,6 +10,7 @@ import ItemFolderButton from '../../components/ItemFolderButton'
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import LockIcon from '@mui/icons-material/Lock'
 import { DIMMED_POSTER_SX, isDimmedStatus } from '../../utils/folderStatus'
@@ -335,9 +336,12 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                 }),
                                                             }}
                                                         >
-                                                            {watched
-                                                                ? <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
-                                                                : <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+                                                            {/* Пропущена серія — хрестик, переглянута — галочка */}
+                                                            {saved?.skipped
+                                                                ? <CancelIcon fontSize="small" sx={{ color: 'status.skipped' }} />
+                                                                : watched
+                                                                    ? <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
+                                                                    : <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
 
                                                             <Typography variant="body2" color="text.main" sx={{ flexGrow: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
                                                                 {episode.episode_number}. {episode.name}
@@ -346,7 +350,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                             {watched ? (
                                                                 // Дата перегляду, а не виходу
                                                                 <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                                                                    {asDate(saved.dateAdded)}
+                                                                    {saved.skipped ? 'Skipped' : asDate(saved.dateAdded)}
                                                                 </Typography>
                                                             ) : canEditEpisodes ? (
                                                                 <Box

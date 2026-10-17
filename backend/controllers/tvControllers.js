@@ -193,7 +193,7 @@ export const updateTvEpisode = async (req, res) => {
   try {
     const userId = req.userId;
     const { mongoId, season, episode } = req.params;
-    const { rating, comment, dateAdded, watchedCount } = req.body;
+    const { rating, comment, dateAdded, watchedCount, skipped } = req.body;
 
     const tv = await TvModel.findOne({ _id: mongoId, user: userId });
     if (!tv) {
@@ -219,6 +219,8 @@ export const updateTvEpisode = async (req, res) => {
     episodeDoc.comment = comment;
     episodeDoc.dateAdded = dateAdded;
     episodeDoc.watchedCount = watchedCount;
+    // Не передали — не чіпаємо (швидке «переглянуто» не повинно скидати пропуск)
+    if (typeof skipped === "boolean") episodeDoc.skipped = skipped;
 
     await tv.save();
 
@@ -287,7 +289,8 @@ export const markSeasonEpisodesWatched = async (req, res) => {
       let episodeDoc = seasonDoc.episodes.find(e => e.episode === epNum);
       if (!episodeDoc) {
         seasonDoc.episodes.push({ episode: epNum, watchedCount: 1, dateAdded: new Date() });
-      } else if (!(episodeDoc.watchedCount > 0)) {
+      } else if (!episodeDoc.skipped && !(episodeDoc.watchedCount > 0)) {
+        // Пропущені серії не чіпаємо: «переглянуто все» не скасовує пропуск
         episodeDoc.watchedCount = 1;
         if (!episodeDoc.dateAdded) episodeDoc.dateAdded = new Date();
       }

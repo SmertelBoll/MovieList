@@ -12,6 +12,7 @@ import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
 import { alertError, alertSuccess, alertConfirm } from '../../alerts'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import CloseIcon from '@mui/icons-material/Close'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
 import ActorCart from '../../components/Carts/ActorCart'
@@ -19,6 +20,7 @@ import EpisodeCart from '../../components/Carts/EpisodeCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import ItemFolderButton from '../../components/ItemFolderButton'
 import StretchedLink from '../../components/StretchedLink'
+import { scrollbarSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
@@ -33,6 +35,8 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
     let node = content
     if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
     else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
+    // Пропущена серія — хрестик замість галочки
+    else if (kind === 'skipped') node = <CloseIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
 
     const cart = (
         <EpisodeCart
@@ -47,9 +51,12 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
     )
 
     // Tooltip для mongo-режиму (watched/dateAdded — примітиви, memo не ламається)
-    if (active && (watched != null || dateAdded)) {
+    if (active && (watched != null || dateAdded || kind === 'skipped')) {
         const tooltipTitle = (
             <Box sx={{ p: 0.5 }}>
+                {kind === 'skipped' && (
+                    <Typography variant="caption" sx={{ display: "block" }}>Skipped</Typography>
+                )}
                 {watched != null && (
                     <Typography variant="caption" sx={{ display: "block" }}>Views: {watched}</Typography>
                 )}
@@ -332,7 +339,7 @@ function TVPage({ isSaved = false }) {
         setRatingMode("episode")
         setRatingTarget({ season: Number(sNum), episode: Number(eNum) })
         setRatingIsNew(!ep)
-        setRatingInitial({ rating: ep?.rating, comment: ep?.comment, dateAdded: ep?.dateAdded, watchedCount: ep?.watchedCount })
+        setRatingInitial({ rating: ep?.rating, comment: ep?.comment, dateAdded: ep?.dateAdded, watchedCount: ep?.watchedCount, skipped: ep?.skipped })
         setRatingDialogOpen(true)
     }
     const handleSaveRating = (values) => {
@@ -358,14 +365,16 @@ function TVPage({ isSaved = false }) {
         const total = Object.keys(seasonDetails[sNum] || {}).length
         const seasonDoc = findMongoSeason(sNum)
         const watched = seasonDoc?.episodes?.filter(e => (e.watchedCount ?? 0) > 0).length ?? 0
-        return { watched, total }
+        // Пропущені — не «залишилось переглянути»
+        const skipped = seasonDoc?.episodes?.filter(e => e.skipped).length ?? 0
+        return { watched, skipped, total }
     }
 
     // Дія масова, тож питаємо підтвердження — як і "Watch all" на сторінці оновлень
     const handleMarkSeasonWatched = (sNum) => {
         const epNums = Object.keys(seasonDetails[sNum] || {}).map(Number)
-        const { watched, total } = getSeasonWatchedCount(sNum)
-        const remaining = Math.max(0, total - watched)
+        const { watched, skipped, total } = getSeasonWatchedCount(sNum)
+        const remaining = Math.max(0, total - watched - skipped)
         // Бекенд чіпає лише непереглянуті серії — якщо таких немає, робити нічого
         if (!remaining) return
 
@@ -399,7 +408,30 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // Одне спільне меню Edit/Delete для всіх серій (швидше за DropdownMenu на кожну клітинку)
+    // Пропустити серію / зняти пропуск. Пропущена серія не переглянута (watchedCount 0, без оцінки);
+    // при знятті пропуску серія лишається в базі з нулем переглядів, тобто стає непереглянутою.
+    // Коментар зберігаємо — він може пояснювати причину пропуску. Дата: пропуск її очищає,
+    // зняття пропуску ставить сьогоднішню (так само, як чекбокс у діалозі серії).
+    const handleSkipEpisode = (sNum, eNum, skip) => {
+        const ep = findMongoEpisode(sNum, eNum)
+        instance
+            .patch(`/tv/${serial._id}/season/${sNum}/episode/${eNum}`, {
+                skipped: skip,
+                watchedCount: skip ? 0 : (ep?.watchedCount ?? 0),
+                rating: skip ? null : (ep?.rating ?? null),
+                comment: ep?.comment ?? "",
+                dateAdded: skip ? null : toDateOnlyISO(new Date()),
+            })
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+
+    // Одне спільне меню Edit/Skip/Delete для всіх серій (швидше за DropdownMenu на кожну клітинку)
     const [episodeMenuAnchor, setEpisodeMenuAnchor] = useState(null)
     const [episodeMenuTarget, setEpisodeMenuTarget] = useState({ season: null, episode: null })
 
@@ -409,7 +441,8 @@ function TVPage({ isSaved = false }) {
         const current = serialRef.current
         const season = current?.seasons?.find(s => s.season === Number(sNum))
         const ep = season?.episodes?.find(item => item.episode === Number(eNum))
-        const isEpisodeSaved = Boolean(ep && (ep.watchedCount ?? 0) > 0)
+        // Пропущена серія теж «збережена»: клік відкриває меню Edit/Delete (щоб зняти пропуск), а не ставить перегляд
+        const isEpisodeSaved = Boolean(ep && ((ep.watchedCount ?? 0) > 0 || ep.skipped))
 
         if (isEpisodeSaved) {
             // Серія вже переглянута -> відкриваємо меню Edit/Delete
@@ -487,6 +520,11 @@ function TVPage({ isSaved = false }) {
             const isWatched = (ep?.watchedCount ?? 0) > 0;
             const watched = isWatched ? ep.watchedCount : null;
             const dateAdded = ep?.dateAdded ? formatDateOnly(ep.dateAdded) : null;
+
+            // Пропущена серія: хрестик (перемагає і порожній чекбокс, і галочку)
+            if (ep?.skipped) {
+                return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "skipped", content: "", active: true, watched: null, dateAdded };
+            }
 
             if (!isWatched) {
                 return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "empty", content: "", active: true, watched: null, dateAdded: null };
@@ -680,7 +718,8 @@ function TVPage({ isSaved = false }) {
                                             isHoverActive={true}
                                             onClick={onClick}
                                         >
-                                            {`${wc.watched}/${wc.total}`}
+                                            {/* Пропущені серії теж враховуються: сезон «закритий», коли все переглянуто або пропущено */}
+                                            {`${wc.watched + wc.skipped}/${wc.total}`}
                                         </EpisodeCart>
                                     )}
                                 />
@@ -979,7 +1018,8 @@ function TVPage({ isSaved = false }) {
                     по центру під заголовком */}
                 <Legend />
 
-                <Box sx={{ overflowX: "auto", pb: 2, px: 1 }}>
+                {/* Той самий вигляд скролбара, що в команди й каст */}
+                <Box sx={{ overflowX: "auto", pb: 2, px: 1, ...scrollbarSx }}>
                     {heatmapGrid}
                 </Box>
             </Box>
@@ -995,23 +1035,8 @@ function TVPage({ isSaved = false }) {
                         gap: 2,
                         overflowX: "auto",
                         pb: 2,
-                        // Такий самий вигляд, як у скролу сторінки (styles/index.css)
-                        "&::-webkit-scrollbar": {
-                            height: { xs: 10, sm: 14 },
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            backgroundColor: "scrollbar.track",
-                            borderRadius: "100vw",
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "scrollbar.thumb",
-                            borderRadius: "100vw",
-                            border: "3px solid",
-                            borderColor: "scrollbar.track",
-                            "&:hover": {
-                                backgroundColor: "scrollbar.thumbHover",
-                            },
-                        },
+                        // Спільний стиль скролу (theme/scrollbar.js)
+                        ...scrollbarSx,
                     }}>
                         {serial.credits.cast.map((actor) => (
                             <ActorCart
@@ -1035,23 +1060,8 @@ function TVPage({ isSaved = false }) {
                         gap: 2,
                         overflowX: "auto",
                         pb: 2,
-                        // Такий самий вигляд, як у скролу сторінки (styles/index.css)
-                        "&::-webkit-scrollbar": {
-                            height: { xs: 10, sm: 14 },
-                        },
-                        "&::-webkit-scrollbar-track": {
-                            backgroundColor: "scrollbar.track",
-                            borderRadius: "100vw",
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                            backgroundColor: "scrollbar.thumb",
-                            borderRadius: "100vw",
-                            border: "3px solid",
-                            borderColor: "scrollbar.track",
-                            "&:hover": {
-                                backgroundColor: "scrollbar.thumbHover",
-                            },
-                        },
+                        // Спільний стиль скролу (theme/scrollbar.js)
+                        ...scrollbarSx,
                     }}>
                         {serial.credits.crew
                             .map((member) => (
@@ -1117,6 +1127,15 @@ function TVPage({ isSaved = false }) {
             >
                 {[
                     { key: 'edit', label: 'Edit', onClick: () => openEpisodeDialog(episodeMenuTarget.season, episodeMenuTarget.episode) },
+                    // Для вже пропущеної серії пункт знімає пропуск
+                    (() => {
+                        const isSkipped = Boolean(findMongoEpisode(episodeMenuTarget.season, episodeMenuTarget.episode)?.skipped)
+                        return {
+                            key: 'skip',
+                            label: isSkipped ? 'Unskip' : 'Skip',
+                            onClick: () => handleSkipEpisode(episodeMenuTarget.season, episodeMenuTarget.episode, !isSkipped),
+                        }
+                    })(),
                     { key: 'delete', label: 'Delete', onClick: () => handleDeleteEpisode(episodeMenuTarget.season, episodeMenuTarget.episode) },
                 ].map((item) => (
                     <MenuItem

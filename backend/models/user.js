@@ -34,6 +34,11 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "en",
     },
+    // Фарбувати іконки папок у бічній панелі за статусом (налаштування в профілі)
+    colorFolderIcons: {
+      type: Boolean,
+      default: false,
+    },
     typeCustom: {
       type: [String],
       default: [],

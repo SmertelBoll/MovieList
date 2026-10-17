@@ -15,6 +15,7 @@ import ActorCart from '../../components/Carts/ActorCart'
 import TimelineCart from '../../components/Carts/TimelineCart'
 import ItemFolderButton from '../../components/ItemFolderButton'
 import StretchedLink from '../../components/StretchedLink'
+import { scrollbarSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
@@ -37,24 +38,8 @@ const scrollStripSx = {
     scrollSnapType: { xs: "x proximity", sm: "none" },
     WebkitOverflowScrolling: "touch",
     "& > *": { scrollSnapAlign: { xs: "start", sm: "none" } },
-    // Такий самий вигляд, як у скролу сторінки (styles/index.css):
-    // жовта «пігулка» з рамкою кольору доріжки
-    "&::-webkit-scrollbar": {
-        height: { xs: 10, sm: 14 },
-    },
-    "&::-webkit-scrollbar-track": {
-        backgroundColor: "scrollbar.track",
-        borderRadius: "100vw",
-    },
-    "&::-webkit-scrollbar-thumb": {
-        backgroundColor: "scrollbar.thumb",
-        borderRadius: "100vw",
-        border: "3px solid",
-        borderColor: "scrollbar.track",
-        "&:hover": {
-            backgroundColor: "scrollbar.thumbHover",
-        },
-    },
+    // Спільний стиль скролу (theme/scrollbar.js)
+    ...scrollbarSx,
 }
 
 function MoviePage({ isSaved = false }) {

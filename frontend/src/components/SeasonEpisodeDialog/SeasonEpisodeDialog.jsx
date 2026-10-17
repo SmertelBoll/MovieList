@@ -1,4 +1,4 @@
-import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, Typography } from '@mui/material';
+import { Box, Checkbox, Dialog, DialogContent, DialogActions, FormControlLabel, Slider, useTheme, Typography } from '@mui/material';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
@@ -43,6 +43,8 @@ function SeasonEpisodeDialog({
     const [selectedDate, setSelectedDate] = useState(null);
     const [text, setText] = useState("");
     const [watchedCount, setWatchedCount] = useState(1);
+    // Пропущена серія: не дивилися й не збираємось. Оцінка, перегляди й дата тоді не потрібні.
+    const [skipped, setSkipped] = useState(false);
 
     // Заповнюємо поля при відкритті
     useEffect(() => {
@@ -51,7 +53,17 @@ function SeasonEpisodeDialog({
         setSelectedDate(parseDateOnly(initial.dateAdded) || (isNew ? new Date() : null));
         setText(initial.comment ?? "");
         setWatchedCount(initial.watchedCount ?? 1);
+        setSkipped(Boolean(initial.skipped));
     }, [open]);
+
+    // Пропуск вмикає порожню дату (серію не дивилися), зняття — повертає сьогоднішню
+    const handleSkippedChange = (checked) => {
+        setSkipped(checked);
+        setSelectedDate(checked ? null : new Date());
+    };
+
+    // Поки серія пропущена, поля оцінки / переглядів / дати приглушені й недоступні
+    const skippedSx = skipped ? { opacity: 0.4, pointerEvents: 'none' } : {};
 
     const marks = Array.from({ length: 11 }, (_, index) => ({
         value: 10 * index,
@@ -71,11 +83,12 @@ function SeasonEpisodeDialog({
     };
 
     const handleSubmit = () => {
+        // Пропущена серія — не переглянута: без оцінки й переглядів
         onSave({
-            rating,
+            rating: mode === "episode" && skipped ? null : rating,
             comment: text,
             dateAdded: toDateOnlyISO(selectedDate),
-            ...(mode === "episode" ? { watchedCount } : {})
+            ...(mode === "episode" ? { watchedCount: skipped ? 0 : watchedCount, skipped } : {})
         });
     };
 
@@ -93,16 +106,26 @@ function SeasonEpisodeDialog({
                     p: 2
                 }}
             >
-                <Typography variant="p" sx={{ textAlign: 'left' }}>
-                    {title}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                    <Typography variant="p" sx={{ textAlign: 'left' }}>
+                        {title}
+                    </Typography>
+                    {/* Лише для серій. У рядку з заголовком — щоб не збільшувати висоту вікна */}
+                    {mode === "episode" && (
+                        <FormControlLabel
+                            control={<Checkbox checked={skipped} onChange={(e) => handleSkippedChange(e.target.checked)} />}
+                            label="Skip"
+                            sx={{ m: 0, flexShrink: 0 }}
+                        />
+                    )}
+                </Box>
 
                 {useRatingSystem ? (
                     // Власна система оцінок — вибір рівня через випадайку
                     (() => {
                         const current = ratingLevels.find((l) => l.value === rating);
                         return (
-                            <Box sx={{ pt: 1 }}>
+                            <Box sx={{ pt: 1, ...skippedSx }}>
                                 <DropdownMenu
                                     width={240}
                                     items={[
@@ -144,7 +167,7 @@ function SeasonEpisodeDialog({
                         );
                     })()
                 ) : (
-                    <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
+                    <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1, ...skippedSx }}>
                         <Slider
                             value={typeof rating === 'number' ? rating : 0}
                             onChange={handleSliderChange}
@@ -166,7 +189,7 @@ function SeasonEpisodeDialog({
                     </Box>
                 )}
 
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: mode === "episode" ? 'space-between' : 'flex-end', width: '100%' }}>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: mode === "episode" ? 'space-between' : 'flex-end', width: '100%', ...skippedSx }}>
                     {mode === "episode" && (
                         <InputBoxRegular
                             label="Times watched"

@@ -315,7 +315,7 @@ export const updateProfile = async (req, res) => {
 
 export const updateSettings = async (req, res) => {
   try {
-    const { themeMode, language, typeCustom, ratingSystem } = req.body;
+    const { themeMode, language, typeCustom, ratingSystem, colorFolderIcons } = req.body;
 
     // Кожен тег — не довше 100 символів
     if (Array.isArray(typeCustom) && typeCustom.some((t) => typeof t === "string" && t.length > 100)) {
@@ -349,6 +349,8 @@ export const updateSettings = async (req, res) => {
         language,
         typeCustom,
         ratingSystem: normalizedRatingSystem,
+        // Лише булеве значення; інакше (не передано) поле не чіпаємо
+        colorFolderIcons: typeof colorFolderIcons === "boolean" ? colorFolderIcons : undefined,
       },
       { new: true }
     ).exec();
