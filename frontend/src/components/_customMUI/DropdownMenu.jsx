@@ -37,7 +37,12 @@ function DropdownMenu({
     );
 
     const handleOpen = (event) => {
-        if (stopPropagation) event.stopPropagation();
+        if (stopPropagation) {
+            event.stopPropagation();
+            // Кнопка може стояти всередині посилання (папка в сайдбарі): без preventDefault
+            // браузер пішов би за href, а не відкрив меню
+            event.preventDefault();
+        }
         setAnchorEl(event.currentTarget);
         setOpen(true);
     };

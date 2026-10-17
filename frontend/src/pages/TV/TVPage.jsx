@@ -1,16 +1,15 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip, Menu, MenuItem } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Rating, Tooltip, Menu, MenuItem } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { selectSavedCopies } from '../../redux/slices/SavedSlice'
 import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem, getRatingLevels } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
 import { alertError, alertSuccess, alertConfirm } from '../../alerts'
-import AddIcon from '@mui/icons-material/Add'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
@@ -18,6 +17,9 @@ import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpis
 import ActorCart from '../../components/Carts/ActorCart'
 import EpisodeCart from '../../components/Carts/EpisodeCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
+import ItemFolderButton from '../../components/ItemFolderButton'
+import StretchedLink from '../../components/StretchedLink'
+import { fetchSavedDoc } from '../../utils/savedItems'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
@@ -93,10 +95,22 @@ function TVPage({ isSaved = false }) {
     const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
     const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
+    // Елемент діалогу, коли це не серіал сторінки, а обрана кнопкою копія. null — серіал сторінки
+    const [dialogItem, setDialogItem] = useState(null)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
     const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей серіал
+    // Копії з індексу збережених: за ними чіп папки вирішує, куди вести
+    const savedCopies = useSelector(selectSavedCopies('tv', serial?.tmdbId))
+
+    // Куди веде чіп папки: одна копія в папці — її сторінка, кілька (дублікати) — папка з пошуком за назвою
+    const savedFolderPath = (folderName) => {
+        const inFolder = savedCopies.filter((c) => c.folderName === folderName)
+        return inFolder.length === 1
+            ? `/user/tv/${inFolder[0].mongoId}`
+            : `/folders/${encodeURIComponent(folderName)}?filter=${encodeURIComponent(serial.name)}`
+    }
     const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей серіал
 
     const navigate = useNavigate()
@@ -236,22 +250,43 @@ function TVPage({ isSaved = false }) {
         setIsOpenDialogEdit(false)
         setIsDeleteItem(false)
         setSelectedFolder(false)
+        setDialogItem(null)
+    }
+
+    // Об'єкт папки зі списку папок сторінки (сайдбар діалогу підсвічує вибране за order)
+    const folderOfCopy = (copy) => folders.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status }
+
+    // Редагування / видалення копії, обраної кнопкою на сторінці серіалу з TMDB
+    // (на сторінці копії кнопка викликає звичайні handleOpenDialogEdit / handleDeleteItem)
+    const handleEditCopy = async (copy) => {
+        if (!copy) return handleOpenDialogEdit()
+        try {
+            const doc = await fetchSavedDoc('tv', copy.mongoId)
+            setDialogItem({ ...serial, ...doc })
+            setSelectedFolder(folderOfCopy(copy))
+            setIsOpenDialogEdit(true)
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        }
+    }
+    const handleDeleteCopy = (copy) => {
+        if (!copy) return handleDeleteItem()
+        setDialogItem({ ...serial, _id: copy.mongoId })
+        setSelectedFolder(folderOfCopy(copy))
+        setIsDeleteItem(true)
     }
 
     // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
-        if (isSaved) {
+        // Збережено іншу копію — дані сторінки не чіпаємо
+        if (isSaved && !dialogItem) {
             setSerial(prev => ({ ...prev, ...updated }))
             if (updated.folderName) setCurrentFolderName(updated.folderName)
         }
         setIsGetFolders(true) // оновити блок "Saved in" без спіннера сторінки
     }
 
-    const savedMenuItems = [
-        { key: 'Add', label: 'Add', onClick: handleOpenDialogAdd },
-        { key: 'Edit', label: 'Edit', onClick: handleOpenDialogEdit },
-        { key: 'Delete', label: 'Delete', onClick: handleDeleteItem },
-    ]
 
     // -- Оцінка сезонів / серій (тільки для збереженого серіалу) -- //
     const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
@@ -760,61 +795,18 @@ function TVPage({ isSaved = false }) {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка дій для авторизованих користувачів */}
+                {/* Кнопка дій для авторизованих користувачів. На /user/tv/:id сторінка — конкретна копія */}
                 {isAuth && (
-                    isSaved
-                        ? (
-                            <DropdownMenu
-                                width={140}
-                                items={savedMenuItems}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                renderTrigger={({ onClick }) => (
-                                    <IconButton
-                                        aria-label="edit saved tv"
-                                        onClick={onClick}
-                                        sx={{
-                                            position: "absolute",
-                                            right: 20,
-                                            top: 20,
-                                            backgroundColor: "text.white",
-                                            opacity: 0.9,
-                                            zIndex: 2,
-                                            borderRadius: 2,
-                                            '&:hover': {
-                                                opacity: 1,
-                                                backgroundColor: "yellow.main",
-                                                '& svg': { color: "text.dark" },
-                                            }
-                                        }}
-                                    >
-                                        <MoreVertIcon sx={{ opacity: 1, color: "text.dark" }} />
-                                    </IconButton>
-                                )}
-                            />
-                        )
-                        : (
-                            <IconButton
-                                aria-label="add to folder"
-                                onClick={handleOpenDialogAdd}
-                                sx={{
-                                    position: "absolute",
-                                    right: 20,
-                                    top: 20,
-                                    backgroundColor: "text.white",
-                                    opacity: 0.9,
-                                    zIndex: 2,
-                                    borderRadius: 2,
-                                    '&:hover': {
-                                        opacity: 1,
-                                        backgroundColor: "yellow.main",
-                                        '& svg': { color: "text.dark" },
-                                    }
-                                }}
-                            >
-                                <AddIcon sx={{ opacity: 1, color: "text.dark" }} />
-                            </IconButton>
-                        )
+                    <ItemFolderButton
+                        tone="hero"
+                        mediaType="tv"
+                        tmdbId={serial.tmdbId}
+                        itemTitle={serial.name}
+                        isCopy={isSaved}
+                        onAdd={handleOpenDialogAdd}
+                        onEdit={handleEditCopy}
+                        onDelete={handleDeleteCopy}
+                    />
                 )}
                 <Box sx={{
                     display: "flex",
@@ -827,8 +819,8 @@ function TVPage({ isSaved = false }) {
                     {/* Poster */}
                     <Tooltip title={isSaved ? "Open the TV page" : ""} arrow placement="top">
                         <Card
-                            onClick={isSaved ? () => navigate(`/tv/${serial.tmdbId}`) : undefined}
                             sx={{
+                                position: "relative",
                                 width: 200,
                                 height: 300,
                                 flexShrink: 0,
@@ -844,6 +836,8 @@ function TVPage({ isSaved = false }) {
                                 })
                             }}
                         >
+                            {/* Справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік */}
+                            {isSaved && <StretchedLink to={`/tv/${serial.tmdbId}`} label="Open the TV page" />}
                             <CardMedia
                                 component="img"
                                 height="300"
@@ -869,7 +863,9 @@ function TVPage({ isSaved = false }) {
                                     key={genre.id}
                                     label={genre.name}
                                     size="small"
-                                    onClick={() => navigate(`/genre/${genre.id}`)}
+                                    component={Link}
+                                    to={`/genre/${genre.id}`}
+                                    clickable
                                     sx={{
                                         cursor: 'pointer',
                                         backgroundColor: "overlay.chip",
@@ -912,7 +908,9 @@ function TVPage({ isSaved = false }) {
                                             key={folder.name}
                                             label={folder.name}
                                             variant="outlined"
-                                            onClick={() => navigate(`/folders/${folder.name}?filter=${encodeURIComponent(serial.name)}`)}
+                                            component={Link}
+                                            to={savedFolderPath(folder.name)}
+                                            clickable
                                             sx={{
                                                 cursor: 'pointer',
                                                 backgroundColor: "overlay.chipSubtle",
@@ -1075,9 +1073,10 @@ function TVPage({ isSaved = false }) {
                 handleCloseDialog={handleCloseDialog}
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
-                selectedItem={serial}
+                selectedItem={dialogItem || serial}
                 onSaved={handleItemSaved}
-                onAfterDelete={() => navigate(-1)}
+                // Після видалення копії, на якій відкрита сторінка, повертаємось назад
+                onAfterDelete={() => { if (isSaved && !dialogItem) navigate(-1) }}
                 // sidebar props
                 folders={folders}
                 setFolders={setFolders}

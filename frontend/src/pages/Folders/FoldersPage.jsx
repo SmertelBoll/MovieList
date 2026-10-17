@@ -1,6 +1,6 @@
 import { Box, Chip, CircularProgress, Typography } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import StretchedLink from '../../components/StretchedLink'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { NO_TAG } from '../../redux/slices/ConfigSlice'
@@ -14,7 +14,6 @@ import { getStatusLabel, getStatusChipSx } from '../../utils/folderStatus'
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
     const { typeTMDB, customTypes } = useSelector((state) => state.config)
-    const navigate = useNavigate()
 
     const [folders, setFolders] = useState([])
     const [isLoading, setIsLoading] = useState(true)
@@ -259,9 +258,11 @@ function FoldersPage() {
                                     }),
                                 }}
                             >
+                                {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
+                                {!isRenaming && <StretchedLink to={`/folders/${encodeURIComponent(folder.name)}`} label={folder.name} />}
+
                                 {/* Картка */}
                                 <Box
-                                    onClick={isRenaming ? undefined : () => navigate(`/folders/${folder.name}`)}
                                     sx={{
                                         height: '100%',
                                         display: 'flex',
@@ -332,7 +333,7 @@ function FoldersPage() {
                                 {/* Кнопка ⋮ */}
                                 <Box
                                     onClick={(e) => e.stopPropagation()}
-                                    sx={{ position: 'absolute', top: 4, right: 4 }}
+                                    sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1 }}
                                 >
                                     <UpdateFolder
                                         hasImage={Boolean(folder.image)}

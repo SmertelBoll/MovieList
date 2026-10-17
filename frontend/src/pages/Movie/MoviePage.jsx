@@ -1,20 +1,21 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, IconButton, Rating, Tooltip, useMediaQuery } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Rating, Tooltip, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { selectSavedCopies } from '../../redux/slices/SavedSlice'
 import { formatRatingLabel } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { cleanCollectionName } from '../../utils/tmdb'
 import { alertError } from '../../alerts'
-import AddIcon from '@mui/icons-material/Add'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import ActorCart from '../../components/Carts/ActorCart'
 import TimelineCart from '../../components/Carts/TimelineCart'
-import DropdownMenu from '../../components/_customMUI/DropdownMenu'
+import ItemFolderButton from '../../components/ItemFolderButton'
+import StretchedLink from '../../components/StretchedLink'
+import { fetchSavedDoc } from '../../utils/savedItems'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
@@ -73,10 +74,22 @@ function MoviePage({ isSaved = false }) {
     const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
     const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
+    // Елемент діалогу, коли це не фільм сторінки: частина Timeline або обрана копія. null — фільм сторінки
+    const [dialogItem, setDialogItem] = useState(null)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
     const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей фільм
+    // Копії з індексу збережених: за ними чіп папки вирішує, куди вести
+    const savedCopies = useSelector(selectSavedCopies('movie', movie?.tmdbId))
+
+    // Куди веде чіп папки: одна копія в папці — її сторінка, кілька (дублікати) — папка з пошуком за назвою
+    const savedFolderPath = (folderName) => {
+        const inFolder = savedCopies.filter((c) => c.folderName === folderName)
+        return inFolder.length === 1
+            ? `/user/movie/${inFolder[0].mongoId}`
+            : `/folders/${encodeURIComponent(folderName)}?filter=${encodeURIComponent(movie.title)}`
+    }
     const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей фільм
 
     // Колекція TMDB (франшиза) — усі частини цього фільму
@@ -261,22 +274,63 @@ function MoviePage({ isSaved = false }) {
         setIsOpenDialogEdit(false)
         setIsDeleteItem(false)
         setSelectedFolder(false)
+        setDialogItem(null)
+    }
+
+    // Об'єкт папки зі списку папок сторінки (сайдбар діалогу підсвічує вибране за order)
+    const folderOfCopy = (copy) => folders.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status }
+
+    // Редагування / видалення копії, обраної кнопкою на сторінці фільму з TMDB
+    // (на сторінці копії кнопка викликає звичайні handleOpenDialogEdit / handleDeleteItem)
+    const handleEditCopy = async (copy) => {
+        if (!copy) return handleOpenDialogEdit()
+        try {
+            const doc = await fetchSavedDoc('movie', copy.mongoId)
+            setDialogItem({ ...movie, ...doc })
+            setSelectedFolder(folderOfCopy(copy))
+            setIsOpenDialogEdit(true)
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        }
+    }
+    const handleDeleteCopy = (copy) => {
+        if (!copy) return handleDeleteItem()
+        setDialogItem({ ...movie, _id: copy.mongoId })
+        setSelectedFolder(folderOfCopy(copy))
+        setIsDeleteItem(true)
+    }
+
+    // Timeline: додати частину франшизи / редагувати збережену. Діалог той самий, що й для фільму сторінки,
+    // тільки з іншим елементом.
+    const partItem = (part) => ({ id: part.id, title: part.title, media_type: 'movie' })
+    const handleTimelineAdd = (part) => {
+        setDialogItem(partItem(part))
+        setSelectedFolder(false)
+        setIsOpenDialogAdd(true)
+    }
+    const handleTimelineEdit = async (part, copy) => {
+        try {
+            const doc = await fetchSavedDoc('movie', copy.mongoId)
+            setDialogItem({ ...partItem(part), ...doc })
+            setSelectedFolder(folderOfCopy(copy))
+            setIsOpenDialogEdit(true)
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        }
     }
 
     // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
-        if (isSaved) {
+        // Збережено інший елемент (частина Timeline, чужа копія) — дані сторінки не чіпаємо
+        if (isSaved && !dialogItem) {
             setMovie(prev => ({ ...prev, ...updated }))
             if (updated.folderName) setCurrentFolderName(updated.folderName)
         }
         setIsGetFolders(true) // оновити блок "Saved in" без спіннера сторінки
     }
 
-    const savedMenuItems = [
-        { key: 'Add', label: 'Add', onClick: handleOpenDialogAdd },
-        { key: 'Edit', label: 'Edit', onClick: handleOpenDialogEdit },
-        { key: 'Delete', label: 'Delete', onClick: handleDeleteItem },
-    ]
 
     if (isLoading) {
         return (
@@ -328,61 +382,18 @@ function MoviePage({ isSaved = false }) {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка дій для авторизованих користувачів */}
+                {/* Кнопка дій для авторизованих користувачів. На /user/movie/:id сторінка — конкретна копія */}
                 {isAuth && (
-                    isSaved
-                        ? (
-                            <DropdownMenu
-                                width={140}
-                                items={savedMenuItems}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                renderTrigger={({ onClick }) => (
-                                    <IconButton
-                                        aria-label="edit saved movie"
-                                        onClick={onClick}
-                                        sx={{
-                                            position: "absolute",
-                                            right: { xs: 12, sm: 20 },
-                                            top: { xs: 12, sm: 20 },
-                                            backgroundColor: "overlay.onImage",
-                                            opacity: 0.9,
-                                            zIndex: 2,
-                                            borderRadius: 2,
-                                            '&:hover': {
-                                                opacity: 1,
-                                                backgroundColor: "yellow.main",
-                                                '& svg': { color: "text.dark" },
-                                            }
-                                        }}
-                                    >
-                                        <MoreVertIcon sx={{ opacity: 1, color: "text.dark" }} />
-                                    </IconButton>
-                                )}
-                            />
-                        )
-                        : (
-                            <IconButton
-                                aria-label="add to folder"
-                                onClick={handleOpenDialogAdd}
-                                sx={{
-                                    position: "absolute",
-                                    right: { xs: 12, sm: 20 },
-                                    top: { xs: 12, sm: 20 },
-                                    backgroundColor: "overlay.onImage",
-                                    opacity: 0.9,
-                                    zIndex: 2,
-                                    borderRadius: 2,
-                                    '&:hover': {
-                                        opacity: 1,
-                                        backgroundColor: "yellow.main",
-                                        '& svg': { color: "text.dark" },
-                                    }
-                                }}
-                            >
-                                <AddIcon sx={{ opacity: 1, color: "text.dark" }} />
-                            </IconButton>
-                        )
+                    <ItemFolderButton
+                        tone="hero"
+                        mediaType="movie"
+                        tmdbId={movie.tmdbId}
+                        itemTitle={movie.title}
+                        isCopy={isSaved}
+                        onAdd={handleOpenDialogAdd}
+                        onEdit={handleEditCopy}
+                        onDelete={handleDeleteCopy}
+                    />
                 )}
                 <Box sx={{
                     display: "flex",
@@ -399,8 +410,8 @@ function MoviePage({ isSaved = false }) {
                     {/* Poster */}
                     <Tooltip title={isSaved ? "Open the movie page" : ""} arrow placement="top">
                         <Card
-                            onClick={isSaved ? () => navigate(`/movie/${movie.tmdbId}`) : undefined}
                             sx={{
+                                position: "relative",
                                 // На телефоні — широкий кадр 16:9 на всю ширину:
                                 // вертикальний постер з'їдав забагато висоти
                                 width: { xs: "100%", sm: 170, md: 200 },
@@ -418,6 +429,8 @@ function MoviePage({ isSaved = false }) {
                                 })
                             }}
                         >
+                            {/* Справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік */}
+                            {isSaved && <StretchedLink to={`/movie/${movie.tmdbId}`} label="Open the movie page" />}
                             <CardMedia
                                 component="img"
                                 image={heroImage}
@@ -465,7 +478,9 @@ function MoviePage({ isSaved = false }) {
                                     key={genre.id}
                                     label={genre.name}
                                     size="small"
-                                    onClick={() => navigate(`/genre/${genre.id}`)}
+                                    component={Link}
+                                    to={`/genre/${genre.id}`}
+                                    clickable
                                     sx={{
                                         cursor: 'pointer',
                                         backgroundColor: "overlay.chip",
@@ -560,7 +575,9 @@ function MoviePage({ isSaved = false }) {
                                             key={folder.name}
                                             label={folder.name}
                                             variant="outlined"
-                                            onClick={() => navigate(`/folders/${folder.name}?filter=${encodeURIComponent(movie.title)}`)}
+                                            component={Link}
+                                            to={savedFolderPath(folder.name)}
+                                            clickable
                                             sx={{
                                                 cursor: 'pointer',
                                                 backgroundColor: "overlay.chipSubtle",
@@ -637,6 +654,8 @@ function MoviePage({ isSaved = false }) {
                                 key={part.id}
                                 part={part}
                                 isCurrent={part.id === movie.tmdbId}
+                                onAdd={handleTimelineAdd}
+                                onEdit={handleTimelineEdit}
                             />
                         ))}
                     </Box>
@@ -693,7 +712,9 @@ function MoviePage({ isSaved = false }) {
                                 key={company.id}
                                 label={company.name}
                                 variant="outlined"
-                                onClick={() => navigate(`/company/${company.id}`)}
+                                component={Link}
+                                to={`/company/${company.id}`}
+                                clickable
                                 sx={{
                                     cursor: 'pointer',
                                     flexShrink: 0,
@@ -719,9 +740,10 @@ function MoviePage({ isSaved = false }) {
                 handleCloseDialog={handleCloseDialog}
                 selectedFolder={selectedFolder}
                 setSelectedFolder={setSelectedFolder}
-                selectedItem={movie}
+                selectedItem={dialogItem || movie}
                 onSaved={handleItemSaved}
-                onAfterDelete={() => navigate(-1)}
+                // Після видалення копії, на якій відкрита сторінка, повертаємось назад
+                onAfterDelete={() => { if (isSaved && !dialogItem) navigate(-1) }}
                 // sidebar props
                 folders={folders}
                 setFolders={setFolders}

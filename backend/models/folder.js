@@ -11,6 +11,22 @@ export const FOLDER_STATUSES = {
 
 export const FOLDER_STATUS_VALUES = Object.values(FOLDER_STATUSES);
 
+// Якщо елемент лежить одразу в кількох папках зі статусами — перемагає найвищий
+// за пріоритетом: кинуте > дивлюсь > заплановано > переглянуто.
+// Тримати синхронно з STATUS_PRIORITY у frontend/src/utils/folderStatus.js.
+const STATUS_PRIORITY = [
+    FOLDER_STATUSES.DROPPED,
+    FOLDER_STATUSES.WATCHING,
+    FOLDER_STATUSES.PLANNED,
+    FOLDER_STATUSES.WATCHED,
+];
+
+export const betterStatus = (a, b) => {
+    if (!a) return b;
+    if (!b) return a;
+    return STATUS_PRIORITY.indexOf(a) <= STATUS_PRIORITY.indexOf(b) ? a : b;
+};
+
 // Папки, які створюються автоматично при реєстрації.
 export const DEFAULT_FOLDERS = [
     { name: "Planned", status: FOLDER_STATUSES.PLANNED, order: 0 },

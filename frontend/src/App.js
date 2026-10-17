@@ -22,6 +22,8 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import UpdatesPage from "./pages/Updates/UpdatesPage";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
+import { fetchSaved, clearSaved } from "./redux/slices/SavedSlice";
+import { SAVED_CHANGED_EVENT } from "./axios";
 import { setMode, setLanguage } from "./redux/slices/ConfigSlice";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
 
@@ -40,6 +42,29 @@ function App() {
     if (authData.themeMode) dispatch(setMode(authData.themeMode));
     if (authData.language) dispatch(setLanguage(authData.language));
   }, [authData, dispatch]);
+
+  // Індекс збережених елементів: де лежить кожен фільм/серіал. Завантажуємо після входу
+  // і оновлюємо після кожної зміни папок/елементів (axios шле подію).
+  const isAuth = Boolean(authData);
+  useEffect(() => {
+    if (!isAuth) {
+      dispatch(clearSaved());
+      return;
+    }
+    dispatch(fetchSaved());
+
+    // Кілька запитів поспіль (напр. перенос + оновлення) збираємо в одне оновлення
+    let timer = null;
+    const onChanged = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => dispatch(fetchSaved()), 300);
+    };
+    window.addEventListener(SAVED_CHANGED_EVENT, onChanged);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener(SAVED_CHANGED_EVENT, onChanged);
+    };
+  }, [isAuth, dispatch]);
 
   const { mode } = useSelector((state) => state.config);
 

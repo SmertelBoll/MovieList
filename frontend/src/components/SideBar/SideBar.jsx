@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import React, { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import SecondaryButton from '../Buttons/SecondaryButton'
 import AddIcon from '@mui/icons-material/Add';
 import { alertConfirm, alertError } from '../../alerts';
@@ -18,6 +19,9 @@ function SideBar({
     setFolders,
     setIsGetFolders,
     handleClickToFolder,
+    // Якщо задано — кнопка папки стає справжнім посиланням (колесо миші / Ctrl+клік),
+    // а handleClickToFolder не потрібен. Без нього кнопка лише вибирає папку (діалог збереження).
+    getFolderHref,
     selectedFolder,
     sx
 }) {
@@ -247,7 +251,8 @@ function SideBar({
                                         />
                                     }
                                     isThreePoints={true}
-                                    onClick={() => { handleClickToFolder(folder) }}
+                                    {...(getFolderHref ? { component: Link, to: getFolderHref(folder) } : {})}
+                                    onClick={() => { handleClickToFolder?.(folder) }}
                                     fullWidth
                                     sx={{
                                         display: "flex",

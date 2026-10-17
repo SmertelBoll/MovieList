@@ -1,5 +1,5 @@
 import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, useMediaQuery, Typography } from '@mui/material';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -63,6 +63,15 @@ function ItemSaveDialog({
         [theme.palette.bg.second, theme.palette.text.main]
     );
 
+    // Підпис кнопки зберігання. Під час анімації закриття обидва прапорці вже false —
+    // без запам'ятованого значення на мить зʼявлявся запасний текст.
+    // Папка, в якій елемент лежав на момент відкриття редагування. Видалення йде саме з неї,
+    // навіть якщо в сайдбарі вже обрано іншу папку для переносу.
+    const editFolderRef = useRef(null);
+    const submitLabelRef = useRef('Add');
+    if (isOpenDialogAdd) submitLabelRef.current = 'Add';
+    else if (isOpenDialogEdit) submitLabelRef.current = 'Update';
+
     const [rating, setRating] = useState(DEFAULT_RATE);
     const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE);
     const [text, setText] = useState(DEFAULT_TEXT);
@@ -83,6 +92,7 @@ function ItemSaveDialog({
     useEffect(() => {
         if (!selectedItem || !isOpenDialogEdit) return;
 
+        editFolderRef.current = selectedFolder;
         setRating(selectedItem.rating);
         // Календарний день, а не момент часу — інакше дата стрибає на добу
         // залежно від часового поясу (див. utils/dates.js).
@@ -537,11 +547,27 @@ function ItemSaveDialog({
                     </Box>
 
                     <DialogActions sx={{ p: 0, gap: 1 }}>
+                        {/* Видалити — лише при редагуванні вже збереженого елемента */}
+                        {isOpenDialogEdit && (
+                            <MainButton
+                                onClick={() => handleDeleteItem(selectedItem, editFolderRef.current || selectedFolder)}
+                                sx={{
+                                    flex: { xs: 1, sm: '0 0 auto' },
+                                    m: 0,
+                                    mr: { sm: 'auto' },
+                                    backgroundColor: 'danger.main',
+                                    color: 'danger.contrastText',
+                                    ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' },
+                                }}
+                            >
+                                Delete
+                            </MainButton>
+                        )}
                         <MainButton onClick={handleCloseDialog} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
                             Cancel
                         </MainButton>
                         <MainButton onClick={handleSubmit} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
-                            {isOpenDialogAdd ? 'Add' : isOpenDialogEdit ? 'Update' : 'Ops.. Error'}
+                            {submitLabelRef.current}
                         </MainButton>
                     </DialogActions>
 

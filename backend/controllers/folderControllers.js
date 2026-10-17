@@ -539,3 +539,54 @@ export const getItemsFromFolder = async (req, res) => {
     res.status(500).json({ title: "Folder error", message: "failed to get items" });
   }
 };
+
+// Індекс усіх збережених елементів користувача: в яких папках лежить кожен фільм/серіал.
+// Ключ — "movie:<tmdbId>" / "tv:<tmdbId>", значення — копії (кожна копія лежить в одній папці).
+// Це легкий довідник для кнопок «додати/редагувати» на всіх сторінках: за ним видно,
+// чи збережено елемент, скільки в нього папок і який статус. Повні дані копії — окремо
+// через /movie/mongo/:id та /tv/mongo/:id.
+export const getSavedIndex = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const folders = await FolderModel.find({ user: userId }).sort({ order: 1 }).exec();
+
+    const movieIds = [];
+    const tvIds = [];
+    for (const folder of folders) {
+      for (const element of folder.folderElements) {
+        (element.itemModel === "Movie" ? movieIds : tvIds).push(element.itemId);
+      }
+    }
+
+    const [movies, tvs] = await Promise.all([
+      MovieModel.find({ _id: { $in: movieIds }, user: userId }).select("_id tmdbId").exec(),
+      TvModel.find({ _id: { $in: tvIds }, user: userId }).select("_id tmdbId").exec(),
+    ]);
+    const tmdbIdByMongoId = {
+      Movie: new Map(movies.map((m) => [String(m._id), m.tmdbId])),
+      Tv: new Map(tvs.map((t) => [String(t._id), t.tmdbId])),
+    };
+
+    const results = {};
+    for (const folder of folders) {
+      for (const element of folder.folderElements) {
+        const tmdbId = tmdbIdByMongoId[element.itemModel]?.get(String(element.itemId));
+        if (tmdbId === undefined) continue;
+
+        const key = `${element.itemModel === "Movie" ? "movie" : "tv"}:${tmdbId}`;
+        (results[key] = results[key] || []).push({
+          mongoId: String(element.itemId),
+          folderName: folder.name,
+          status: folder.status ?? null,
+          image: folder.image || "",
+        });
+      }
+    }
+
+    res.json({ success: true, results });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Folders error", message: "could not get saved items" });
+  }
+};

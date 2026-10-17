@@ -1,22 +1,18 @@
-import { Box, Card, Chip, Collapse, IconButton, Tooltip, Typography } from '@mui/material'
+import { Box, Card, Chip, Collapse, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { formatDateOnly } from '../../utils/dates'
+import ItemFolderButton from '../../components/ItemFolderButton'
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
-import AddIcon from '@mui/icons-material/Add'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
-import AccessTimeIcon from '@mui/icons-material/AccessTime'
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled'
 import LockIcon from '@mui/icons-material/Lock'
-import { FOLDER_STATUSES } from '../../utils/folderStatus'
+import { DIMMED_POSTER_SX, isDimmedStatus } from '../../utils/folderStatus'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const TMDB = process.env.REACT_APP_URL_TMDB
@@ -27,42 +23,8 @@ const poster = (path) => (path ? IMG_W185 + path : IMG_DEFAULT)
 // TMDB віддає дати вже як yyyy-mm-dd, а dateAdded — ISO-рядок
 const asDate = (value) => formatDateOnly(value) || '—'
 
-// Іконка в куті постера показує, де фільм уже лежить.
-// Незбережений — плюс (додати), решта — відкриває редагування.
-// Годинник у двох станах: заповнений — дивиться зараз, контурний — заплановано.
-// Той самий символ, але візуально розрізнювані.
-const CORNER_ICON = {
-    [FOLDER_STATUSES.WATCHED]: CheckIcon,
-    [FOLDER_STATUSES.WATCHING]: AccessTimeFilledIcon,
-    [FOLDER_STATUSES.DROPPED]: CloseIcon,
-    [FOLDER_STATUSES.PLANNED]: AccessTimeIcon,
-}
-
-// Приглушуємо лише те, що вже позаду: переглянуте й кинуте.
-// Той самий набір, що HANDLED_STATUSES на сторінці — фільм, який ще дивляться,
-// і яскравий, і присутній у лічильниках.
-const DIMMED = new Set([FOLDER_STATUSES.WATCHED, FOLDER_STATUSES.DROPPED])
-const isDimmed = (status) => DIMMED.has(status)
-
-// Кутова кнопка на постері — той самий вигляд, що в картках фільмів у списках
-const cornerButtonSx = {
-    position: 'absolute',
-    right: 5,
-    top: 5,
-    backgroundColor: 'text.main',
-    opacity: 0.8,
-    zIndex: 1,
-    borderRadius: 2,
-    '&:hover': {
-        opacity: 1,
-        backgroundColor: 'yellow.main',
-        '& svg': { color: 'yellow.contrastText' },
-    },
-}
-
 /** Один рядок списку: колекція фільмів або серіал. Клік розкриває деталі. */
 function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
-    const navigate = useNavigate()
     const { language } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
 
@@ -137,13 +99,24 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     },
                 }}
             >
+                {/* Картинка — справжнє посилання на сторінку TMDB (а не onClick з navigate):
+                    так працюють колесо миші та Ctrl/Cmd+клік — відкриття в новій вкладці.
+                    У колекції власної сторінки немає — ведемо на першу частину франшизи. */}
                 <Box
-                    component="img"
-                    src={poster(row.posterPath)}
-                    alt={row.title}
-                    loading="lazy"
-                    sx={{ width: 48, height: 72, objectFit: 'cover', borderRadius: 1, flexShrink: 0, boxShadow: 2 }}
-                />
+                    component={Link}
+                    to={row.kind === 'tv' ? `/tv/${row.id}` : `/movie/${row.parts[0]?.id}`}
+                    // Клік по картинці не розгортає рядок
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{ display: 'flex', flexShrink: 0 }}
+                >
+                    <Box
+                        component="img"
+                        src={poster(row.posterPath)}
+                        alt={row.title}
+                        loading="lazy"
+                        sx={{ width: 48, height: 72, objectFit: 'cover', borderRadius: 1, boxShadow: 2 }}
+                    />
+                </Box>
 
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Typography variant="body1" color="text.main" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
@@ -203,38 +176,33 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                             transition: 'box-shadow 0.2s ease-in-out',
                                         }}
                                     >
-                                        <Box
-                                            component="img"
-                                            src={poster(part.posterPath)}
-                                            alt={part.title}
-                                            loading="lazy"
-                                            onClick={() => navigate(`/movie/${part.id}`)}
-                                            sx={{
-                                                width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block',
-                                                cursor: 'pointer',
-                                                // Приглушуємо тільки переглянуте й кинуте —
-                                                // те, що дивляться зараз, лишається яскравим
-                                                filter: isDimmed(part.status) ? 'grayscale(0.6)' : 'none',
-                                                opacity: isDimmed(part.status) ? 0.65 : 1,
-                                            }}
-                                        />
+                                        {/* Справжнє посилання — працюють колесо миші та Ctrl/Cmd+клік */}
+                                        <Box component={Link} to={`/movie/${part.id}`} sx={{ display: 'block' }}>
+                                            <Box
+                                                component="img"
+                                                src={poster(part.posterPath)}
+                                                alt={part.title}
+                                                loading="lazy"
+                                                sx={{
+                                                    width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block',
+                                                    // Приглушуємо тільки переглянуте й кинуте —
+                                                    // те, що дивляться зараз, лишається яскравим
+                                                    ...(isDimmedStatus(part.status) && DIMMED_POSTER_SX),
+                                                }}
+                                            />
+                                        </Box>
 
-                                        {/* Іконка показує, де фільм лежить: галочка / хрестик / годинник,
-                                            а незбережений — плюс */}
-                                        <IconButton
-                                            aria-label={part.status ? 'edit' : 'add'}
-                                            title={part.status ? `In "${part.folderName}"` : 'Add to folder'}
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                part.status ? onMovieCheck(part) : onMoviePlus(part)
-                                            }}
-                                            sx={cornerButtonSx}
-                                        >
-                                            {(() => {
-                                                const Icon = CORNER_ICON[part.status] || AddIcon
-                                                return <Icon sx={{ opacity: 1, color: 'bg.second' }} />
-                                            })()}
-                                        </IconButton>
+                                        {/* Плюс (додати) або значок статусу (редагувати). Підказка — усі папки фільму;
+                                            кілька папок — перед редагуванням з'являється вибір папки */}
+                                        <ItemFolderButton
+                                            variant="direct"
+                                            mediaType="movie"
+                                            tmdbId={part.id}
+                                            itemTitle={part.title}
+                                            stopPropagation
+                                            onAdd={() => onMoviePlus(part)}
+                                            onEdit={(copy) => onMovieCheck(part, copy)}
+                                        />
                                     </Box>
 
                                     <Typography variant="body2" color="text.main" sx={{

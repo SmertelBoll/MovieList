@@ -1,21 +1,6 @@
-import FolderModel, { FOLDER_STATUSES, FOLDER_STATUS_VALUES } from "../models/folder.js";
+import FolderModel, { FOLDER_STATUSES, FOLDER_STATUS_VALUES, betterStatus } from "../models/folder.js";
 import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
-
-// Якщо елемент лежить одразу в кількох папках зі статусами — перемагає
-// «найдалі просунутий» стан перегляду.
-const STATUS_PRIORITY = [
-  FOLDER_STATUSES.WATCHED,
-  FOLDER_STATUSES.WATCHING,
-  FOLDER_STATUSES.DROPPED,
-  FOLDER_STATUSES.PLANNED,
-];
-
-const betterStatus = (a, b) => {
-  if (!a) return b;
-  if (!b) return a;
-  return STATUS_PRIORITY.indexOf(a) <= STATUS_PRIORITY.indexOf(b) ? a : b;
-};
 
 /**
  * Дані для сторінки "New releases".
@@ -40,6 +25,12 @@ const betterStatus = (a, b) => {
 export const getUpdates = async (req, res) => {
   try {
     const userId = req.userId;
+    // ?view=dropped — та сама логіка, але по кинутих: серіали з папок зі статусом dropped
+    // (звичайний режим бере тільки watching / watched). Фільми віддаються однаково в обох режимах
+    // з прапорцем hasDropped — фронт сам вирішує, які колекції показувати.
+    const tvStatuses = req.query.view === "dropped"
+      ? [FOLDER_STATUSES.DROPPED]
+      : [FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED];
 
     const folders = await FolderModel.find({
       user: userId,
@@ -83,6 +74,9 @@ export const getUpdates = async (req, res) => {
       movieByTmdbId.set(movie.tmdbId, {
         tmdbId: movie.tmdbId,
         status,
+        // Хоча б одна копія лежить у папці зі статусом dropped (навіть якщо інша копія сильніша):
+        // така франшиза на сторінці нових релізів не показується взагалі
+        hasDropped: Boolean(existing?.hasDropped) || placement.status === FOLDER_STATUSES.DROPPED,
         mongoId: takeThis ? String(movie._id) : existing.mongoId,
         folderName: takeThis ? placement.folderName : existing.folderName,
         // Потрібні діалогу редагування: без них форма відкрилась би порожньою
@@ -95,12 +89,12 @@ export const getUpdates = async (req, res) => {
       });
     }
 
-    // Серіали: беремо лише ті, що в watching / watched
+    // Серіали: лише ті, що в папках зі статусами з tvStatuses
     const tvByTmdbId = new Map();
     for (const tv of tvs) {
       const placement = placementByItem.get(String(tv._id));
       if (!placement) continue;
-      if (placement.status !== FOLDER_STATUSES.WATCHING && placement.status !== FOLDER_STATUSES.WATCHED) continue;
+      if (!tvStatuses.includes(placement.status)) continue;
 
       let entry = tvByTmdbId.get(tv.tmdbId);
       if (!entry) {

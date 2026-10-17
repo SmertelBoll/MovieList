@@ -6,13 +6,11 @@ import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios';
 import { alertError } from '../../alerts'
-import { useNavigate } from 'react-router-dom'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 
 
 function HomePage() {
   const isAuth = useSelector(selectIsAuth);
-  const navigate = useNavigate();
   const { typeTMDB } = useSelector((state) => state.config);
 
 
@@ -77,11 +75,6 @@ function HomePage() {
     }
   }, [isGetFolders, isAuth]);
 
-  //-- OPEN FOLDER -- //
-  const handleOpenFolder = (folder) => {
-    navigate(`folders/${folder.name}`);
-  }
-
 
   // Кешуємо GeneralItemList, щоб він не ререндерився кожен раз, 
   // коли ми просто гортаємо сторінку і showSidebar змінюється
@@ -128,7 +121,8 @@ function HomePage() {
             folders={folders}
             setFolders={setFolders}
             setIsGetFolders={setIsGetFolders}
-            handleClickToFolder={handleOpenFolder}
+            // Папка в сайдбарі — справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік
+            getFolderHref={(folder) => `/folders/${encodeURIComponent(folder.name)}`}
             selectedFolder={false}
           />
         </Box>

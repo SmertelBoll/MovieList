@@ -1,22 +1,13 @@
 import { Box, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import StretchedLink from '../StretchedLink'
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`; // базовий URL для отримання зображень
 
 function ActorCart({ person, role }) {
-    const navigate = useNavigate();
-
-    const handleClick = () => {
-        // Визначаємо, чи це актор чи член команди
-        const isActor = ['Director', 'Producer', 'Writer', 'Screenplay', 'Editor', 'Cinematography', 'Production Design', 'Costume Design', 'Makeup', 'Sound'].includes(role);
-
-        if (isActor) {
-            navigate(`/crew/${person.id}`);
-        } else {
-            navigate(`/actor/${person.id}`);
-        }
-    };
+    // Визначаємо, чи це актор чи член команди
+    const isCrew = ['Director', 'Producer', 'Writer', 'Screenplay', 'Editor', 'Cinematography', 'Production Design', 'Costume Design', 'Makeup', 'Sound'].includes(role);
+    const href = isCrew ? `/crew/${person.id}` : `/actor/${person.id}`;
 
     return (
         <Box sx={{
@@ -26,6 +17,7 @@ function ActorCart({ person, role }) {
             gap: 1,
             minWidth: 100,
             maxWidth: 100,
+            position: "relative",
             p: 1,
             cursor: "pointer",
             transition: "transform 0.2s ease-in-out",
@@ -33,8 +25,9 @@ function ActorCart({ person, role }) {
                 transform: (theme) => theme.hoverLift
             }
         }}
-            onClick={handleClick}
         >
+            {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
+            <StretchedLink to={href} label={person.name} />
             <Box
                 component="img"
                 src={person.profile_path ? IMAGE_BASE_URL_W185 + person.profile_path : IMAGE_DEFAULT}

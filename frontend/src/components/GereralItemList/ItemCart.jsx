@@ -1,10 +1,8 @@
-import { Box, Card, CardContent, CardMedia, IconButton, Rating, Typography } from '@mui/material'
+import { Box, Card, CardContent, CardMedia, Rating, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import StretchedLink from '../StretchedLink'
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
-import DropdownMenu from '../_customMUI/DropdownMenu';
+import ItemFolderButton from '../ItemFolderButton';
 import { formatRatingLabel } from '../../utils/ratingSystem';
 import { formatDateOnly } from '../../utils/dates';
 
@@ -28,8 +26,6 @@ function ItemCart({
     isVoteCount = false,
     isFolderPage = false
 }) {
-    const navigate = useNavigate();
-
     const isAuth = useSelector(selectIsAuth);
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
 
@@ -37,43 +33,13 @@ function ItemCart({
     const mongoRatingText = item.rating == null ? '-' : formatRatingLabel(item.rating, ratingSystem);
     const tmdbRatingText = `${Math.round((item.vote_average || 0) * 10) / 10}/10`;
 
-    const handleCardClick = (e) => {
-        e.stopPropagation();
-        if (item.media_type === "movie") {
-            if (dbType === "mongo") {
-                navigate(`/user/movie/${item._id}`);
-            } else {
-                navigate(`/movie/${item.id}`);
-            }
-        } else if (item.media_type === "tv") {
-            if (dbType === "mongo") {
-                navigate(`/user/tv/${item._id}`);
-            } else {
-                navigate(`/tv/${item.id}`);
-            }
-        }
-    };
+    // Куди веде картка: збережена копія — /user/..., каталог TMDB — /movie|tv/...
+    const href = item.media_type === "movie" || item.media_type === "tv"
+        ? (dbType === "mongo" ? `/user/${item.media_type}/${item._id}` : `/${item.media_type}/${item.id}`)
+        : null;
 
-    const handleAddClick = (e) => {
-        e.stopPropagation();
-        onAddItem(item);
-    };
-
-    const handleEditClick = (e) => {
-        e.stopPropagation();
-        onEditItem(item)
-    };
-
-    const handleDeleteClick = (e) => {
-        e.stopPropagation();
-        onDeleteItem(item)
-    };
-
-    const menuItems = [
-        { key: 'Add', label: 'Add', onClick: handleAddClick },
-        { key: 'Edit', label: 'Edit', onClick: handleEditClick },
-        { key: 'Delete', label: 'Delete', onClick: handleDeleteClick },
-    ];
+    // tmdbId: у mongo-картки (сторінка папки) tmdb-дані змішані з документом, id = tmdbId
+    const tmdbId = item.tmdbId ?? item.id;
 
     return (
         <Card
@@ -88,79 +54,24 @@ function ItemCart({
                     boxShadow: 4
                 }
             }}
-            onClick={handleCardClick}
         >
+            {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
+            {href && <StretchedLink to={href} label={mediaType === "movie" ? item.title : item.name} />}
 
-            {/* Кнопка додавання в папку */}
-            {isAuth &&
-                <>
-                    {isFolderPage
-                        ? (
-                            <DropdownMenu
-                                width={140}
-                                stopPropagation
-                                items={menuItems}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                renderTrigger={({ onClick }) => (
-                                    <IconButton
-                                        aria-label="choose"
-                                        onClick={onClick}
-                                        sx={{
-                                            position: "absolute",
-                                            right: 5,
-                                            top: 5,
-                                            backgroundColor: "text.main",
-                                            opacity: 0.8,
-                                            zIndex: 1,
-                                            borderRadius: 2,
-                                            '&:hover': {
-                                                opacity: 1,
-                                                backgroundColor: "yellow.main",
-                                                '& svg': {
-                                                    color: "text.dark",
-                                                },
-                                            }
-                                        }}>
-                                        <MoreVertIcon sx={{
-                                            opacity: 1,
-                                            color: "bg.second"
-                                        }} />
-                                    </IconButton>
-                                )}
-                            />
-                        )
-                        : (
-                            <>
-                                <IconButton
-                                    aria-label="add"
-                                    onClick={handleAddClick}
-                                    sx={{
-                                        position: "absolute",
-                                        right: 5,
-                                        top: 5,
-                                        backgroundColor: "text.main",
-                                        opacity: 0.8,
-                                        zIndex: 1,
-                                        borderRadius: 2,
-                                        '&:hover': {
-                                            opacity: 1,
-                                            backgroundColor: "yellow.main",
-                                            '& svg': {
-                                                color: "text.dark",
-                                            },
-                                        }
-                                    }}>
-                                    <AddIcon sx={{
-                                        opacity: 1,
-                                        color: "bg.second"
-                                    }} />
-                                </IconButton>
-                            </>
-                        )
-                    }
-                </>
-            }
+            {/* Кнопка додавання в папку / редагування збереженого. На сторінці папки картка — конкретна копія */}
+            {isAuth && (
+                <ItemFolderButton
+                    mediaType={mediaType}
+                    tmdbId={tmdbId}
+                    itemTitle={mediaType === "movie" ? item.title : item.name}
+                    isCopy={isFolderPage}
+                    stopPropagation
+                    onAdd={() => onAddItem(item)}
+                    onEdit={(copy) => onEditItem(item, copy)}
+                    onDelete={(copy) => onDeleteItem(item, copy)}
+                />
+            )}
+
 
             {
                 isImage && <CardMedia

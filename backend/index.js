@@ -9,25 +9,10 @@ import { loginValidation, registerValidation } from "./validations/auth.js";
 import { checkValidationError } from "./utils/checkValidationError.js";
 import { getMe, loginUser, registerUser, updateSettings, updateProfile, deleteCustomType, renameCustomType, updateEmail, updatePassword } from "./controllers/userControllers.js";
 import { checkAuth } from "./utils/checkAuth.js";
-import {
-  createPost,
-  getAllPosts,
-  getOnePost,
-  removePost,
-  updatePost,
-} from "./controllers/postControllers.js";
-import { postCreateValidation } from "./validations/post.js";
-import {
-  createComment,
-  getAllCommentsByMovie,
-  getAllCommentsByUser,
-  removeComment,
-} from "./controllers/commentControllers.js";
-import { commentCreateValidation } from "./validations/comment.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
 import { getUpdates } from "./controllers/updatesControllers.js";
-import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, getSavedIndex, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode } from "./controllers/tvControllers.js";
 
@@ -83,17 +68,6 @@ app.delete("/auth/types/:type", checkAuth, deleteCustomType);
 // Без checkAuth, бо завантаження аватара відбувається ще до реєстрації/логіну.
 app.post("/upload", uploadFile);
 
-// app.get("/posts", getAllPosts);
-// app.get("/posts/:id", getOnePost);
-// app.post("/posts", checkAuth, postCreateValidation, checkValidationError, createPost);
-// app.delete("/posts/:id", checkAuth, removePost);
-// app.patch("/posts/:id", checkAuth, postCreateValidation, checkValidationError, updatePost);
-
-// app.get("/comments/:postId", getAllCommentsByMovie);
-// app.get("/comments", checkAuth, getAllCommentsByUser);
-// app.post("/comments", checkAuth, commentCreateValidation, checkValidationError, createComment);
-// app.delete("/comments/:id", checkAuth, removeComment);
-
 app.get("/movie/mongo/:mongoId", checkAuth, getMovieByMongoId)
 app.get("/movie/:tmdbId", checkAuth, getMovieByTmdbId)
 app.post("/movie", checkAuth, addMovieToFolder)
@@ -115,6 +89,8 @@ app.get("/folders/movie/:tmdbId", checkAuth, getFoldersByMovie)
 app.get("/folders/tv/:tmdbId", checkAuth, getFoldersByTV)
 
 app.get("/updates", checkAuth, getUpdates);
+// Індекс усіх збережених фільмів/серіалів: де кожен лежить (кнопки, підказки, вибір папки)
+app.get("/items/saved", checkAuth, getSavedIndex);
 
 app.get("/folders", checkAuth, getFoldersByUser);
 app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);

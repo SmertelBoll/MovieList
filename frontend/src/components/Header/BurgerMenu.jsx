@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Drawer, Button, Avatar, Typography } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import { selectIsAuth } from "../../redux/slices/AuthSlice";
@@ -37,7 +37,6 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
 
   const isAuth = useSelector(selectIsAuth);
   const { data } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false); // drawer
 
   const handleDrawerOpen = () => {
@@ -46,11 +45,6 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
 
   const handleDrawerClose = () => {
     setOpen(false);
-  };
-
-  const handleAvatarClick = () => {
-    handleDrawerClose();
-    navigate("/profile");
   };
 
   React.useEffect(() => {
@@ -92,8 +86,11 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
       >
         {/* user */}
         {isAuth && (
+          // Справжнє посилання на профіль: працюють колесо миші та Ctrl/Cmd+клік
           <Box
-            onClick={handleAvatarClick}
+            component={Link}
+            to="/profile"
+            onClick={handleDrawerClose}
             sx={{
               display: "flex",
               alignItems: "flex-start",

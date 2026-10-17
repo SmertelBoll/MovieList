@@ -7,9 +7,12 @@ import { alertError, alertConfirm } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { cleanCollectionName } from '../../utils/tmdb'
 import { toDateOnlyISO } from '../../utils/dates'
-import { FOLDER_STATUSES } from '../../utils/folderStatus'
+import { FOLDER_STATUSES, getBestStatus } from '../../utils/folderStatus'
+import { fetchSavedDoc } from '../../utils/savedItems'
 import { NO_TAG } from '../../redux/slices/ConfigSlice'
 import Sort from '../../components/Sorting/Sort'
+// SLIDE_MS — тривалість анімації повзунка; дані перезавантажуємо вже після неї
+import SegmentedSwitch, { SLIDE_MS } from '../../components/SegmentedSwitch'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
 import UpdateRow from './UpdateRow'
@@ -46,6 +49,15 @@ const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.DROPPED,
 ])
 
+// Якщо хоча б одна частина франшизи кинута (є в папці зі статусом dropped), увесь Timeline
+// на сторінці нових релізів не показується. Це правило для фільмів; серіали живуть за своєю логікою.
+const hasDroppedPart = (parts) => parts.some((p) => p.hasDropped)
+
+// Режими сторінки: звичайний («нові релізи») і по кинутих — та сама логіка, інший набір.
+// Кинуті колекції в звичайному режимі приховані, у режимі dropped — навпаки, показані лише вони.
+const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped' }
+const isCollectionVisible = (view, parts) => (view === VIEWS.DROPPED ? hasDroppedPart(parts) : !hasDroppedPart(parts))
+
 // order — напрямок за замовчуванням: desc дає той самий порядок, що й раніше
 // (спершу найбільше нового / найсвіжіші релізи), Title — за зростанням (A–Z).
 const SORT_OPTIONS = {
@@ -65,8 +77,20 @@ function UpdatesPage() {
     const isAuth = useSelector(selectIsAuth)
     const { language, typeTMDB, customTypes } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
+    // Де лежить кожна копія (індекс збережених): потрібен, щоб після правки порахувати статус частини
+    const savedIndex = useSelector((state) => state.saved.byKey)
 
+    // switchView — що показує перемикач (міняється миттєво, повзунок їде одразу).
+    // view — режим, за яким завантажено й показано дані: наздоганяє перемикач із затримкою
+    // на час анімації, щоб важке перезавантаження списку не гальмувало слайд.
+    const [switchView, setSwitchView] = useState(VIEWS.ACTIVE)
+    const [view, setView] = useState(VIEWS.ACTIVE)
+    useEffect(() => {
+        const timer = setTimeout(() => setView(switchView), SLIDE_MS)
+        return () => clearTimeout(timer)
+    }, [switchView])
     const [isLoading, setIsLoading] = useState(true)
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
     const [rows, setRows] = useState([])
     const [nameSortBy, setNameSortBy] = useState('New episodes')
     const [sortDirection, setSortDirection] = useState(SORT_OPTIONS['New episodes'].order)
@@ -103,7 +127,7 @@ function UpdatesPage() {
         setIsLoading(true)
 
         const load = async () => {
-            const { data } = await instance.get('/updates')
+            const { data } = await instance.get('/updates', { params: { view } })
             const { movies, tv } = data.results
             if (cancelled) return
 
@@ -113,7 +137,8 @@ function UpdatesPage() {
             // --- ФІЛЬМИ: збираємо колекції ---
             // Затравка — лише watching/watched. Якщо з франшизи нічого не дивилися
             // (усе в planned) або її кинули (dropped), колекція не зʼявляється.
-            const seeds = movies.filter((m) => SEED_STATUSES.has(m.status))
+            // У режимі dropped затравка — фільм, що лежить у кинутій папці
+            const seeds = movies.filter((m) => (view === VIEWS.DROPPED ? m.hasDropped : SEED_STATUSES.has(m.status)))
 
             const details = await mapLimit(seeds, CONCURRENCY, async (m) => {
                 try { return await tmdbGet(`/movie/${m.tmdbId}`) } catch { return null }
@@ -142,6 +167,7 @@ function UpdatesPage() {
                             releaseDate: part.release_date || '',
                             // null — не збережений; інакше статус папки
                             status: saved?.status || null,
+                            hasDropped: Boolean(saved?.hasDropped),
                             mongoId: saved?.mongoId || null,
                             folderName: saved?.folderName || null,
                             // Дані збереженого документа — щоб редагування відкривалось заповненим
@@ -161,7 +187,7 @@ function UpdatesPage() {
                     unwatchedCount: unwatched.length,
                     latestDate: unwatched.reduce((max, p) => (p.releaseDate > max ? p.releaseDate : max), ''),
                 }
-            }).filter((row) => row.unwatchedCount > 0)
+            }).filter((row) => row.unwatchedCount > 0 && isCollectionVisible(view, row.parts))
 
             // --- СЕРІАЛИ ---
             const serials = await mapLimit(tv, CONCURRENCY, async (entry) => {
@@ -211,6 +237,7 @@ function UpdatesPage() {
 
             if (!cancelled) {
                 setRows([...collectionRows, ...tvRows])
+                setHasLoadedOnce(true)
                 setIsLoading(false)
             }
         }
@@ -223,7 +250,7 @@ function UpdatesPage() {
         })
 
         return () => { cancelled = true }
-    }, [isAuth, tmdbGet])
+    }, [isAuth, tmdbGet, view])
 
     // Фільтри з шапки застосовуються до вже завантажених даних — без нових запитів
     const sortedRows = useMemo(() => {
@@ -256,10 +283,13 @@ function UpdatesPage() {
                 acc.push(row)
                 return acc
             }
-            const parts = row.parts.map((p) => (p.id === tmdbId ? { ...p, ...patch } : p))
+            // patch — обʼєкт або функція від поточної частини (коли нове значення залежить від старого)
+            const parts = row.parts.map((p) => (
+                p.id === tmdbId ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p
+            ))
             const unwatched = parts.filter((p) => !HANDLED_STATUSES.has(p.status))
-            // Колекція без непереглянутих зникає зі списку
-            if (unwatched.length === 0) return acc
+            // Колекція без непереглянутих або та, що не підходить поточному режиму (кинута/не кинута), зникає зі списку
+            if (unwatched.length === 0 || !isCollectionVisible(view, parts)) return acc
             acc.push({
                 ...row,
                 parts,
@@ -268,7 +298,7 @@ function UpdatesPage() {
             })
             return acc
         }, []))
-    }, [])
+    }, [view])
 
     // entries: { [номерСерії]: дані }. Одна серія — окремий випадок масового
     // позначення, тож обидва сценарії йдуть через один хелпер і один рендер.
@@ -309,35 +339,45 @@ function UpdatesPage() {
         })
     }, [])
 
-    const handleMovieCheck = useCallback((part) => {
-        setMovieDialog({
-            mode: 'edit',
-            item: {
-                _id: part.mongoId,
-                id: part.id,
-                title: part.title,
-                media_type: 'movie',
-                tmdbType: 'movie',
-                // Прокидаємо збережені значення, інакше форма відкриється порожньою
-                rating: part.saved?.rating ?? null,
-                comment: part.saved?.comment || '',
-                dateAdded: part.saved?.dateAdded || null,
-                customType: part.saved?.customType || null,
-            },
-            // Беремо повний обʼєкт папки зі списку: сайдбар підсвічує вибране
-            // за order, тож самої назви замало
-            folder: folders.find((f) => f.name === part.folderName) || false,
-        })
+    // copy — копія фільму, обрана кнопкою (одна папка — вона сама, кілька — вибір у вікні)
+    const handleMovieCheck = useCallback(async (part, copy) => {
+        try {
+            // Повні дані копії: без них форма відкрилась би порожньою і збереження затерло б оцінку й коментар
+            const doc = await fetchSavedDoc('movie', copy.mongoId)
+            setMovieDialog({
+                mode: 'edit',
+                item: {
+                    _id: copy.mongoId,
+                    id: part.id,
+                    title: part.title,
+                    media_type: 'movie',
+                    tmdbType: 'movie',
+                    rating: doc.rating ?? null,
+                    comment: doc.comment || '',
+                    dateAdded: doc.dateAdded || null,
+                    customType: doc.customType || null,
+                },
+                // Беремо повний обʼєкт папки зі списку: сайдбар підсвічує вибране
+                // за order, тож самої назви замало
+                folder: folders.find((f) => f.name === copy.folderName) || false,
+            })
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+        }
     }, [folders])
 
     const handleMovieSaved = useCallback((updated) => {
         setMovieDialog((dialog) => {
             if (!dialog) return null
-            patchMoviePart(dialog.item.id, {
-                // Статус беремо з папки, яку обрали в діалозі: від нього залежить
-                // і іконка, і чи вважати фільм опрацьованим
-                status: dialog.folder?.status || null,
-                mongoId: updated?._id || dialog.item._id || null,
+            // Копій може бути кілька: статус частини — найсильніший серед усіх. Змінена копія
+            // тепер в обраній папці, решта лишаються як були
+            const editedId = updated?._id || dialog.item._id
+            const others = (savedIndex[`movie:${dialog.item.id}`] || []).filter((c) => c.mongoId !== editedId)
+            patchMoviePart(dialog.item.id, () => ({
+                status: getBestStatus([...others.map((c) => c.status), dialog.folder?.status || null]),
+                hasDropped: [...others.map((c) => c.status), dialog.folder?.status].includes(FOLDER_STATUSES.DROPPED),
+                mongoId: editedId || null,
                 folderName: dialog.folder?.name || null,
                 saved: {
                     rating: updated?.rating ?? null,
@@ -345,10 +385,23 @@ function UpdatesPage() {
                     dateAdded: updated?.dateAdded || null,
                     customType: updated?.customType || null,
                 },
-            })
+            }))
             return null
         })
-    }, [patchMoviePart])
+    }, [patchMoviePart, savedIndex])
+
+    // Фільм видалено з діалогу редагування: частина лишається в списку «нових», статус — за копіями, що залишились
+    const handleMovieDeleted = useCallback(() => {
+        if (!movieDialog) return
+        const others = (savedIndex[`movie:${movieDialog.item.id}`] || []).filter((c) => c.mongoId !== movieDialog.item._id)
+        patchMoviePart(movieDialog.item.id, () => ({
+            status: getBestStatus(others.map((c) => c.status)),
+            hasDropped: others.some((c) => c.status === FOLDER_STATUSES.DROPPED),
+            mongoId: others[0]?.mongoId || null,
+            folderName: others[0]?.folderName || null,
+            saved: null,
+        }))
+    }, [movieDialog, savedIndex, patchMoviePart])
 
     // --- СЕРІЯ: позначити переглянутою або відредагувати ---
     const handleEpisodeMark = useCallback(async (row, seasonNumber, episodeNumber) => {
@@ -410,7 +463,9 @@ function UpdatesPage() {
         )
     }
 
-    if (isLoading) {
+    // Спінер лише на першому завантаженні. При перемиканні режиму шапка (разом з перемикачем)
+    // лишається на місці — інакше повзунок не встиг би проїхати: компонент зникав би.
+    if (isLoading && rows.length === 0 && !hasLoadedOnce) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
                 <CircularProgress color="primary" />
@@ -419,23 +474,47 @@ function UpdatesPage() {
     }
 
     const totalNew = sortedRows.reduce((sum, row) => sum + row.unwatchedCount, 0)
+    const isDroppedView = view === VIEWS.DROPPED
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {/* Шапка */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                <Box>
+            {/* Три колонки: заголовок | перемикач по центру | сортування. Крайні колонки рівні (1fr),
+                тож перемикач завжди рівно посередині і не рухається, хоч би який був підсумок. */}
+            <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '1fr auto 1fr' },
+                alignItems: 'center',
+                justifyItems: { xs: 'stretch', md: 'start' },
+                gap: 2,
+            }}>
+                <Box sx={{ minWidth: 0 }}>
                     <Typography variant="sectionTitle" color="text.main">
-                        New releases
+                        {isDroppedView ? 'Dropped' : 'New releases'}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        {sortedRows.length === 0
-                            ? 'Everything you are watching is up to date'
+                        {isLoading
+                            ? 'Loading…'
+                            : sortedRows.length === 0
+                            ? (isDroppedView ? 'No dropped titles with new releases' : 'Everything you are watching is up to date')
                             : `${totalNew} new in ${sortedRows.length} ${sortedRows.length === 1 ? 'title' : 'titles'}`}
                     </Typography>
                 </Box>
 
-                {sortedRows.length > 0 && (
+                {/* Перемикач режиму: звичайні нові релізи / те саме по кинутих */}
+                <SegmentedSwitch
+                    value={switchView}
+                    onChange={setSwitchView}
+                    sx={{ justifySelf: 'center' }}
+                    options={[
+                        { value: VIEWS.ACTIVE, label: 'New' },
+                        { value: VIEWS.DROPPED, label: 'Dropped' },
+                    ]}
+                />
+
+                {/* Сортування лишається в розмітці завжди (просто невидиме), щоб перемикач не стрибав,
+                    коли воно зникає на час завантаження чи при порожньому списку */}
+                <Box sx={{ justifySelf: { xs: 'stretch', md: 'end' }, visibility: !isLoading && sortedRows.length > 0 ? 'visible' : 'hidden' }}>
                     <Sort
                         nameSortBy={nameSortBy}
                         setNameSortBy={setNameSortBy}
@@ -443,16 +522,30 @@ function UpdatesPage() {
                         setSortDirection={setSortDirection}
                         categoriesSortBy={SORT_OPTIONS}
                     />
-                )}
+                </Box>
             </Box>
 
             {/* Список */}
-            {sortedRows.length === 0 ? (
+            {isLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                    <CircularProgress color="primary" />
+                </Box>
+            ) : sortedRows.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <Typography variant="body1" color="text.secondary" textAlign="center">
-                        Nothing new. Add movies or shows to a folder with the
-                        <br />
-                        "Watching" or "Watched" status and come back later.
+                        {isDroppedView ? (
+                            <>
+                                Nothing here. Movies and shows from folders with the
+                                <br />
+                                "Dropped" status that have new releases will appear here.
+                            </>
+                        ) : (
+                            <>
+                                Nothing new. Add movies or shows to a folder with the
+                                <br />
+                                "Watching" or "Watched" status and come back later.
+                            </>
+                        )}
                     </Typography>
                 </Box>
             ) : (
@@ -480,6 +573,7 @@ function UpdatesPage() {
                 setSelectedFolder={(folder) => setMovieDialog((prev) => (prev ? { ...prev, folder } : prev))}
                 selectedItem={movieDialog?.item ?? {}}
                 onSaved={handleMovieSaved}
+                onAfterDelete={handleMovieDeleted}
                 folders={folders}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}

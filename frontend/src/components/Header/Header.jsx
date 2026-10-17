@@ -94,12 +94,22 @@ function Header({ mode }) {
       }}
     >
       <ContainerCustom sx={{ py: 1 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link to="/">
-            logo
-          </Link>
+        {/* Три блоки в сітці: лого притиснуте вліво, вибори — по центру, меню / вхід — вправо.
+            Крайні колонки однакові (minmax(0, 1fr)), тож середній блок завжди рівно посередині,
+            хоч би яка була ширина лого й кнопок справа. */}
+        <Box sx={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+          alignItems: "center",
+          columnGap: 1,
+        }}>
+          <Box sx={{ justifySelf: "start" }}>
+            <Link to="/">
+              logo
+            </Link>
+          </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifySelf: "center" }}>
             {/* Вибір мови */}
             <LanguageSelector />
 
@@ -117,21 +127,23 @@ function Header({ mode }) {
           </Box>
 
           {/* button menu */}
-          {!isAuth ? (
-            <>
-              <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, alignItems: "center" }}>
-                <Link to="/register">
-                  <MainButton>Sign up</MainButton>
-                </Link>
-                <Link to="/login">
-                  <MainButton>Log in</MainButton>
-                </Link>
-              </Box>
-              <BurgerMenu sx={{ display: { xs: "flex", md: "none" } }} onClickLogout={onClickLogout} />
-            </>
-          ) : (
-            <BurgerMenu onClickLogout={onClickLogout} />
-          )}
+          <Box sx={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 2 }}>
+            {!isAuth ? (
+              <>
+                <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, alignItems: "center" }}>
+                  <Link to="/register">
+                    <MainButton>Sign up</MainButton>
+                  </Link>
+                  <Link to="/login">
+                    <MainButton>Log in</MainButton>
+                  </Link>
+                </Box>
+                <BurgerMenu sx={{ display: { xs: "flex", md: "none" } }} onClickLogout={onClickLogout} />
+              </>
+            ) : (
+              <BurgerMenu onClickLogout={onClickLogout} />
+            )}
+          </Box>
 
         </Box>
 

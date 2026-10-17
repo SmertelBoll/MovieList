@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import MainButton from '../Buttons/MainButton';
 import ItemSaveDialog from '../ItemSaveDialog/ItemSaveDialog';
 import Sort from '../Sorting/Sort';
+import { fetchSavedDoc } from '../../utils/savedItems';
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
@@ -336,10 +337,26 @@ function GeneralItemList({
         setSelectedItem(item);
         setIsOpenDialogAdd(true);
     };
-    // редагування фільму в папці
-    const handleDialogEditItem = (item) => {
-        setSelectedItem(item);
-        setIsOpenDialogEdit(true);
+    // Копія з індексу збережених → повний об'єкт папки (сайдбар діалогу підсвічує вибране за order)
+    const folderOfCopy = (copy) => folders?.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status };
+
+    // редагування фільму в папці. copy — копія, обрана кнопкою на сторінках зі списком tmdb:
+    // тоді дані копії (оцінка, коментар...) підтягуємо за mongoId. Без copy картка вже є копією.
+    const handleDialogEditItem = async (item, copy = null) => {
+        if (!copy) {
+            setSelectedItem(item);
+            setIsOpenDialogEdit(true);
+            return;
+        }
+        try {
+            const doc = await fetchSavedDoc(item.media_type, copy.mongoId);
+            setSelectedFolder(folderOfCopy(copy));
+            setSelectedItem({ ...item, ...doc });
+            setIsOpenDialogEdit(true);
+        } catch (err) {
+            console.warn(err);
+            alertError(err);
+        }
     };
     // закриття діалогу
     const handleCloseDialog = () => {
@@ -350,9 +367,14 @@ function GeneralItemList({
             setSelectedFolder(null)
         }
     };
-    // видалення фільму або серіалу
-    const handleDeleteItem = (item) => {
-        setSelectedItem(item)
+    // видалення фільму або серіалу (copy — копія з індексу, коли картка не є копією сама)
+    const handleDeleteItem = (item, copy = null) => {
+        if (copy) {
+            setSelectedFolder(folderOfCopy(copy))
+            setSelectedItem({ ...item, _id: copy.mongoId })
+        } else {
+            setSelectedItem(item)
+        }
         setIsDeleteItem(true);
     };
 
@@ -388,7 +410,9 @@ function GeneralItemList({
         displayedItems,
         dbType,
         pageType,
-        props.objectOfFolderPage
+        props.objectOfFolderPage,
+        // Обробники редагування/видалення беруть папку копії зі списку папок
+        folders
     ]);
 
     const isEmpty = (isPreperedData && preperedData.length === 0)
@@ -417,10 +441,17 @@ function GeneralItemList({
                             </Box>}
 
                             {isSort && (() => {
-                                const isSortDisabled = dbType === "tmdb" && !preperedData && (searchValue.trim() !== "" || typeTMDB.length > 1);
+                                const isSearching = searchValue.trim() !== "";
+                                const isBothTypes = typeTMDB.length > 1;
+                                const isSortDisabled = dbType === "tmdb" && !preperedData && (isSearching || isBothTypes);
+                                // Підказка називає конкретну причину і що зробити
+                                const disabledReason = [
+                                    isBothTypes && "Select only movies or only TV shows",
+                                    isSearching && "clear the search",
+                                ].filter(Boolean).join(" and ");
                                 return (
                                     <Tooltip
-                                        title={isSortDisabled ? "Sorting is not available for the current filters" : ""}
+                                        title={isSortDisabled ? `Sorting is not available for the current filters. ${disabledReason}.` : ""}
                                         arrow
                                         placement="top"
                                     >

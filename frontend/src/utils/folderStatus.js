@@ -1,11 +1,26 @@
 // Статуси папок. Значення мають збігатися з FOLDER_STATUSES у backend/models/folder.js —
 // саме їх приймає PATCH /folders/status/:name.
 
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
+
 export const FOLDER_STATUSES = {
     PLANNED: 'planned',
     WATCHING: 'watching',
     WATCHED: 'watched',
     DROPPED: 'dropped',
+};
+
+// Значок статусу в куті постера (сторінка New releases, Timeline).
+// Годинник у двох станах: заповнений — дивиться зараз, контурний — заплановано.
+// Той самий символ, але візуально розрізнювані.
+export const STATUS_CORNER_ICON = {
+    [FOLDER_STATUSES.WATCHED]: CheckIcon,
+    [FOLDER_STATUSES.WATCHING]: AccessTimeFilledIcon,
+    [FOLDER_STATUSES.DROPPED]: CloseIcon,
+    [FOLDER_STATUSES.PLANNED]: AccessTimeIcon,
 };
 
 // Порядок тут визначає порядок пунктів у меню
@@ -55,4 +70,39 @@ export const getStatusChipSx = (status) => {
         border: 'none',
         fontWeight: 600,
     };
+};
+
+// Приглушуємо постер лише того, що вже позаду: переглянуте й кинуте.
+// Те, що дивляться зараз або заплановане, лишається яскравим.
+// Однаково на сторінці New releases і в Timeline.
+export const DIMMED_POSTER_SX = {
+    filter: 'grayscale(0.6)',
+    opacity: 0.65,
+};
+export const isDimmedStatus = (status) =>
+    status === FOLDER_STATUSES.WATCHED || status === FOLDER_STATUSES.DROPPED;
+
+// Порядок блоків у підказці зі списком папок; null — папки без статусу
+export const STATUS_DISPLAY_ORDER = [
+    FOLDER_STATUSES.WATCHED,
+    FOLDER_STATUSES.WATCHING,
+    FOLDER_STATUSES.PLANNED,
+    FOLDER_STATUSES.DROPPED,
+    null,
+];
+
+// Найсильніший статус серед списку — той самий порядок, що betterStatus на бекенді
+// (models/folder.js): кинуте > дивлюсь > заплановано > переглянуто. Без статусів — null.
+const STATUS_PRIORITY = [
+    FOLDER_STATUSES.DROPPED,
+    FOLDER_STATUSES.WATCHING,
+    FOLDER_STATUSES.PLANNED,
+    FOLDER_STATUSES.WATCHED,
+];
+export const getBestStatus = (statuses) => {
+    const known = statuses.filter(Boolean);
+    if (known.length === 0) return null;
+    return known.reduce((best, status) => (
+        STATUS_PRIORITY.indexOf(status) < STATUS_PRIORITY.indexOf(best) ? status : best
+    ));
 };
