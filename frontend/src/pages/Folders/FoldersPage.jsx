@@ -199,7 +199,13 @@ function FoldersPage() {
         )
     }
 
-    const sorted = [...folders].sort((a, b) => b.order - a.order)
+    // Без фільтрів (обидва типи й жодного тегу) показуємо всі папки, навіть порожні.
+    // Є фільтр — лише папки, де після нього лишився хоч один елемент. Папку, яку зараз
+    // перейменовують, не ховаємо, щоб поле вводу не зникло.
+    const hasFilters = customTypes.length > 0 || typeTMDB.length < 2
+    const sorted = [...folders]
+        .filter((folder) => !hasFilters || getCount(folder) > 0 || curFolderToRename?.order === folder.order)
+        .sort((a, b) => b.order - a.order)
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
@@ -218,7 +224,9 @@ function FoldersPage() {
 
             {sorted.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                    <Typography variant="h6" color="text.secondary">No folders yet</Typography>
+                    <Typography variant="h6" color="text.secondary">
+                        {hasFilters && folders.length > 0 ? 'No folders match the filters' : 'No folders yet'}
+                    </Typography>
                 </Box>
             ) : (
                 <Box sx={{
