@@ -70,7 +70,7 @@ function FolderPage() {
                     sx={{
                         ...getStatusChipSx(curFolder?.status),
                         cursor: 'pointer',
-                        '&:hover': { opacity: 0.85 },
+                        '@media (hover: hover)': { '&:hover': { opacity: 0.85 } },
                     }}
                 />
             )}

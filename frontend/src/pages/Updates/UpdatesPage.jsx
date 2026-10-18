@@ -1,7 +1,9 @@
 import { Box, CircularProgress, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import GridViewIcon from '@mui/icons-material/GridView'
+import ViewListIcon from '@mui/icons-material/ViewList'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
@@ -10,7 +12,7 @@ import { toDateOnlyISO } from '../../utils/dates'
 import { FOLDER_STATUSES, getBestStatus } from '../../utils/folderStatus'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { getTags } from '../../utils/tags'
-import { NO_TAG } from '../../redux/slices/ConfigSlice'
+import { NO_TAG, setViewMode } from '../../redux/slices/ConfigSlice'
 import Sort from '../../components/Sorting/Sort'
 // SLIDE_MS — тривалість анімації повзунка; дані перезавантажуємо вже після неї
 import SegmentedSwitch, { SLIDE_MS } from '../../components/SegmentedSwitch'
@@ -79,8 +81,9 @@ const SORT_COMPARATORS = {
 }
 
 function UpdatesPage() {
+    const dispatch = useDispatch()
     const isAuth = useSelector(selectIsAuth)
-    const { language, typeTMDB, customTypes } = useSelector((state) => state.config)
+    const { language, typeTMDB, customTypes, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
     // Де лежить кожна копія (індекс збережених): потрібен, щоб після правки порахувати статус частини
     const savedIndex = useSelector((state) => state.saved.byKey)
@@ -540,13 +543,30 @@ function UpdatesPage() {
 
                 {/* Сортування лишається в розмітці завжди (просто невидиме), щоб перемикач не стрибав,
                     коли воно зникає на час завантаження чи при порожньому списку */}
-                <Box sx={{ justifySelf: { xs: 'stretch', md: 'end' }, visibility: !isLoading && sortedRows.length > 0 ? 'visible' : 'hidden' }}>
-                    <Sort
-                        nameSortBy={nameSortBy}
-                        setNameSortBy={setNameSortBy}
-                        sortDirection={sortDirection}
-                        setSortDirection={setSortDirection}
-                        categoriesSortBy={SORT_OPTIONS}
+                <Box sx={{
+                    justifySelf: { xs: 'stretch', md: 'end' },
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    visibility: !isLoading && sortedRows.length > 0 ? 'visible' : 'hidden',
+                }}>
+                    <Box sx={{ flexGrow: { xs: 1, md: 0 }, minWidth: 0 }}>
+                        <Sort
+                            nameSortBy={nameSortBy}
+                            setNameSortBy={setNameSortBy}
+                            sortDirection={sortDirection}
+                            setSortDirection={setSortDirection}
+                            categoriesSortBy={SORT_OPTIONS}
+                        />
+                    </Box>
+
+                    {/* Вигляд частин колекції: картки або компактні рядки — той самий перемикач і налаштування, що в General */}
+                    <SegmentedSwitch
+                        compact
+                        value={viewMode}
+                        onChange={(mode) => dispatch(setViewMode(mode))}
+                        options={[
+                            { value: 'cards', label: <GridViewIcon fontSize="small" />, ariaLabel: 'Show as cards' },
+                            { value: 'list', label: <ViewListIcon fontSize="small" />, ariaLabel: 'Show as list' },
+                        ]}
                     />
                 </Box>
             </Box>

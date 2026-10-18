@@ -66,7 +66,7 @@ function ItemRow({
                 alignItems: 'center',
                 columnGap: 2,
                 transition: 'box-shadow 0.2s ease-in-out',
-                '&:hover': { boxShadow: 4 },
+                '@media (hover: hover)': { '&:hover': { boxShadow: 4 } },
             }}
         >
             {href && <StretchedLink to={href} label={title} />}

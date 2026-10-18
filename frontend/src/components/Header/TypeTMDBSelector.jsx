@@ -100,7 +100,7 @@ function TypeTMDBSelector() {
                         borderRadius: 2,
                         p: 1,
                         gap: 1,
-                        '&:hover': { bgcolor: 'action.hover' },
+                        '@media (hover: hover)': { '&:hover': { bgcolor: 'action.hover' } },
                     }}
                 >
                     <TuneIcon sx={{ color: theme.palette.text.main }} />

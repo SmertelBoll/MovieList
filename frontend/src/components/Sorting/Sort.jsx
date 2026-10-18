@@ -57,7 +57,7 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                         borderColor: 'text.main',
                         color: 'text.main',
                         transition: 'background-color 0.15s, color 0.15s',
-                        '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' },
+                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' } },
                     }}
                 >
                     <SortIcon fontSize="small" />

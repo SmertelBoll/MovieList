@@ -255,7 +255,7 @@ function FoldersPage() {
                                     borderRadius: 2,
                                     transition: 'background-color 0.15s, transform 0.15s',
                                     ...(!isRenaming && {
-                                        '&:hover': {
+                                        '@media (hover: hover)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
                                             bgcolor: 'yellow.main',
                                             // На жовтому весь вміст картки темніє:
@@ -263,7 +263,7 @@ function FoldersPage() {
                                             color: 'yellow.contrastText',
                                             '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                             '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                        },
+                                        } },
                                     }),
                                 }}
                             >

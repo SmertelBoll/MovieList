@@ -60,9 +60,16 @@ export const getTheme = (mode) =>
           root: ({ theme }) => ({
             "& .MuiPickersLayout-actionBar .MuiButton-root": {
               color: theme.palette.text.main,
-              "&:hover, &:focus-visible": {
+              "&:focus-visible": {
                 backgroundColor: theme.palette.yellow.main,
                 color: theme.palette.yellow.contrastText,
+              },
+              // hover лише на пристроях з курсором — на телефоні він «залипає» після дотику
+              "@media (hover: hover)": {
+                "&:hover": {
+                  backgroundColor: theme.palette.yellow.main,
+                  color: theme.palette.yellow.contrastText,
+                },
               },
             },
           }),
@@ -72,16 +79,24 @@ export const getTheme = (mode) =>
         styleOverrides: {
           root: ({ theme }) => ({
             color: theme.palette.text.main,
-            "&:hover": {
-              backgroundColor: theme.palette.yellow.main,
-              color: theme.palette.yellow.contrastText,
+            "@media (hover: hover)": {
+              "&:hover": {
+                backgroundColor: theme.palette.yellow.main,
+                color: theme.palette.yellow.contrastText,
+              },
             },
             "&.Mui-selected": {
               backgroundColor: theme.palette.yellow.main,
               color: theme.palette.yellow.contrastText,
-              "&:hover, &:focus": {
+              "&:focus": {
                 backgroundColor: theme.palette.yellow.dark,
                 color: theme.palette.yellow.contrastText,
+              },
+              "@media (hover: hover)": {
+                "&:hover": {
+                  backgroundColor: theme.palette.yellow.dark,
+                  color: theme.palette.yellow.contrastText,
+                },
               },
             },
             "&.MuiPickersDay-today": {
@@ -110,16 +125,20 @@ export const getTheme = (mode) =>
       MuiMenuItem: {
         styleOverrides: {
           root: ({ theme }) => ({
-            "&:hover": {
-              backgroundColor: theme.palette.yellow.main,
-              color: theme.palette.yellow.contrastText,
+            "@media (hover: hover)": {
+              "&:hover": {
+                backgroundColor: theme.palette.yellow.main,
+                color: theme.palette.yellow.contrastText,
+              },
             },
             "&.Mui-selected": {
               backgroundColor: theme.palette.yellow.main,
               color: theme.palette.yellow.contrastText,
-              "&:hover": {
-                backgroundColor: theme.palette.yellow.dark,
-                color: theme.palette.yellow.contrastText,
+              "@media (hover: hover)": {
+                "&:hover": {
+                  backgroundColor: theme.palette.yellow.dark,
+                  color: theme.palette.yellow.contrastText,
+                },
               },
             },
             "&.Mui-focusVisible, &.Mui-selected.Mui-focusVisible": {

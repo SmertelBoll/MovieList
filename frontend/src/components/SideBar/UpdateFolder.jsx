@@ -74,9 +74,9 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
                             py: 1.5,
                             px: 1,
                             borderRadius: 2,
-                            ":hover": {
+                            '@media (hover: hover)': { ":hover": {
                                 backgroundColor: "yellow.dark",
-                            },
+                            } },
                         }}
                     />
                 </Box>

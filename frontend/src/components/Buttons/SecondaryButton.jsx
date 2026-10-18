@@ -24,10 +24,10 @@ function SecondaryButton({ isThreePoints, active = false, children, sx, ...rest 
         alignSelf: "center",
         borderRadius: 2,
 
-        ":hover": {
+        '@media (hover: hover)': { ":hover": {
           backgroundColor: active ? "yellow.dark" : "yellow.main",
           color: "yellow.contrastText",
-        },
+        } },
         ...sx,
       }}
     >

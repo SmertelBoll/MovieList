@@ -22,10 +22,10 @@ function MainButton(props) {
         px: { xs: 3, sm: 5 },
         alignSelf: "center",
 
-        ":hover": {
+        '@media (hover: hover)': { ":hover": {
           backgroundColor: "yellow.dark",
           color: "yellow.contrastText",
-        },
+        } },
 
         "&.Mui-disabled": {
           backgroundColor: "yellow.disabled",

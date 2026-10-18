@@ -26,7 +26,8 @@ const asDate = (value) => formatDateOnly(value) || '—'
 
 /** Один рядок списку: колекція фільмів або серіал. Клік розкриває деталі. */
 function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
-    const { language } = useSelector((state) => state.config)
+    // viewMode — спільний із General: картки або компактні рядки
+    const { language, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
 
     // Постер у рядку відкриває серіал, а для колекції — її ПЕРШУ частину (за датою виходу).
@@ -111,7 +112,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     display: 'flex', alignItems: 'center', gap: 2, p: { xs: 1, sm: 2 },
                     cursor: 'pointer',
                     transition: 'background-color 0.15s, color 0.15s',
-                    '&:hover': {
+                    '@media (hover: hover)': { '&:hover': {
                         bgcolor: 'yellow.main',
                         color: 'yellow.contrastText',
                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
@@ -122,7 +123,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                             bgcolor: 'yellow.contrastText',
                             color: 'yellow.main',
                         },
-                    },
+                    } },
                 }}
             >
                 {/* Клік по постеру відкриває фільм/серіал за єдиною логікою (див. SavedItemOpener) */}
@@ -173,7 +174,64 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
             <Collapse in={open} unmountOnExit>
                 <Box sx={{ px: { xs: 1, sm: 2 }, pb: 2, pt: 1 }}>
                     {row.kind === 'collection' ? (
-                        // --- Частини колекції ---
+                        // --- Частини колекції: компактні рядки (режим «list», як у General) або картки ---
+                        viewMode === 'list' ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {row.parts.map((part) => (
+                                    <Box
+                                        key={part.id}
+                                        sx={{
+                                            position: 'relative',
+                                            // Переглянуте / кинуте / пропущене — сірий увесь рядок (у картках сіріє постер)
+                                            ...(isDimmedStatus(part.status) && DIMMED_POSTER_SX),
+                                            display: 'flex', alignItems: 'center', gap: 2,
+                                            // Праворуч місце під кнопку (як у ItemRow)
+                                            pl: 1, pr: 7.5, py: 0.5,
+                                            borderRadius: 2,
+                                            border: '1px solid', borderColor: 'divider',
+                                            transition: 'box-shadow 0.2s ease-in-out',
+                                            '@media (hover: hover)': { '&:hover': { boxShadow: 4 } },
+                                        }}
+                                    >
+                                        <SavedItemOpener mediaType="movie" tmdbId={part.id} title={part.title} sx={{ display: 'flex', flexShrink: 0 }}>
+                                            <Box
+                                                component="img"
+                                                src={poster(part.posterPath)}
+                                                alt={part.title}
+                                                loading="lazy"
+                                                sx={{
+                                                    width: 36, height: 54, objectFit: 'cover', borderRadius: 0.5, display: 'block',
+                                                }}
+                                            />
+                                        </SavedItemOpener>
+
+                                        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                                            <Typography variant="body1" sx={{
+                                                fontWeight: 600, lineHeight: 1.3, color: 'text.main', overflowWrap: 'anywhere',
+                                                display: '-webkit-box', WebkitLineClamp: { xs: 2, md: 1 }, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                            }}>
+                                                {part.title}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                {asDate(part.releaseDate)}
+                                            </Typography>
+                                        </Box>
+
+                                        <ItemFolderButton
+                                            variant="direct"
+                                            mediaType="movie"
+                                            tmdbId={part.id}
+                                            itemTitle={part.title}
+                                            stopPropagation
+                                            // Кнопка по центру висоти рядка, а не в куті
+                                            sx={{ top: '50%', right: 12, transform: 'translateY(-50%)' }}
+                                            onAdd={() => onMoviePlus(part)}
+                                            onEdit={(copy) => onMovieCheck(part, copy)}
+                                        />
+                                    </Box>
+                                ))}
+                            </Box>
+                        ) : (
                         <Box sx={{
                             display: 'grid',
                             gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(140px, 1fr))' },
@@ -186,10 +244,10 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                         display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0,
                                         // Підйом при наведенні — як у карток фільмів у списках
                                         transition: 'transform 0.2s ease-in-out',
-                                        '&:hover': {
+                                        '@media (hover: hover)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
                                             '& .update-poster': { boxShadow: 6 },
-                                        },
+                                        } },
                                     }}
                                 >
                                     <Box
@@ -240,6 +298,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                 </Box>
                             ))}
                         </Box>
+                        )
                     ) : (
                         // --- Сезони серіалу ---
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -266,11 +325,11 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, p: 1,
                                                 cursor: 'pointer',
                                                 transition: 'background-color 0.15s, color 0.15s',
-                                                '&:hover': {
+                                                '@media (hover: hover)': { '&:hover': {
                                                     bgcolor: 'yellow.main',
                                                     '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                                     '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                                },
+                                                } },
                                             }}
                                         >
                                             {seasonWatched
@@ -307,7 +366,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                         flexShrink: 0, px: 1, py: 0.25, borderRadius: 1, cursor: 'pointer',
                                                         border: '1px solid', borderColor: 'text.main',
                                                         transition: 'background-color 0.15s, color 0.15s',
-                                                        '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText', borderColor: 'yellow.dark' },
+                                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText', borderColor: 'yellow.dark' } },
                                                     }}
                                                 >
                                                     <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>
@@ -350,11 +409,11 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                 cursor: clickable ? 'pointer' : 'default',
                                                                 transition: 'background-color 0.15s, color 0.15s',
                                                                 ...(clickable && {
-                                                                    '&:hover': {
+                                                                    '@media (hover: hover)': { '&:hover': {
                                                                         bgcolor: 'yellow.main',
                                                                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                                                         '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                                                    },
+                                                                    } },
                                                                 }),
                                                             }}
                                                         >
@@ -385,7 +444,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                         flexShrink: 0, px: 1, py: 0.25, borderRadius: 1, cursor: 'pointer',
                                                                         border: '1px solid', borderColor: 'text.main',
                                                                         transition: 'background-color 0.15s, color 0.15s',
-                                                                        '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' },
+                                                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' } },
                                                                     }}
                                                                 >
                                                                     <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>

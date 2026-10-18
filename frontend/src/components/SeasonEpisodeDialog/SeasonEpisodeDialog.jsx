@@ -244,7 +244,7 @@ function SeasonEpisodeDialog({
                                 mr: 'auto',
                                 backgroundColor: 'danger.main',
                                 color: 'danger.contrastText',
-                                ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' },
+                                '@media (hover: hover)': { ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' } },
                             }}
                         >
                             Delete

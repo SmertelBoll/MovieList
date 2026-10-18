@@ -8,10 +8,10 @@ function TagButton({ children, onClick }) {
       onClick={onClick}
       sx={{
         color: "text.second",
-        ":hover": {
+        '@media (hover: hover)': { ":hover": {
           color: "text.main",
           cursor: "pointer",
-        },
+        } },
         display: "-webkit-box",
         wordWrap: "break-word",
         wordBreak: "break-all",

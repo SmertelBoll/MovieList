@@ -21,9 +21,9 @@ function ActorCart({ person, role }) {
             p: 1,
             cursor: "pointer",
             transition: "transform 0.2s ease-in-out",
-            "&:hover": {
+            '@media (hover: hover)': { "&:hover": {
                 transform: (theme) => theme.hoverLift
-            }
+            } }
         }}
         >
             {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}

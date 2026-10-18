@@ -413,10 +413,10 @@ function MoviePage({ isSaved = false }) {
                                 ...(isSaved && {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                                    "&:hover": {
+                                    '@media (hover: hover)': { "&:hover": {
                                         transform: (theme) => theme.hoverLift,
                                         boxShadow: 6
-                                    }
+                                    } }
                                 })
                             }}
                         >

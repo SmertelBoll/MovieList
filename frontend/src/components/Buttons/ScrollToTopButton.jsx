@@ -45,9 +45,9 @@ function ScrollToTopButton() {
                     zIndex: 1000,
                     backgroundColor: theme.palette.yellow.main,
                     color: theme.palette.text.dark,
-                    '&:hover': {
+                    '@media (hover: hover)': { '&:hover': {
                         backgroundColor: theme.palette.yellow.dark,
-                    },
+                    } },
                     boxShadow: theme.shadows[8],
                 }}
                 aria-label="scroll to top"

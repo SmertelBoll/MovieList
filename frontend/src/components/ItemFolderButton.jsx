@@ -12,11 +12,11 @@ import FolderListTooltip from './FolderListTooltip'
 // Вигляд кнопки. corner — у куті постера картки, hero — у шапці сторінки фільму/серіалу.
 // Правило сайту: кнопки на постері завжди справа зверху.
 const hoverSx = {
-    '&:hover': {
+    '@media (hover: hover)': { '&:hover': {
         opacity: 1,
         backgroundColor: 'yellow.main',
         '& svg': { color: 'text.dark' },
-    },
+    } },
 }
 const TONES = {
     corner: {

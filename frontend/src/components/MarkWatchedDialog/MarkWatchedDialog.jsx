@@ -64,7 +64,7 @@ function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
                             color: 'text.main',
                             border: '1px solid',
                             borderColor: 'text.secondary',
-                            ':hover': { bgcolor: 'bg.selected' },
+                            '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } },
                         }}
                     >
                         Cancel

@@ -155,12 +155,12 @@ function DropdownMenu({
                                     '&.Mui-selected': {
                                         bgcolor: 'yellow.main',
                                         color: 'yellow.contrastText',
-                                        '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' },
+                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' } },
                                     },
-                                    '&:hover': {
+                                    '@media (hover: hover)': { '&:hover': {
                                         bgcolor: 'yellow.main',
                                         color: 'yellow.contrastText',
-                                    },
+                                    } },
                                 }}
                             >
                                 {item.icon && (

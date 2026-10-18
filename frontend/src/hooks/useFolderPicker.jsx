@@ -120,13 +120,13 @@ function useFolderPicker() {
                                 color: 'text.main',
                                 transition: 'background-color 0.15s, transform 0.15s',
                                 // Як на сторінці Folders: на жовтому весь вміст темніє
-                                '&:hover': {
+                                '@media (hover: hover)': { '&:hover': {
                                     transform: (t) => t.hoverLift,
                                     bgcolor: 'yellow.main',
                                     color: 'yellow.contrastText',
                                     '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                     '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                },
+                                } },
                             }}
                         >
                             {tile.image ? (
@@ -172,7 +172,7 @@ function useFolderPicker() {
                         color: 'text.main',
                         border: '1px solid',
                         borderColor: 'text.secondary',
-                        ':hover': { bgcolor: 'bg.selected' },
+                        '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } },
                     }}
                 >
                     Cancel

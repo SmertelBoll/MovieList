@@ -36,10 +36,10 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                 // підсилення тіні — як у карток фільмів у списках
                 transition: 'transform 0.2s ease-in-out',
                 ...(isCurrent ? {} : {
-                    '&:hover': {
+                    '@media (hover: hover)': { '&:hover': {
                         transform: (theme) => theme.hoverLift,
                         '& .timeline-poster': { boxShadow: 6 },
-                    },
+                    } },
                 }),
             }}
         >

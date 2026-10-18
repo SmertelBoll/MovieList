@@ -137,7 +137,7 @@ function SortableRatingBlock({ id, name, abbr, color, value, onNameChange, onAbb
                     flexShrink: 0,
                     color: 'text.secondary',
                     order: { xs: 7, sm: 0 },
-                    '&:hover': { color: 'danger.main' },
+                    '@media (hover: hover)': { '&:hover': { color: 'danger.main' } },
                 }}
             >
                 <CloseIcon fontSize="small" />

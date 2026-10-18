@@ -99,7 +99,7 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
               borderRadius: 2,
               p: 1,
               transition: "background-color 0.15s",
-              "&:hover": { bgcolor: "bg.selected" },
+              '@media (hover: hover)': { "&:hover": { bgcolor: "bg.selected" } },
             }}
           >
             <Avatar
