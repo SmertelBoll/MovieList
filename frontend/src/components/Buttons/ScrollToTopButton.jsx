@@ -37,7 +37,8 @@ function ScrollToTopButton() {
                 sx={{
                     position: 'fixed',
                     bottom: {
-                        xs: 'calc(40px + 24px)',
+                        // Над закріпленою нижньою навігацією на телефоні (BOTTOM_NAV_HEIGHT у Footer.jsx) з запасом
+                        xs: 'calc(56px + 16px + env(safe-area-inset-bottom))',
                         sm: 'calc(40px + clamp(16px, calc(16px + 1.8vw), 40px))'
                     },
                     right: 20,
