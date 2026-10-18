@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Route, Routes } from "react-router-dom";
 import Header from './components/Header/Header'
 import Footer from './components/Footer'
@@ -38,8 +38,13 @@ function App() {
   const authData = useSelector((state) => state.auth.data);
 
   // Підтягуємо тему та мову з профілю користувача (сервер — джерело істини після входу)
+  // Робимо це один раз на користувача, а не при кожній зміні authData: інакше будь-яке оновлення
+  // профілю (напр. галочка в налаштуваннях) повертало б тему й мову до старих значень із authData.
+  const syncedUserId = useRef(null);
   useEffect(() => {
-    if (!authData) return;
+    if (!authData) { syncedUserId.current = null; return; }
+    if (syncedUserId.current === authData._id) return;
+    syncedUserId.current = authData._id;
     if (authData.themeMode) dispatch(setMode(authData.themeMode));
     if (authData.language) dispatch(setLanguage(authData.language));
   }, [authData, dispatch]);
