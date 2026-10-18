@@ -20,9 +20,20 @@ export const fetchRegister = createAsyncThunk("auth/fetchRegister", async (param
   }
 });
 
+// Токен є — отже, треба дочекатись відповіді /auth/me, перш ніж вирішувати «залогінений чи ні»:
+// до цього моменту data порожня, і сторінки на мить показували б «увійдіть». Без токена чекати нема чого.
+const hasToken = () => {
+  try {
+    return Boolean(window.localStorage.getItem(process.env.REACT_APP_TOKEN_KEY));
+  } catch {
+    return false;
+  }
+};
+
 const initialState = {
   data: null,
   isLoaded: false,
+  isChecking: hasToken(),
 };
 
 const authSlice = createSlice({
@@ -65,10 +76,12 @@ const authSlice = createSlice({
       .addCase(fetchAuthMe.fulfilled, (state, action) => {
         state.data = action.payload;
         state.isLoaded = true;
+        state.isChecking = false;
       })
       .addCase(fetchAuthMe.rejected, (state) => {
         state.data = null;
         state.isLoaded = false;
+        state.isChecking = false;
       })
       .addCase(fetchRegister.pending, (state) => {
         state.data = null;

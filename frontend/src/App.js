@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import Header from './components/Header/Header'
 import Footer from './components/Footer'
 import ScrollToTopButton from './components/Buttons/ScrollToTopButton'
-import { ThemeProvider } from "@mui/material";
+import { Box, CircularProgress, ThemeProvider } from "@mui/material";
 import { getTheme } from "./theme/theme";
 
 import HomePage from "./pages/Home/HomePage";
@@ -36,6 +36,7 @@ function App() {
   }, [dispatch]);
 
   const authData = useSelector((state) => state.auth.data);
+  const isChecking = useSelector((state) => state.auth.isChecking);
 
   // Підтягуємо тему та мову з профілю користувача (сервер — джерело істини після входу)
   // Робимо це один раз на користувача, а не при кожній зміні authData: інакше будь-яке оновлення
@@ -97,6 +98,12 @@ function App() {
             80px — лише запасне значення до першого виміру. */}
         <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "var(--header-height, 80px)" }}>
           <ContainerCustom paddingY bgcolor="bg.main">
+            {isChecking ? (
+              // Чекаємо відповідь про вхід, щоб сторінки не блимали «увійдіть» при оновленні
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+                <CircularProgress color="primary" />
+              </Box>
+            ) : (
             <Routes key={remountKey}>
               <Route path="/" element={<HomePage />} />
               <Route path="/movie/:id" element={<MoviePage />} />
@@ -115,6 +122,7 @@ function App() {
               <Route path="/login" element={<LoginForm />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            )}
           </ContainerCustom>
         </main>
         <Footer />

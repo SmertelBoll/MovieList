@@ -20,7 +20,8 @@ import NewReleasesIcon from "@mui/icons-material/NewReleases";
 
 
 
-const BurgerMenu = ({ sx, onClickLogout }) => {
+// disabled — поки йде перевірка входу: кнопка видна, але не натискається
+const BurgerMenu = ({ sx, onClickLogout, disabled = false }) => {
   // auth: show information to
   //  0 - users without registration
   //  1 - registered users
@@ -57,12 +58,14 @@ const BurgerMenu = ({ sx, onClickLogout }) => {
     <Box sx={{ display: "flex", ...sx }}>
       <Button
         onClick={handleDrawerOpen}
+        disabled={disabled}
         sx={{
           alignSelf: "center",
           p: { xs: 1, sm: 2 },
           color: "text.main",
           display: "flex",
           justifyContent: "flex-end",
+          "&.Mui-disabled": { color: "text.main", opacity: 0.5 },
         }}
       >
         <MenuIcon fontSize="large" />

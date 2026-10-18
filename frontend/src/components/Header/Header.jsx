@@ -23,7 +23,7 @@ function Header({ mode }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isAuth = useSelector(selectIsAuth);
-  // const isAuth = true
+  const isChecking = useSelector((state) => state.auth.isChecking);
 
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -169,7 +169,11 @@ function Header({ mode }) {
 
           {/* button menu */}
           <Box sx={{ gridArea: "menu", justifySelf: "end", display: "flex", alignItems: "center", gap: 2 }}>
-            {!isAuth ? (
+            {isChecking ? (
+              // Поки перевіряємо вхід, не знаємо, що показати (Sign up / Log in чи профіль):
+              // лишаємо лише неклікабельне бургер-меню
+              <BurgerMenu disabled onClickLogout={onClickLogout} />
+            ) : !isAuth ? (
               <>
                 <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, alignItems: "center" }}>
                   <Link to="/register">
