@@ -37,16 +37,9 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
 
     const canEditEpisodes = row.kind === 'tv' && Boolean(row.mongoId)
 
-    // Серії тягнемо лише коли сезон реально розкрили
-    const toggleSeason = async (seasonNumber) => {
-        const wasOpen = openSeasons.has(seasonNumber)
-        setOpenSeasons((prev) => {
-            const next = new Set(prev)
-            if (wasOpen) next.delete(seasonNumber)
-            else next.add(seasonNumber)
-            return next
-        })
-        if (wasOpen || episodesBySeason[seasonNumber]) return
+    // Серії тягнемо лише коли сезон реально розкрили; вже підвантажені не качаємо вдруге
+    const loadSeasonEpisodes = async (seasonNumber) => {
+        if (episodesBySeason[seasonNumber]) return
         try {
             setLoadingSeason(seasonNumber)
             const res = await instance.get(`${TMDB}/tv/${row.id}/season/${seasonNumber}`, {
@@ -58,6 +51,34 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
             alertError(err, 'Failed to load episodes')
         } finally {
             setLoadingSeason(null)
+        }
+    }
+
+    const toggleSeason = async (seasonNumber) => {
+        const wasOpen = openSeasons.has(seasonNumber)
+        setOpenSeasons((prev) => {
+            const next = new Set(prev)
+            if (wasOpen) next.delete(seasonNumber)
+            else next.add(seasonNumber)
+            return next
+        })
+        if (!wasOpen) await loadSeasonEpisodes(seasonNumber)
+    }
+
+    // Кожного разу, коли серіал розкривають, відкриваємо один сезон — той, де є найменша
+    // непереглянута серія (найнижчий номер сезону з непереглянутими). Пропущені серії не рахуються
+    // непереглянутими. Сезони, які були відкриті раніше, при цьому згортаємо: стан щоразу «свіжий»,
+    // і він враховує серії, відмічені з минулого разу.
+    const handleRowToggle = () => {
+        const willOpen = !open
+        setOpen(willOpen)
+
+        if (willOpen && row.kind === 'tv') {
+            const target = row.seasons
+                .filter((season) => season.unwatchedCount > 0)
+                .reduce((min, season) => (min && min.seasonNumber < season.seasonNumber ? min : season), null)
+            setOpenSeasons(new Set(target ? [target.seasonNumber] : []))
+            if (target) loadSeasonEpisodes(target.seasonNumber)
         }
     }
 
@@ -81,7 +102,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
             {/* Рядок */}
             <Box
-                onClick={() => setOpen((v) => !v)}
+                onClick={handleRowToggle}
                 sx={{
                     display: 'flex', alignItems: 'center', gap: 2, p: { xs: 1, sm: 2 },
                     cursor: 'pointer',
@@ -350,7 +371,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                             {watched ? (
                                                                 // Дата перегляду, а не виходу
                                                                 <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                                                                    {saved.skipped ? 'Skipped' : asDate(saved.dateAdded)}
+                                                                    {/* Без дати перегляду — текст, а не прочерк */}
+                                                                    {saved.skipped ? 'Skipped' : (formatDateOnly(saved.dateAdded) || 'No date')}
                                                                 </Typography>
                                                             ) : canEditEpisodes ? (
                                                                 <Box
