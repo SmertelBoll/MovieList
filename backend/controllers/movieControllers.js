@@ -1,6 +1,7 @@
 import FolderModel from "../models/folder.js";
 import MovieModel from "../models/movie.js";
 import mongoose from "mongoose";
+import { normalizeTags } from "../utils/tags.js";
 
 
 export const addMovieToFolder = async (req, res) => {
@@ -33,7 +34,7 @@ export const addMovieToFolder = async (req, res) => {
       dateAdded,
       rating,
       comment,
-      customType,
+      customType: normalizeTags(customType),
       user: userId
     });
 
@@ -75,7 +76,8 @@ export const updateMovieByMongoId = async (req, res) => {
     // Оновлюємо дані
     let updatedItem = await MovieModel.findOneAndUpdate(
       { _id: mongoId, user: userId },
-      { rating, comment, dateAdded, customType },
+      // Не передали — теги не чіпаємо; передали (в тому числі []) — замінюємо
+      { rating, comment, dateAdded, customType: customType === undefined ? undefined : normalizeTags(customType) },
       { new: true }
     );
 

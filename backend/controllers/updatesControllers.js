@@ -1,6 +1,7 @@
 import FolderModel, { FOLDER_STATUSES, FOLDER_STATUS_VALUES, betterStatus } from "../models/folder.js";
 import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
+import { normalizeTags } from "../utils/tags.js";
 
 /**
  * Дані для сторінки "New releases".
@@ -84,7 +85,7 @@ export const getUpdates = async (req, res) => {
         rating: takeThis ? movie.rating ?? null : existing.rating,
         comment: takeThis ? movie.comment || "" : existing.comment,
         dateAdded: takeThis ? movie.dateAdded || null : existing.dateAdded,
-        customType: takeThis ? movie.customType || null : existing.customType,
+        customType: takeThis ? normalizeTags(movie.customType) : existing.customType,
         copies: (existing?.copies || 0) + 1,
       });
     }
@@ -106,7 +107,9 @@ export const getUpdates = async (req, res) => {
       entry.mongoId = entry.copies === 1 ? String(tv._id) : null;
       entry.folderName = entry.copies === 1 ? placement.folderName : null;
       // Теги з усіх копій: для фільтра в шапці досить збігу хоча б з однією
-      entry.customTypes.add(tv.customType || "");
+      // Усі теги копії; без тегів — порожній рядок (фронт трактує його як «без тегу»)
+      const tvTags = normalizeTags(tv.customType);
+      for (const tag of tvTags.length ? tvTags : [""]) entry.customTypes.add(tag);
 
       for (const season of tv.seasons) {
         if (!entry.watched.has(season.season)) entry.watched.set(season.season, new Map());

@@ -12,6 +12,7 @@ import SideBar from '../SideBar/SideBar';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
+import { getTags } from '../../utils/tags';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserTypeCustom } from '../../redux/slices/AuthSlice';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -21,7 +22,7 @@ import CheckIcon from '@mui/icons-material/Check';
 const DEFAULT_RATE = null;
 const DEFAULT_DATE = new Date();
 const DEFAULT_TEXT = "";
-const DEFAULT_TYPE_CUSTOM = null;
+const DEFAULT_TYPE_CUSTOM = [];
 
 function ItemSaveDialog({
     isOpenDialogAdd,
@@ -100,7 +101,7 @@ function ItemSaveDialog({
         // видалену дату не вийшло б зберегти видаленою.
         setSelectedDate(parseDateOnly(selectedItem.dateAdded));
         setText(selectedItem.comment);
-        setTypeCustom(selectedItem.customType || null);
+        setTypeCustom(getTags(selectedItem.customType));
     }, [isOpenDialogEdit]);
 
     // Видалення фільму з папки
@@ -144,9 +145,9 @@ function ItemSaveDialog({
     };
 
     // Кастомний тип
-    // Вибір типу зі списку (повторний клік по обраному — знімає вибір)
+    // Теги можна вибрати кілька: клік додає тег, повторний клік по обраному — знімає
     const handleSelectType = (type) => {
-        setTypeCustom((prev) => (prev === type ? null : type));
+        setTypeCustom((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
     };
 
     // Додавання нового типу до списку користувача (зберігається в акаунті)
@@ -160,7 +161,7 @@ function ItemSaveDialog({
         if (!newType) return;
 
         if (userTypes.includes(newType)) {
-            setTypeCustom(newType);
+            setTypeCustom((prev) => (prev.includes(newType) ? prev : [...prev, newType]));
             return;
         }
 
@@ -168,7 +169,7 @@ function ItemSaveDialog({
         try {
             await instance.patch('/auth/settings', { typeCustom: newList });
             dispatch(setUserTypeCustom(newList));
-            setTypeCustom(newType);
+            setTypeCustom((prev) => [...prev, newType]);
         } catch (err) {
             console.warn(err);
             alertError(err);
@@ -416,8 +417,10 @@ function ItemSaveDialog({
                                     ...userTypes.map((type) => ({
                                         key: type,
                                         label: type,
-                                        selected: typeCustom === type,
-                                        icon: typeCustom === type ? <CheckIcon fontSize="small" /> : null,
+                                        selected: typeCustom.includes(type),
+                                        icon: typeCustom.includes(type) ? <CheckIcon fontSize="small" /> : null,
+                                        // Меню лишається відкритим — можна відмітити кілька тегів підряд
+                                        closeOnClick: false,
                                         onClick: () => handleSelectType(type),
                                     })),
                                     ...(userTypes.length > 0 ? [{ key: '__divider__', divider: true }] : []),
@@ -446,13 +449,13 @@ function ItemSaveDialog({
                                             cursor: 'pointer',
                                             border: '1px solid',
                                             borderColor: 'text.main',
-                                            color: typeCustom ? 'text.main' : 'text.secondary',
+                                            color: typeCustom.length ? 'text.main' : 'text.secondary',
                                             transition: 'border-color 0.15s',
                                             '&:hover': { borderColor: 'text.main' },
                                         }}
                                     >
                                         <Typography variant="body2" noWrap>
-                                            {typeCustom || 'Tag'}
+                                            {typeCustom.length ? typeCustom.join(', ') : 'Tags'}
                                         </Typography>
                                         <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
                                     </Box>

@@ -9,6 +9,7 @@ import { cleanCollectionName } from '../../utils/tmdb'
 import { toDateOnlyISO } from '../../utils/dates'
 import { FOLDER_STATUSES, getBestStatus } from '../../utils/folderStatus'
 import { fetchSavedDoc } from '../../utils/savedItems'
+import { getTags } from '../../utils/tags'
 import { NO_TAG } from '../../redux/slices/ConfigSlice'
 import Sort from '../../components/Sorting/Sort'
 // SLIDE_MS — тривалість анімації повзунка; дані перезавантажуємо вже після неї
@@ -266,7 +267,12 @@ function UpdatesPage() {
             if (row.kind === 'collection') {
                 if (!typeTMDB.includes('movie')) return false
                 // Колекція підходить, якщо хоча б один збережений фільм має потрібний тег
-                return row.parts.some((p) => p.status && matchesTag(p.saved?.customType))
+                // У фільму може бути кілька тегів: достатньо збігу хоча б одного; без тегів — як «без тегу»
+                return row.parts.some((p) => {
+                    if (!p.status) return false
+                    const tags = getTags(p.saved?.customType)
+                    return (tags.length ? tags : ['']).some((tag) => matchesTag(tag))
+                })
             }
             if (!typeTMDB.includes('tv')) return false
             return (row.customTypes.length ? row.customTypes : ['']).some((tag) => matchesTag(tag))
@@ -358,7 +364,7 @@ function UpdatesPage() {
                     rating: doc.rating ?? null,
                     comment: doc.comment || '',
                     dateAdded: doc.dateAdded || null,
-                    customType: doc.customType || null,
+                    customType: getTags(doc.customType),
                 },
                 // Беремо повний обʼєкт папки зі списку: сайдбар підсвічує вибране
                 // за order, тож самої назви замало
@@ -386,7 +392,7 @@ function UpdatesPage() {
                     rating: updated?.rating ?? null,
                     comment: updated?.comment || '',
                     dateAdded: updated?.dateAdded || null,
-                    customType: updated?.customType || null,
+                    customType: getTags(updated?.customType),
                 },
             }))
             return null

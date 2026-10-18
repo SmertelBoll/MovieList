@@ -4,6 +4,7 @@ import MovieModel from "../models/movie.js";
 import TvModel from "../models/tv.js";
 import { destroyImage } from "./imageControllers.js";
 import mongoose from "mongoose";
+import { normalizeTags } from "../utils/tags.js";
 
 
 export const getFoldersByUser = async (req, res) => {
@@ -21,15 +22,15 @@ export const getFoldersByUser = async (req, res) => {
       MovieModel.find({ user: userId }).select("_id customType").exec(),
       TvModel.find({ user: userId }).select("_id customType").exec(),
     ]);
-    const movieMap = new Map(movies.map(m => [m._id.toString(), m.customType || ""]));
-    const tvMap = new Map(tvs.map(t => [t._id.toString(), t.customType || ""]));
+    const movieMap = new Map(movies.map(m => [m._id.toString(), normalizeTags(m.customType)]));
+    const tvMap = new Map(tvs.map(t => [t._id.toString(), normalizeTags(t.customType)]));
 
     const results = foldersByUser.map(folder => {
       const elements = folder.folderElements.map(e => {
         const isMovie = e.itemModel === "Movie";
         return {
           media_type: isMovie ? "movie" : "tv",
-          customType: (isMovie ? movieMap : tvMap).get(e.itemId.toString()) || "",
+          customTypes: (isMovie ? movieMap : tvMap).get(e.itemId.toString()) || [],
         };
       });
 
@@ -477,7 +478,7 @@ export const getItemsFromFolder = async (req, res) => {
       const orConditions = [];
       if (realTags.length > 0) orConditions.push({ customType: { $in: realTags } });
       // $in [null] збігається і з відсутнім полем, "" — з порожнім рядком
-      if (includeNoTag) orConditions.push({ customType: { $in: [null, ""] } });
+      if (includeNoTag) orConditions.push({ customType: { $size: 0 } });
 
       if (orConditions.length > 0) {
         pipeline.push({ $match: { $or: orConditions } });

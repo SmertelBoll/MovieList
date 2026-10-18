@@ -52,9 +52,10 @@ function FoldersPage() {
         return elements.filter(el => {
             if (!typeTMDB.includes(el.media_type)) return false
             if (customTypes.length === 0) return true
-            // звичайний тег або "No tag" (порожній customType)
-            return customTypes.includes(el.customType) ||
-                (customTypes.includes(NO_TAG) && !el.customType)
+            // елемент має кілька тегів: підходить, якщо збігся хоч один; "No tag" — коли тегів немає
+            const tags = el.customTypes || []
+            return tags.some((tag) => customTypes.includes(tag)) ||
+                (customTypes.includes(NO_TAG) && tags.length === 0)
         }).length
     }
 

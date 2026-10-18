@@ -135,10 +135,10 @@ export const deleteCustomType = async (req, res) => {
     user.typeCustom = (user.typeCustom || []).filter((t) => t !== type);
     await user.save();
 
-    // Очищаємо customType у всіх елементах користувача, де він використовувався
+    // Прибираємо тег з усіх елементів користувача (в елемента може бути кілька тегів)
     await Promise.all([
-      MovieModel.updateMany({ user: userId, customType: type }, { $set: { customType: "" } }),
-      TvModel.updateMany({ user: userId, customType: type }, { $set: { customType: "" } }),
+      MovieModel.updateMany({ user: userId, customType: type }, { $pull: { customType: type } }),
+      TvModel.updateMany({ user: userId, customType: type }, { $pull: { customType: type } }),
     ]);
 
     res.json({
@@ -259,10 +259,12 @@ export const renameCustomType = async (req, res) => {
     user.typeCustom = types.map((t) => (t === oldName ? newName : t));
     await user.save();
 
-    // Оновлюємо customType у всіх елементах користувача
+    // Перейменовуємо тег у всіх елементах користувача (в одному елементі лише одне входження)
+    const rename = { $set: { "customType.$[tag]": newName } };
+    const options = { arrayFilters: [{ tag: oldName }] };
     await Promise.all([
-      MovieModel.updateMany({ user: userId, customType: oldName }, { $set: { customType: newName } }),
-      TvModel.updateMany({ user: userId, customType: oldName }, { $set: { customType: newName } }),
+      MovieModel.updateMany({ user: userId, customType: oldName }, rename, options),
+      TvModel.updateMany({ user: userId, customType: oldName }, rename, options),
     ]);
 
     res.json({

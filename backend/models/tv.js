@@ -47,7 +47,8 @@ const TvSchema = new mongoose.Schema(
         // Вкладені сезони (не створюються автоматично при додаванні в папку)
         seasons: { type: [SeasonSchema], default: [] },
 
-        customType: { type: String },
+        // Теги (кілька). Назва поля лишилась customType, але це масив рядків
+        customType: { type: [String], default: [] },
         user: {
             type: mongoose.Schema.Types.ObjectId, // бо це користувач
             ref: "User", // з UserController

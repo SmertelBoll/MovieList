@@ -10,7 +10,8 @@ const MovieSchema = new mongoose.Schema(
         dateAdded: { type: Date },
         rating: { type: Number },
         comment: { type: String },
-        customType: { type: String },
+        // Теги (кілька). Назва поля лишилась customType, але це масив рядків
+        customType: { type: [String], default: [] },
         user: {
             type: mongoose.Schema.Types.ObjectId, // бо це користучав
             ref: "User", // з UserController
