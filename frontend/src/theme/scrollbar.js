@@ -19,3 +19,17 @@ export const scrollbarSx = {
     },
   },
 };
+
+// Горизонтальна стрічка карток (команда, каст, Timeline): тримається в межах падінгу контейнера,
+// щоб смуга прокрутки не впиралась у краї екрана. На телефоні картки «прилипають» до початку.
+export const scrollStripSx = {
+  display: "flex",
+  gap: 2,
+  overflowX: "auto",
+  pt: 1,
+  pb: 2,
+  scrollSnapType: { xs: "x proximity", sm: "none" },
+  WebkitOverflowScrolling: "touch",
+  "& > *": { scrollSnapAlign: { xs: "start", sm: "none" } },
+  ...scrollbarSx,
+};

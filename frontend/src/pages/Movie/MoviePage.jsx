@@ -15,7 +15,7 @@ import TimelineCart from '../../components/Carts/TimelineCart'
 import ItemFolderButton from '../../components/ItemFolderButton'
 import EditableValue from '../../components/EditableValue'
 import StretchedLink from '../../components/StretchedLink'
-import { scrollbarSx } from '../../theme/scrollbar'
+import { scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { formatDateOnly } from '../../utils/dates'
 
@@ -27,21 +27,6 @@ const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 // Заголовок секції: на вузьких екранах h5 (1.5rem) завеликий
 const sectionTitleSx = { mb: 2, color: "text.main" }
-
-// Горизонтальна стрічка карток. Тримається в межах падінгу контейнера,
-// щоб смуга прокрутки не впиралась у краї екрана.
-const scrollStripSx = {
-    display: "flex",
-    gap: 2,
-    overflowX: "auto",
-    pt: 1,
-    pb: 2,
-    scrollSnapType: { xs: "x proximity", sm: "none" },
-    WebkitOverflowScrolling: "touch",
-    "& > *": { scrollSnapAlign: { xs: "start", sm: "none" } },
-    // Спільний стиль скролу (theme/scrollbar.js)
-    ...scrollbarSx,
-}
 
 function MoviePage({ isSaved = false }) {
     const { id } = useParams()

@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, Menu, MenuItem } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, Menu, MenuItem, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -22,12 +22,13 @@ import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import ItemFolderButton from '../../components/ItemFolderButton'
 import EditableValue from '../../components/EditableValue'
 import StretchedLink from '../../components/StretchedLink'
-import { scrollbarSx } from '../../theme/scrollbar'
+import { scrollbarSx, scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
+const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`; // горизонтальний кадр для вузьких екранів
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 // Мемоїзована клітинка серії. Перемальовується ЛИШЕ коли змінюються її власні
@@ -285,6 +286,30 @@ function TVPage({ isSaved = false }) {
         setSelectedFolder(folderOfCopy(copy))
         setIsDeleteItem(true)
     }
+
+    // На вузьких екранах опис згортаємо і розкриваємо кліком (як на сторінці фільму)
+    const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
+    const overviewRef = useRef(null)
+    const [overviewExpanded, setOverviewExpanded] = useState(false)
+    const [overviewOverflows, setOverviewOverflows] = useState(false)
+
+    // Чи справді опис не влазить у згорнутий вигляд — інакше кнопка "Show more" бреше.
+    // У розгорнутому стані не переобчислюємо: там scrollHeight завжди дорівнює clientHeight.
+    useEffect(() => {
+        if (!isSmall) {
+            setOverviewOverflows(false)
+            return
+        }
+        if (overviewExpanded) return
+        const el = overviewRef.current
+        if (!el) return
+        setOverviewOverflows(el.scrollHeight > el.clientHeight + 1)
+    }, [serial?.overview, isSmall, overviewExpanded])
+
+    // Скидаємо стан при переході на інший серіал
+    useEffect(() => {
+        setOverviewExpanded(false)
+    }, [serial?.tmdbId])
 
     // Редагування коментаря й оцінки прямо на сторінці. Решту полів шлемо як є, щоб нічого не затерти.
     const saveFields = async (changes) => {
@@ -843,17 +868,28 @@ function TVPage({ isSaved = false }) {
         )
     }
 
+    // Постер вертикальний, backdrop горизонтальний. Картка і фон завжди беруть різні
+    // зображення (як на сторінці фільму):
+    //   телефон  — картка backdrop (горизонтальна), фон постер (вертикальний)
+    //   десктоп  — картка постер (вертикальна),     фон backdrop (горизонтальний)
+    const posterUrl = serial.poster_path ? `${IMAGE_BASE_URL_W500}${serial.poster_path}` : null
+    const backdropUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_W780}${serial.backdrop_path}` : null
+    const backdropFullUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path}` : null
+    const heroImage = (isSmall ? backdropUrl || posterUrl : posterUrl || backdropUrl) || IMAGE_DEFAULT
+    const heroBackground = isSmall ? posterUrl || backdropFullUrl : backdropFullUrl || posterUrl
+
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
             {/* Hero Section */}
             <Box sx={{
                 position: "relative",
-                height: "400px",
+                // На мобільному висоту диктує вміст, на десктопі — фіксовані 400px
+                minHeight: { xs: "auto", sm: 400 },
                 borderRadius: 2,
                 overflow: "hidden",
                 backgroundImage: [
                     `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
-                    serial.backdrop_path && `url(${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path})`,
+                    heroBackground && `url(${heroBackground})`,
                 ].filter(Boolean).join(", "),
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -876,19 +912,24 @@ function TVPage({ isSaved = false }) {
                 )}
                 <Box sx={{
                     display: "flex",
-                    gap: 3,
+                    // Вертикально на телефоні, горизонтально від sm — інакше на 360px
+                    // постер з'їдає майже всю ширину і тексту не лишається місця
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: { xs: 2, sm: 3 },
                     alignItems: "center",
                     maxWidth: "1200px",
                     width: "100%",
-                    p: 3
+                    minWidth: 0,
+                    p: { xs: 2, sm: 3 }
                 }}>
                     {/* Poster */}
                     <Tooltip title={isSaved ? "Open the TV page" : ""} arrow placement="top">
                         <Card
                             sx={{
                                 position: "relative",
-                                width: 200,
-                                height: 300,
+                                // На телефоні — широкий кадр 16:9 на всю ширину: вертикальний постер з'їдав забагато висоти
+                                width: { xs: "100%", sm: 170, md: 200 },
+                                height: { xs: "auto", sm: 255, md: 300 },
                                 flexShrink: 0,
                                 boxShadow: 3,
                                 borderRadius: 2,
@@ -906,24 +947,37 @@ function TVPage({ isSaved = false }) {
                             {isSaved && <StretchedLink to={`/tv/${serial.tmdbId}`} label="Open the TV page" />}
                             <CardMedia
                                 component="img"
-                                height="300"
-                                image={serial.poster_path
-                                    ? `${IMAGE_BASE_URL_W500}${serial.poster_path}`
-                                    : IMAGE_DEFAULT
-                                }
+                                image={heroImage}
+                                sx={{
+                                    width: "100%",
+                                    height: { xs: "auto", sm: "100%" },
+                                    aspectRatio: { xs: "16 / 9", sm: "auto" },
+                                    objectFit: "cover",
+                                    display: "block"
+                                }}
                             />
                         </Card>
                     </Tooltip>
 
                     {/* Serial Info */}
-                    <Box sx={{ color: "text.white", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box sx={{
+                        color: "text.white",
+                        flex: 1,
+                        minWidth: 0,
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: { xs: 1, sm: 2 },
+                        textAlign: { xs: "center", sm: "left" },
+                        alignItems: { xs: "center", sm: "stretch" }
+                    }}>
                         {/* Title */}
-                        <Typography variant="h3" sx={{ fontWeight: "bold" }}>
+                        <Typography variant="heroTitle" sx={{ overflowWrap: "anywhere" }}>
                             {serial.name}
                         </Typography>
 
                         {/* Genres */}
-                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", width: "100%", justifyContent: { xs: "center", sm: "flex-start" } }}>
                             {serial.genres?.map((genre) => (
                                 <Chip
                                     key={genre.id}
@@ -947,13 +1001,52 @@ function TVPage({ isSaved = false }) {
                             ))}
                         </Box>
 
-                        {/* Overview */}
-                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                            {serial.overview}
-                        </Typography>
+                        {/* Overview — на вузькому екрані згорнутий до 4 рядків, розкривається кліком */}
+                        <Box sx={{ width: "100%" }}>
+                            <Typography
+                                ref={overviewRef}
+                                variant="body1"
+                                onClick={overviewOverflows ? () => setOverviewExpanded((v) => !v) : undefined}
+                                sx={{
+                                    opacity: 0.9,
+                                    // Довгий абзац читається погано по центру — завжди зліва
+                                    textAlign: "left",
+                                    ...(overviewOverflows && { cursor: "pointer" }),
+                                    ...(isSmall && !overviewExpanded && {
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 4,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden"
+                                    })
+                                }}
+                            >
+                                {serial.overview}
+                            </Typography>
+
+                            {overviewOverflows && (
+                                <Typography
+                                    component="button"
+                                    variant="body2"
+                                    onClick={() => setOverviewExpanded((v) => !v)}
+                                    sx={{
+                                        mt: 1,
+                                        p: 0,
+                                        border: "none",
+                                        background: "none",
+                                        font: "inherit",
+                                        fontWeight: 700,
+                                        color: "yellow.main",
+                                        cursor: "pointer",
+                                        display: "block"
+                                    }}
+                                >
+                                    {overviewExpanded ? "Show less" : "Show more"}
+                                </Typography>
+                            )}
+                        </Box>
 
                         {/* Rating and Release Date */}
-                        <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
+                        <Box sx={{ display: "flex", gap: { xs: 2, sm: 3 }, alignItems: "center", flexWrap: "wrap", width: "100%", justifyContent: { xs: "center", sm: "flex-start" } }}>
                             <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                                 ⭐ {serial.vote_average?.toFixed(1)}
                             </Typography>
@@ -964,8 +1057,8 @@ function TVPage({ isSaved = false }) {
 
                         {/* Block with saved folders */}
                         {isAuth && !isLoadingItemFolders && itemFolders.length > 0 && (
-                            <Box>
-                                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+                            <Box sx={{ width: "100%" }}>
+                                <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 }, flexWrap: "wrap", alignItems: "center", justifyContent: { xs: "center", sm: "flex-start" } }}>
                                     <Typography variant="body1">
                                         Saved in:
                                     </Typography>
@@ -1000,18 +1093,18 @@ function TVPage({ isSaved = false }) {
 
             {/* User review (тільки для збереженого серіалу) */}
             {isSaved && (
-                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3 }}>
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 3 } }}>
                     {/* Коментар (займає всю решту місця) */}
                     <EditableValue
                         type="text"
                         value={serial.comment}
                         onSave={handleSaveReview}
                         // На телефоні (колонка) коментар після оцінки
-                        sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}
+                        sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}
                     />
 
                     {/* Оцінка та дати (під розмір вмісту) */}
-                    <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                    <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
                         {/* Оцінка й дата перегляду — один блок: дотик відкриває редактор для обох (EditableValue, type="ratingDate") */}
                         <EditableValue
                             type="ratingDate"
@@ -1024,7 +1117,7 @@ function TVPage({ isSaved = false }) {
 
             {/* Ratings Heatmap Section */}
             <Box>
-                <Typography variant="h4" color="text.main" sx={{ mb: 2, fontWeight: "bold", textAlign: "center" }}>Episode Ratings</Typography>
+                <Typography variant="sectionTitle" color="text.main" sx={{ mb: 2, textAlign: "center" }}>Episode Ratings</Typography>
 
                 {/* Легенда — поза контейнером зі скролом: усередині нього вона
                     їхала б убік разом із серіями замість того, щоб стояти
@@ -1040,17 +1133,10 @@ function TVPage({ isSaved = false }) {
             {/* Top Cast Section */}
             {serial.credits?.cast && serial.credits.cast.length > 0 && (
                 <Box>
-                    <Typography variant="h5" color="text.main" sx={{ mb: 2 }}>
+                    <Typography variant="sectionTitle" sx={{ mb: 2, color: "text.main" }}>
                         Top Cast
                     </Typography>
-                    <Box sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pb: 2,
-                        // Спільний стиль скролу (theme/scrollbar.js)
-                        ...scrollbarSx,
-                    }}>
+                    <Box sx={scrollStripSx}>
                         {serial.credits.cast.map((actor) => (
                             <ActorCart
                                 key={actor.id}
@@ -1065,17 +1151,10 @@ function TVPage({ isSaved = false }) {
             {/* Top Crew Section */}
             {serial.credits.crew && serial.credits.crew.length > 0 && (
                 <Box>
-                    <Typography variant="h5" color="text.main" sx={{ mb: 2 }}>
+                    <Typography variant="sectionTitle" sx={{ mb: 2, color: "text.main" }}>
                         Top Crew
                     </Typography>
-                    <Box sx={{
-                        display: "flex",
-                        gap: 2,
-                        overflowX: "auto",
-                        pb: 2,
-                        // Спільний стиль скролу (theme/scrollbar.js)
-                        ...scrollbarSx,
-                    }}>
+                    <Box sx={scrollStripSx}>
                         {serial.credits.crew
                             .map((member) => (
                                 <ActorCart
