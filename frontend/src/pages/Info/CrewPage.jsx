@@ -7,6 +7,7 @@ import instance from '../../axios'
 import { alertError } from '../../alerts'
 import GeneralItemList from '../../components/GereralItemList/GeneralItemList'
 import { getTmdbLanguage } from '../../utils/languages'
+import { formatDateOnly } from '../../utils/dates'
 import {
     heroSectionSx, heroInnerSx, heroPortraitSx, heroMediaSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
@@ -143,11 +144,7 @@ function CrewPage() {
 
                                 {crew.birthday && (
                                     <Typography variant="heroSubtitle">
-                                        Born: {new Date(crew.birthday).toLocaleDateString(tmdbLanguage, {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}
+                                        Born: {formatDateOnly(crew.birthday)}
                                     </Typography>
                                 )}
                                 {crew.place_of_birth && (
@@ -157,11 +154,7 @@ function CrewPage() {
                                 )}
                                 {crew.deathday && (
                                     <Typography variant="heroSubtitle">
-                                        Died: {new Date(crew.deathday).toLocaleDateString(tmdbLanguage, {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}
+                                        Died: {formatDateOnly(crew.deathday)}
                                     </Typography>
                                 )}
                                 {crew.known_for_department && (

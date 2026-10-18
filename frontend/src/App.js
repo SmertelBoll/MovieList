@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Route, Routes } from "react-router-dom";
 import Header from './components/Header/Header'
 import Footer from './components/Footer'
@@ -24,7 +24,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
 import { fetchSaved, clearSaved } from "./redux/slices/SavedSlice";
 import { SAVED_CHANGED_EVENT } from "./axios";
-import { setMode, setLanguage } from "./redux/slices/ConfigSlice";
+import { setMode, setLanguage, setDateFormat } from "./redux/slices/ConfigSlice";
+import { isDateFormat } from "./utils/dateFormats";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
 
 function App() {
@@ -66,7 +67,18 @@ function App() {
     };
   }, [isAuth, dispatch]);
 
-  const { mode } = useSelector((state) => state.config);
+  const { mode, dateFormat } = useSelector((state) => state.config);
+
+  // Формат дат: сервер — джерело істини після входу. Якщо він відрізняється від локально збереженого
+  // (інший пристрій), застосовуємо його й перемонтовуємо сторінки — вони вже могли показати дати
+  // у старому форматі. Зміна формату з профілю сюди не потрапляє: там authData оновлюється разом зі store.
+  const [remountKey, setRemountKey] = useState(0);
+  useEffect(() => {
+    const serverFormat = authData?.dateFormat;
+    if (!isDateFormat(serverFormat) || serverFormat === dateFormat) return;
+    dispatch(setDateFormat(serverFormat));
+    setRemountKey((key) => key + 1);
+  }, [authData?.dateFormat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const theme = React.useMemo(() => getTheme(mode), [mode]);
 
@@ -80,7 +92,7 @@ function App() {
             80px — лише запасне значення до першого виміру. */}
         <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "var(--header-height, 80px)" }}>
           <ContainerCustom paddingY bgcolor="bg.main">
-            <Routes>
+            <Routes key={remountKey}>
               <Route path="/" element={<HomePage />} />
               <Route path="/movie/:id" element={<MoviePage />} />
               <Route path="/user/movie/:id" element={<MoviePage isSaved />} />

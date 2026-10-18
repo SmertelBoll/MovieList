@@ -7,6 +7,10 @@ import instance from '../../axios'
 import { alertError, alertSuccess, alertConfirm } from '../../alerts'
 import useTextPrompt from '../../components/_customMUI/useTextPrompt'
 import { selectIsAuth, setUserTypeCustom, updateUserData } from '../../redux/slices/AuthSlice'
+import { changeDateFormat } from '../../redux/slices/ConfigSlice'
+import { DATE_FORMATS } from '../../utils/dateFormats'
+import { format as formatDate } from 'date-fns'
+import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
 import SortableTypeItem from './SortableTypeItem'
@@ -16,6 +20,7 @@ import { getContrastText } from '../../utils/ratingSystem'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 
 // Перетворюємо файл у base64 для завантаження на /upload
 const fileToBase = (file) =>
@@ -75,6 +80,15 @@ function ProfilePage() {
     // Фарбування іконок папок за статусом — вимкнено за замовчуванням. Міняємо одразу (оптимістично),
     // при помилці повертаємо як було.
     const colorFolderIcons = Boolean(user?.colorFolderIcons)
+
+    // Формат дат на всьому сайті. Приклад із днем > 12, щоб формати dd/MM і MM/dd було видно одразу
+    const dateFormat = useSelector((state) => state.config.dateFormat)
+    const sampleDate = new Date(2026, 9, 25)
+    const handleChangeDateFormat = (value) => {
+        dispatch(changeDateFormat(value))
+        // authData теж оновлюємо, щоб App не вважав це зміною з іншого пристрою
+        dispatch(updateUserData({ dateFormat: value }))
+    }
     const handleToggleColorFolderIcons = async (checked) => {
         dispatch(updateUserData({ colorFolderIcons: checked }))
         try {
@@ -548,6 +562,45 @@ function ProfilePage() {
                     }
                     sx={{ alignItems: 'flex-start', m: 0, gap: 1 }}
                 />
+
+                {/* Формат дат — для всіх сторінок і полів вибору дати */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                    <Box>
+                        <Typography variant="body1" sx={{ color: 'text.main' }}>
+                            Date format
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            How dates are shown everywhere on the site.
+                        </Typography>
+                    </Box>
+                    <DropdownMenu
+                        width={220}
+                        items={DATE_FORMATS.map((value) => ({
+                            key: value,
+                            label: formatDate(sampleDate, value),
+                            subLabel: value,
+                            selected: value === dateFormat,
+                            onClick: () => handleChangeDateFormat(value),
+                        }))}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        renderTrigger={({ onClick }) => (
+                            <Box
+                                onClick={onClick}
+                                sx={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
+                                    minWidth: 180, height: 40, boxSizing: 'border-box', px: 1.5,
+                                    borderRadius: '4px', cursor: 'pointer', border: '1px solid', borderColor: 'text.main',
+                                }}
+                            >
+                                <Typography variant="body2" sx={{ color: 'text.main' }}>
+                                    {formatDate(sampleDate, dateFormat)}
+                                </Typography>
+                                <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                            </Box>
+                        )}
+                    />
+                </Box>
             </Box>
 
             {/* CUSTOM TYPES */}

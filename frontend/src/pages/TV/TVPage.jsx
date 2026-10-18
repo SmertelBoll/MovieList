@@ -571,7 +571,7 @@ function TVPage({ isSaved = false }) {
                     Votes: {ep.vote_count ?? 0}
                 </Typography>
                 <Typography variant="caption" sx={{ display: "block" }}>
-                    Air date: {ep.air_date || "—"}
+                    Air date: {formatDateOnly(ep.air_date) || "—"}
                 </Typography>
             </Box>
         );
@@ -931,7 +931,7 @@ function TVPage({ isSaved = false }) {
                                 ⭐ {serial.vote_average?.toFixed(1)}
                             </Typography>
                             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                {serial.first_air_date} • {serial.number_of_seasons} Seasons • {serial.number_of_episodes} Episodes
+                                {formatDateOnly(serial.first_air_date)} • {serial.number_of_seasons} Seasons • {serial.number_of_episodes} Episodes
                             </Typography>
                         </Box>
 
@@ -997,12 +997,12 @@ function TVPage({ isSaved = false }) {
                         </Box>
                         {serial.dateAdded && (
                             <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Added: {serial.dateAdded.split('T')[0]}
+                                Added: {formatDateOnly(serial.dateAdded)}
                             </Typography>
                         )}
                         {serial.updatedAt && (
                             <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Updated: {serial.updatedAt.split('T')[0]}
+                                Updated: {formatDateOnly(serial.updatedAt)}
                             </Typography>
                         )}
                     </Box>

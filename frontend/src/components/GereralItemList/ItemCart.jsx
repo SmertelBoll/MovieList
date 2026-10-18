@@ -122,7 +122,7 @@ function ItemCart({
                     </Box>
                     {
                         {
-                            tmdb: mediaType === "movie" ? item.release_date : mediaType === "tv" ? item.first_air_date : "No date",
+                            tmdb: (mediaType === "movie" ? formatDateOnly(item.release_date) : mediaType === "tv" ? formatDateOnly(item.first_air_date) : "") || "—",
                             // Дата не обов'язкова — без неї показуємо прочерк
                             mongo: formatDateOnly(item.dateAdded) || "—"
                         }[dbType] || "Error dbType"

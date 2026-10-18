@@ -47,7 +47,7 @@ function ItemSaveDialog({
     const [promptText, textPromptDialog] = useTextPrompt()
     // Поточна мова — зберігається разом з елементом, щоб було видно,
     // якою мовою записано tmdbTitle
-    const { language } = useSelector((state) => state.config)
+    const { language, dateFormat } = useSelector((state) => state.config)
     // Нижче sm діалог на весь екран, нижче md дві колонки складаються в одну
     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isStacked = useMediaQuery(theme.breakpoints.down('md'));
@@ -386,6 +386,8 @@ function ItemSaveDialog({
                                         з primary. Тепер поле підставляється через slots. */}
                                     <DatePicker
                                         label="Choose date"
+                                        // Формат дати з профілю
+                                        format={dateFormat}
                                         value={selectedDate}
                                         onChange={handleDateChange}
                                         slots={{ textField: InputBox }}

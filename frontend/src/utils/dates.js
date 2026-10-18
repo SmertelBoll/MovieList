@@ -10,6 +10,13 @@
  * на весь застосунок, а в базу пишемо опівніч UTC.
  */
 
+import { format } from 'date-fns';
+import store from '../redux/store';
+
+// Формат, який користувач вибрав у профілі. Читаємо зі store в момент виклику,
+// тож усі місця, що показують дату, беруть актуальний формат без жодних пропсів.
+const getDateFormat = () => store.getState().config.dateFormat;
+
 // Момент -> локальні рік/місяць/день (те, що бачив користувач)
 const localParts = (date) => ({
     year: date.getFullYear(),
@@ -56,12 +63,12 @@ export const toDateOnlyISO = (value) => {
 };
 
 /**
- * Для показу: "YYYY-MM-DD". Іде через parseDateOnly, щоб старі записи
- * відображались тим самим днем і в тултіпі, і в полі вибору дати.
+ * Для показу: у форматі з профілю (за замовчуванням MM/dd/yyyy). Іде через parseDateOnly,
+ * щоб старі записи відображались тим самим днем і в тултіпі, і в полі вибору дати.
+ * Приймає і дати TMDB ("YYYY-MM-DD"), і ISO-рядки з бази.
  */
 export const formatDateOnly = (value) => {
     const date = parseDateOnly(value);
     if (!date) return '';
-    const { year, month, day } = localParts(date);
-    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return format(date, getDateFormat());
 };

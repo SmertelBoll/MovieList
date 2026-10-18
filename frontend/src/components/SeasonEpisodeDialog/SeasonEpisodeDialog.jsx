@@ -37,6 +37,8 @@ function SeasonEpisodeDialog({
     // Власна система оцінок користувача
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
     const useRatingSystem = hasRatingSystem(ratingSystem);
+    // Формат дати з профілю
+    const dateFormat = useSelector((state) => state.config.dateFormat);
     const ratingLevels = getRatingLevels(ratingSystem);
 
     const [rating, setRating] = useState(null);
@@ -205,6 +207,7 @@ function SeasonEpisodeDialog({
                             з primary. Поле підставляється через slots. */}
                         <DatePicker
                             label="Choose date"
+                            format={dateFormat}
                             value={selectedDate}
                             onChange={(newDate) => setSelectedDate(newDate)}
                             slots={{ textField: InputBoxRegular }}

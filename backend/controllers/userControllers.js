@@ -313,9 +313,12 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// Допустимі формати дат. Тримати синхронно з DATE_FORMATS у frontend/src/utils/dateFormats.js
+const ALLOWED_DATE_FORMATS = ["MM/dd/yyyy", "dd.MM.yyyy", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "yyyy.MM.dd"];
+
 export const updateSettings = async (req, res) => {
   try {
-    const { themeMode, language, typeCustom, ratingSystem, colorFolderIcons } = req.body;
+    const { themeMode, language, typeCustom, ratingSystem, colorFolderIcons, dateFormat } = req.body;
 
     // Кожен тег — не довше 100 символів
     if (Array.isArray(typeCustom) && typeCustom.some((t) => typeof t === "string" && t.length > 100)) {
@@ -351,6 +354,8 @@ export const updateSettings = async (req, res) => {
         ratingSystem: normalizedRatingSystem,
         // Лише булеве значення; інакше (не передано) поле не чіпаємо
         colorFolderIcons: typeof colorFolderIcons === "boolean" ? colorFolderIcons : undefined,
+        // Лише зі списку допустимих; інакше (не передано / невідомий) поле не чіпаємо
+        dateFormat: ALLOWED_DATE_FORMATS.includes(dateFormat) ? dateFormat : undefined,
       },
       { new: true }
     ).exec();

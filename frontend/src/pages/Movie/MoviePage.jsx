@@ -17,6 +17,7 @@ import ItemFolderButton from '../../components/ItemFolderButton'
 import StretchedLink from '../../components/StretchedLink'
 import { scrollbarSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
+import { formatDateOnly } from '../../utils/dates'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
@@ -538,7 +539,7 @@ function MoviePage({ isSaved = false }) {
                                 ⭐ {movie.vote_average?.toFixed(1)}
                             </Typography>
                             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                {movie.release_date} • {movie.runtime} min
+                                {formatDateOnly(movie.release_date)} • {movie.runtime} min
                             </Typography>
                         </Box>
 
@@ -610,12 +611,12 @@ function MoviePage({ isSaved = false }) {
                         </Box>
                         {movie.dateAdded && (
                             <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Added: {movie.dateAdded.split('T')[0]}
+                                Added: {formatDateOnly(movie.dateAdded)}
                             </Typography>
                         )}
                         {movie.updatedAt && (
                             <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Updated: {movie.updatedAt.split('T')[0]}
+                                Updated: {formatDateOnly(movie.updatedAt)}
                             </Typography>
                         )}
                     </Box>
