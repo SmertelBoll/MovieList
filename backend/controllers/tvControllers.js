@@ -272,7 +272,7 @@ export const markSeasonEpisodesWatched = async (req, res) => {
   try {
     const userId = req.userId;
     const { mongoId, season } = req.params;
-    const { episodes } = req.body;
+    const { episodes, dateAdded } = req.body;
 
     const tv = await TvModel.findOne({ _id: mongoId, user: userId });
     if (!tv) {
@@ -286,15 +286,20 @@ export const markSeasonEpisodesWatched = async (req, res) => {
       seasonDoc = tv.seasons[tv.seasons.length - 1];
     }
 
+    // Дата перегляду для позначених серій: передали (null = без дати) — беремо її, не передали — сьогодні
+    const parsed = dateAdded ? new Date(dateAdded) : null;
+    const hasDate = Object.prototype.hasOwnProperty.call(req.body, "dateAdded");
+    const watchDate = hasDate ? (parsed && !Number.isNaN(parsed.getTime()) ? parsed : null) : new Date();
+
     const epNumbers = Array.isArray(episodes) ? episodes.map(Number) : [];
     for (const epNum of epNumbers) {
       let episodeDoc = seasonDoc.episodes.find(e => e.episode === epNum);
       if (!episodeDoc) {
-        seasonDoc.episodes.push({ episode: epNum, watchedCount: 1, dateAdded: new Date() });
+        seasonDoc.episodes.push({ episode: epNum, watchedCount: 1, dateAdded: watchDate });
       } else if (!episodeDoc.skipped && !(episodeDoc.watchedCount > 0)) {
         // Пропущені серії не чіпаємо: «переглянуто все» не скасовує пропуск
         episodeDoc.watchedCount = 1;
-        if (!episodeDoc.dateAdded) episodeDoc.dateAdded = new Date();
+        if (!episodeDoc.dateAdded) episodeDoc.dateAdded = watchDate;
       }
     }
 

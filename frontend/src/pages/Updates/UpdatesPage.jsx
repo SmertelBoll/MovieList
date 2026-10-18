@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import instance from '../../axios'
-import { alertError, alertConfirm } from '../../alerts'
+import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { cleanCollectionName } from '../../utils/tmdb'
 import { toDateOnlyISO } from '../../utils/dates'
@@ -16,6 +16,7 @@ import Sort from '../../components/Sorting/Sort'
 import SegmentedSwitch, { SLIDE_MS } from '../../components/SegmentedSwitch'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
+import MarkWatchedDialog from '../../components/MarkWatchedDialog/MarkWatchedDialog'
 import UpdateRow from './UpdateRow'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
@@ -424,26 +425,29 @@ function UpdatesPage() {
     }, [patchEpisodes])
 
     // Позначити переглянутими всі непереглянуті серії сезону одним запитом.
-    // Дія масова й скасувати її можна лише вручну по серії — тому питаємо підтвердження.
+    // Дія масова й скасувати її можна лише вручну по серії — тому відкриваємо діалог, де обирається
+    // дата перегляду (за замовчуванням сьогодні) і підтверджується дія. Стан: { row, seasonNumber, episodeNumbers }.
+    const [markDialog, setMarkDialog] = useState(null)
     const handleSeasonMarkAll = useCallback((row, seasonNumber, episodeNumbers) => {
         if (!episodeNumbers.length) return
+        setMarkDialog({ row, seasonNumber, episodeNumbers })
+    }, [])
 
-        const count = episodeNumbers.length
-        alertConfirm(
-            `Mark ${count} remaining ${count === 1 ? 'episode' : 'episodes'} of season ${seasonNumber} in "${row.title}" as watched?`,
-            async () => {
-                const data = { dateAdded: toDateOnlyISO(new Date()), watchedCount: 1, rating: null, comment: '' }
-                try {
-                    await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/watched`, { episodes: episodeNumbers })
-                    patchEpisodes(
-                        row.key,
-                        seasonNumber,
-                        Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
-                    )
-                } catch (err) { console.warn(err); alertError(err) }
-            }
-        )
-    }, [patchEpisodes])
+    // Підтвердження в діалозі: позначаємо серії з обраною датою (null — без дати)
+    const handleConfirmMarkAll = useCallback(async (dateAdded) => {
+        if (!markDialog) return
+        const { row, seasonNumber, episodeNumbers } = markDialog
+        setMarkDialog(null)
+        const data = { dateAdded, watchedCount: 1, rating: null, comment: '' }
+        try {
+            await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/watched`, { episodes: episodeNumbers, dateAdded })
+            patchEpisodes(
+                row.key,
+                seasonNumber,
+                Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
+            )
+        } catch (err) { console.warn(err); alertError(err) }
+    }, [markDialog, patchEpisodes])
 
     const handleEpisodeEdit = useCallback((row, seasonNumber, episodeNumber, initial) => {
         setEpisodeDialog({ row, seasonNumber, episodeNumber, initial })
@@ -599,6 +603,17 @@ function UpdatesPage() {
                 folders={folders}
                 setFolders={setFolders}
                 setIsGetFolders={setIsGetFolders}
+            />
+
+            {/* Діалог дати для «Watch all» (весь сезон) — той самий, що на сторінці серіалу */}
+            <MarkWatchedDialog
+                open={Boolean(markDialog)}
+                title={markDialog ? `${markDialog.row.title} · Season ${markDialog.seasonNumber}` : ''}
+                description={markDialog
+                    ? `Mark ${markDialog.episodeNumbers.length} remaining ${markDialog.episodeNumbers.length === 1 ? 'episode' : 'episodes'} as watched. Choose the date they were watched.`
+                    : ''}
+                onClose={() => setMarkDialog(null)}
+                onConfirm={handleConfirmMarkAll}
             />
 
             {/* Діалог серії — той самий, що на сторінці серіалу */}

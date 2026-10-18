@@ -9,12 +9,13 @@ import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText,
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
-import { alertError, alertSuccess, alertConfirm } from '../../alerts'
+import { alertError, alertSuccess } from '../../alerts'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CloseIcon from '@mui/icons-material/Close'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
+import MarkWatchedDialog from '../../components/MarkWatchedDialog/MarkWatchedDialog'
 import ActorCart from '../../components/Carts/ActorCart'
 import EpisodeCart from '../../components/Carts/EpisodeCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
@@ -370,7 +371,9 @@ function TVPage({ isSaved = false }) {
         return { watched, skipped, total }
     }
 
-    // Дія масова, тож питаємо підтвердження — як і "Watch all" на сторінці оновлень
+    // Дія масова: замість простого підтвердження відкриваємо діалог, де обирається дата перегляду
+    // (за замовчуванням сьогодні). Стан: { season, epNums, remaining } або null.
+    const [markDialog, setMarkDialog] = useState(null)
     const handleMarkSeasonWatched = (sNum) => {
         const epNums = Object.keys(seasonDetails[sNum] || {}).map(Number)
         const { watched, skipped, total } = getSeasonWatchedCount(sNum)
@@ -378,20 +381,22 @@ function TVPage({ isSaved = false }) {
         // Бекенд чіпає лише непереглянуті серії — якщо таких немає, робити нічого
         if (!remaining) return
 
-        alertConfirm(
-            `Mark ${remaining} remaining ${remaining === 1 ? 'episode' : 'episodes'} of season ${sNum} as watched?`,
-            () => {
-                instance
-                    .patch(`/tv/${serial._id}/season/${sNum}/watched`, { episodes: epNums })
-                    .then((res) => {
-                        setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
-                    })
-                    .catch((err) => {
-                        console.warn(err)
-                        alertError(err)
-                    })
-            }
-        )
+        setMarkDialog({ season: sNum, epNums, remaining })
+    }
+
+    // Підтвердження в діалозі: позначаємо серії з обраною датою (null — без дати)
+    const handleConfirmMarkSeason = (dateAdded) => {
+        const { season, epNums } = markDialog
+        setMarkDialog(null)
+        instance
+            .patch(`/tv/${serial._id}/season/${season}/watched`, { episodes: epNums, dateAdded })
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
     }
 
     // -- Дії над серією -- //
@@ -1108,6 +1113,17 @@ function TVPage({ isSaved = false }) {
                     handleDeleteEpisode(ratingTarget.season, ratingTarget.episode)
                     setRatingDialogOpen(false)
                 }}
+            />
+
+            {/* Діалог дати для «Mark all as watched» */}
+            <MarkWatchedDialog
+                open={Boolean(markDialog)}
+                title={markDialog ? `Season ${markDialog.season}` : ''}
+                description={markDialog
+                    ? `Mark ${markDialog.remaining} remaining ${markDialog.remaining === 1 ? 'episode' : 'episodes'} as watched. Choose the date they were watched.`
+                    : ''}
+                onClose={() => setMarkDialog(null)}
+                onConfirm={handleConfirmMarkSeason}
             />
 
             {/* Спільне меню Edit/Delete для серій */}
