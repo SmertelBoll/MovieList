@@ -1104,6 +1104,10 @@ function TVPage({ isSaved = false }) {
                 isNew={ratingIsNew}
                 onClose={() => setRatingDialogOpen(false)}
                 onSave={handleSaveRating}
+                onDelete={() => {
+                    handleDeleteEpisode(ratingTarget.season, ratingTarget.episode)
+                    setRatingDialogOpen(false)
+                }}
             />
 
             {/* Спільне меню Edit/Delete для серій */}

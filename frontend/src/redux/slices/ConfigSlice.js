@@ -12,6 +12,7 @@ const savedCustomTypes = window.localStorage.getItem("MovieList-customTypes");
 const savedDateFormat = window.localStorage.getItem("MovieList-dateFormat");
 const savedViewMode = window.localStorage.getItem("MovieList-viewMode");
 
+
 const initialState = {
     mode: savedMode ? savedMode : "light",
     language: savedLanguage ? savedLanguage : "en",

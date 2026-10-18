@@ -415,23 +415,7 @@ function GeneralItemList({
         <Grid2 container spacing={2} justifyContent="center">
             {items.slice(0, displayedItems).map((item, i) => (
                 <Grid2 item size={{ xs: 6, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={item?._id || item?.id || i}>
-                    <ItemCart
-                        item={item}
-                        onAddItem={handleDialogAddItem}
-                        onEditItem={handleDialogEditItem}
-                        onDeleteItem={handleDeleteItem}
-                        dbType={dbType}
-                        mediaType={item.media_type || "movie"}
-                        isImage={true}
-                        isTitle={true}
-                        isJob={pageType === "crew"}
-                        isDate={true}
-                        isRating={true}
-                        isVoteCount={!Boolean(props.objectOfFolderPage)}
-                        isDescription={dbType === "tmdb"}
-                        isComment={dbType === "mongo"}
-                        isFolderPage={Boolean(props.objectOfFolderPage)}
-                    />
+                    <ItemCart {...itemProps(item)} isImage isTitle />
                 </Grid2>
             ))}
         </Grid2>

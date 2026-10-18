@@ -311,12 +311,14 @@ function UpdatesPage() {
 
     // entries: { [номерСерії]: дані }. Одна серія — окремий випадок масового
     // позначення, тож обидва сценарії йдуть через один хелпер і один рендер.
-    const patchEpisodes = useCallback((rowKey, seasonNumber, entries) => {
+    // removed — номери серій (рядками), які прибрали з бази: серія знову непереглянута
+    const patchEpisodes = useCallback((rowKey, seasonNumber, entries, removed = []) => {
         setRows((prev) => prev.reduce((acc, row) => {
             if (row.key !== rowKey) { acc.push(row); return acc }
             const seasons = row.seasons.map((s) => {
                 if (s.seasonNumber !== seasonNumber) return s
                 const watchedEpisodes = { ...s.watchedEpisodes, ...entries }
+                removed.forEach((key) => { delete watchedEpisodes[key] })
                 return {
                     ...s,
                     watchedEpisodes,
@@ -462,6 +464,17 @@ function UpdatesPage() {
         } catch (err) { console.warn(err); alertError(err) }
     }, [episodeDialog, patchEpisodes])
 
+    // Видалити серію з бази (кнопка Delete в діалозі редагування): вона знову стає непереглянутою
+    const handleEpisodeDelete = useCallback(async () => {
+        if (!episodeDialog) return
+        const { row, seasonNumber, episodeNumber } = episodeDialog
+        try {
+            await instance.delete(`/tv/${row.mongoId}/season/${seasonNumber}/episode/${episodeNumber}`)
+            patchEpisodes(row.key, seasonNumber, {}, [String(episodeNumber)])
+            setEpisodeDialog(null)
+        } catch (err) { console.warn(err); alertError(err) }
+    }, [episodeDialog, patchEpisodes])
+
     if (!isAuth) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
@@ -596,6 +609,7 @@ function UpdatesPage() {
                 initial={episodeDialog?.initial || {}}
                 onClose={() => setEpisodeDialog(null)}
                 onSave={handleEpisodeSave}
+                onDelete={handleEpisodeDelete}
             />
         </Box>
     )

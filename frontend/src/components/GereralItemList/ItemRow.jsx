@@ -12,7 +12,7 @@ const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`
 
 // Однакові колонки в усіх рядках, щоб дата й оцінка стояли рівно одна під одною:
 // постер | назва + підпис | дата | оцінка. Праворуч лишається місце під кнопку.
-const COLUMNS = { xs: '36px minmax(0, 1fr)', md: '36px minmax(0, 1fr) 110px 120px' }
+const COLUMNS = { xs: '36px minmax(0, 1fr)', md: '36px minmax(0, 1fr) 100px 96px' }
 
 /**
  * Компактний рядок елемента — альтернатива картці (ItemCart) для режиму «таблиця».
@@ -58,7 +58,8 @@ function ItemRow({
                 cursor: 'pointer',
                 // Праворуч місце під кнопку додати/редагувати
                 pl: 1,
-                pr: isAuth ? 8 : 1,
+                // Кнопка: 40 px + відступ 12 px справа = 52 px; ще трохи повітря
+                pr: isAuth ? 7.5 : 1,
                 py: 0.5,
                 display: 'grid',
                 gridTemplateColumns: COLUMNS,

@@ -9,6 +9,7 @@ import MainButton from '../Buttons/MainButton';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem } from '../../utils/ratingSystem';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
+import { alertConfirm } from '../../alerts';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
@@ -22,6 +23,8 @@ function SeasonEpisodeDialog({
     isNew = false,
     onClose,
     onSave,
+    // Видалення серії з бази. Кнопка лише для вже збереженої серії (mode="episode", не isNew)
+    onDelete,
 }) {
     const theme = useTheme();
     const InputBox = useMemo(
@@ -230,6 +233,19 @@ function SeasonEpisodeDialog({
                 />
 
                 <DialogActions sx={{ p: 0 }}>
+                    {mode === "episode" && !isNew && onDelete && (
+                        <MainButton
+                            onClick={() => alertConfirm('Delete this episode from your list?', onDelete)}
+                            sx={{
+                                mr: 'auto',
+                                backgroundColor: 'danger.main',
+                                color: 'danger.contrastText',
+                                ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' },
+                            }}
+                        >
+                            Delete
+                        </MainButton>
+                    )}
                     <MainButton onClick={onClose}>Cancel</MainButton>
                     <MainButton onClick={handleSubmit}>Save</MainButton>
                 </DialogActions>
