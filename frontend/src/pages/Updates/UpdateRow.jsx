@@ -1,12 +1,12 @@
 import { Box, Card, Chip, Collapse, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { formatDateOnly } from '../../utils/dates'
 import ItemFolderButton from '../../components/ItemFolderButton'
+import SavedItemOpener from '../../components/SavedItemOpener'
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -28,6 +28,10 @@ const asDate = (value) => formatDateOnly(value) || '—'
 function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
     const { language } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
+
+    // Постер у рядку відкриває серіал, а для колекції — її ПЕРШУ частину (за датою виходу).
+    // Що саме відкриється (TMDB / збережена / вибір папки) вирішує SavedItemOpener.
+    const targetPart = row.kind === 'collection' ? row.parts[0] : null
 
     const [open, setOpen] = useState(false)
     // Множина, а не одне значення: сезони розкриваються незалежно один від одного
@@ -121,14 +125,11 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     },
                 }}
             >
-                {/* Картинка — справжнє посилання на сторінку TMDB (а не onClick з navigate):
-                    так працюють колесо миші та Ctrl/Cmd+клік — відкриття в новій вкладці.
-                    У колекції власної сторінки немає — ведемо на першу частину франшизи. */}
-                <Box
-                    component={Link}
-                    to={row.kind === 'tv' ? `/tv/${row.id}` : `/movie/${row.parts[0]?.id}`}
-                    // Клік по картинці не розгортає рядок
-                    onClick={(e) => e.stopPropagation()}
+                {/* Клік по постеру відкриває фільм/серіал за єдиною логікою (див. SavedItemOpener) */}
+                <SavedItemOpener
+                    mediaType={row.kind === 'tv' ? 'tv' : 'movie'}
+                    tmdbId={row.kind === 'tv' ? row.id : targetPart?.id}
+                    title={row.kind === 'tv' ? row.title : (targetPart?.title || row.title)}
                     sx={{ display: 'flex', flexShrink: 0 }}
                 >
                     <Box
@@ -138,7 +139,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                         loading="lazy"
                         sx={{ width: 48, height: 72, objectFit: 'cover', borderRadius: 1, boxShadow: 2 }}
                     />
-                </Box>
+                </SavedItemOpener>
 
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Typography variant="body1" color="text.main" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
@@ -198,8 +199,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                             transition: 'box-shadow 0.2s ease-in-out',
                                         }}
                                     >
-                                        {/* Справжнє посилання — працюють колесо миші та Ctrl/Cmd+клік */}
-                                        <Box component={Link} to={`/movie/${part.id}`} sx={{ display: 'block' }}>
+                                        {/* Та сама логіка, що й у постера рядка: TMDB / збережена / вибір папки */}
+                                        <SavedItemOpener mediaType="movie" tmdbId={part.id} title={part.title} sx={{ display: 'block' }}>
                                             <Box
                                                 component="img"
                                                 src={poster(part.posterPath)}
@@ -212,7 +213,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                     ...(isDimmedStatus(part.status) && DIMMED_POSTER_SX),
                                                 }}
                                             />
-                                        </Box>
+                                        </SavedItemOpener>
 
                                         {/* Плюс (додати) або значок статусу (редагувати). Підказка — усі папки фільму;
                                             кілька папок — перед редагуванням з'являється вибір папки */}

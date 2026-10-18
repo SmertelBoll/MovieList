@@ -37,7 +37,7 @@ const UserSchema = new mongoose.Schema(
     // Формат дат на сайті (рядок date-fns). Список допустимих — у userControllers.js
     dateFormat: {
       type: String,
-      default: "MM/dd/yyyy",
+      default: "yyyy-MM-dd",
     },
     // Фарбувати іконки папок у бічній панелі за статусом (налаштування в профілі)
     colorFolderIcons: {

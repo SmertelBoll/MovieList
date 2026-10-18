@@ -4,7 +4,7 @@
 //
 // Тримати синхронно з ALLOWED_DATE_FORMATS у backend/controllers/userControllers.js.
 
-export const DEFAULT_DATE_FORMAT = "MM/dd/yyyy";
+export const DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
 
 export const DATE_FORMATS = [
   "MM/dd/yyyy",
