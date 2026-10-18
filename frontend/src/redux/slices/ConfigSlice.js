@@ -10,6 +10,7 @@ const savedLanguage = window.localStorage.getItem("MovieList-language");
 const savedTypeTMDB = window.localStorage.getItem("MovieList-typeTMDB");
 const savedCustomTypes = window.localStorage.getItem("MovieList-customTypes");
 const savedDateFormat = window.localStorage.getItem("MovieList-dateFormat");
+const savedViewMode = window.localStorage.getItem("MovieList-viewMode");
 
 const initialState = {
     mode: savedMode ? savedMode : "light",
@@ -17,6 +18,8 @@ const initialState = {
     typeTMDB: savedTypeTMDB ? JSON.parse(savedTypeTMDB) : ["movie", "tv"],
     // Кілька кастомних типів одночасно (об'єднання)
     customTypes: savedCustomTypes ? JSON.parse(savedCustomTypes) : [],
+    // Як показувати списки фільмів: "cards" (картки) або "list" (компактні рядки)
+    viewMode: savedViewMode === "list" ? "list" : "cards",
     // Формат дат на всьому сайті (вибирається в профілі)
     dateFormat: isDateFormat(savedDateFormat) ? savedDateFormat : DEFAULT_DATE_FORMAT,
 };
@@ -41,6 +44,10 @@ const configSlice = createSlice({
             state.typeTMDB = action.payload;
             window.localStorage.setItem("MovieList-typeTMDB", JSON.stringify(action.payload));
         },
+        setViewMode: (state, action) => {
+            state.viewMode = action.payload === "list" ? "list" : "cards";
+            window.localStorage.setItem("MovieList-viewMode", state.viewMode);
+        },
         setDateFormat: (state, action) => {
             state.dateFormat = action.payload;
             window.localStorage.setItem("MovieList-dateFormat", action.payload);
@@ -52,7 +59,7 @@ const configSlice = createSlice({
     },
 });
 
-export const { setMode, setLanguage, setTypeTMDB, setCustomTypes, toggleMode, setDateFormat } = configSlice.actions;
+export const { setMode, setLanguage, setTypeTMDB, setCustomTypes, toggleMode, setDateFormat, setViewMode } = configSlice.actions;
 
 // -- THUNKS: зберігають вибір локально і (якщо користувач залогінений) у профілі на сервері --
 

@@ -1,6 +1,7 @@
 import { Box, Card, CardContent, CardMedia, Rating, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
 import StretchedLink from '../StretchedLink'
+import { getItemHref } from '../../utils/itemLinks'
 import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import ItemFolderButton from '../ItemFolderButton';
 import { formatRatingLabel } from '../../utils/ratingSystem';
@@ -34,9 +35,7 @@ function ItemCart({
     const tmdbRatingText = `${Math.round((item.vote_average || 0) * 10) / 10}/10`;
 
     // Куди веде картка: збережена копія — /user/..., каталог TMDB — /movie|tv/...
-    const href = item.media_type === "movie" || item.media_type === "tv"
-        ? (dbType === "mongo" ? `/user/${item.media_type}/${item._id}` : `/${item.media_type}/${item.id}`)
-        : null;
+    const href = getItemHref(item, dbType);
 
     // tmdbId: у mongo-картки (сторінка папки) tmdb-дані змішані з документом, id = tmdbId
     const tmdbId = item.tmdbId ?? item.id;

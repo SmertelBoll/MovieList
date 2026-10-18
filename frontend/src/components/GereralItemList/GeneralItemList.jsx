@@ -1,9 +1,14 @@
 import { Box, CircularProgress, debounce, Grid2, Tooltip, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { setViewMode } from '../../redux/slices/ConfigSlice'
 import { getTmdbLanguage } from '../../utils/languages'
 import Search from '../Sorting/Search'
 import ItemCart from './ItemCart';
+import ItemRow from './ItemRow';
+import SegmentedSwitch from '../SegmentedSwitch';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ViewListIcon from '@mui/icons-material/ViewList';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -79,7 +84,8 @@ function GeneralItemList({
     isSort = false,
     ...props
 }) {
-    const { typeTMDB, customTypes, language } = useSelector((state) => state.config);
+    const { typeTMDB, customTypes, language, viewMode } = useSelector((state) => state.config);
+    const dispatch = useDispatch();
     const tmdbLanguage = getTmdbLanguage(language);
     // Кастомні типи застосовуються лише для mongo-сторінок; для tmdb їх ігноруємо повністю
     const effectiveCustomTypes = dbType === "mongo" ? customTypes : [];
@@ -381,7 +387,31 @@ function GeneralItemList({
 
     // Кешуємо сітку фільмів, щоб вона не ререндерилася при кожному введі в інпут (Search)
     // чи зміні іншого стейту поза межами залежностей
-    const renderedItemGrid = React.useMemo(() => (
+    // Пропси, спільні для картки й рядка
+    const itemProps = (item) => ({
+        item,
+        onAddItem: handleDialogAddItem,
+        onEditItem: handleDialogEditItem,
+        onDeleteItem: handleDeleteItem,
+        dbType,
+        mediaType: item.media_type || "movie",
+        isJob: pageType === "crew",
+        isDate: true,
+        isRating: true,
+        isVoteCount: !Boolean(props.objectOfFolderPage),
+        isDescription: dbType === "tmdb",
+        isComment: dbType === "mongo",
+        isFolderPage: Boolean(props.objectOfFolderPage),
+    });
+
+    const renderedItemGrid = React.useMemo(() => viewMode === "list" ? (
+        // Режим «таблиця»: компактні рядки замість карток
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {items.slice(0, displayedItems).map((item, i) => (
+                <ItemRow key={item?._id || item?.id || i} {...itemProps(item)} />
+            ))}
+        </Box>
+    ) : (
         <Grid2 container spacing={2} justifyContent="center">
             {items.slice(0, displayedItems).map((item, i) => (
                 <Grid2 item size={{ xs: 6, sm: 6, md: 4, lg: 3, xl: 2, xxxl: 1 }} key={item?._id || item?.id || i}>
@@ -410,6 +440,7 @@ function GeneralItemList({
         displayedItems,
         dbType,
         pageType,
+        viewMode,
         props.objectOfFolderPage,
         // Обробники редагування/видалення беруть папку копії зі списку папок
         folders
@@ -421,8 +452,22 @@ function GeneralItemList({
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
-                <Typography variant="p" color="text.main">{pageTitle}</Typography>
-                {titleAdornment}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
+                    <Typography variant="p" color="text.main">{pageTitle}</Typography>
+                    {titleAdornment}
+                </Box>
+
+                {/* Як показувати список: картки (за замовчуванням) або компактні рядки. Завжди справа зверху */}
+                <SegmentedSwitch
+                    compact
+                    value={viewMode}
+                    onChange={(mode) => dispatch(setViewMode(mode))}
+                    sx={{ ml: "auto" }}
+                    options={[
+                        { value: "cards", label: <GridViewIcon fontSize="small" />, ariaLabel: "Show as cards" },
+                        { value: "list", label: <ViewListIcon fontSize="small" />, ariaLabel: "Show as list" },
+                    ]}
+                />
             </Box>
 
             {isEmpty
@@ -502,19 +547,17 @@ function GeneralItemList({
                         setIsGetFolders={setIsGetFolders}
                     />
 
-                    <Box sx={{ mb: 2 }}>
-                        {
-                            !isLoadedItems
-                                ? <Box width="100%" textAlign="center">
-                                    <CircularProgress color="text.main" />
-                                </Box>
-                                : (totalPages > page || displayedItems < items.length) && items.length > 0
-                                    ? <Box display="flex" justifyContent="center" >
-                                        <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
-                                    </Box>
-                                    : <></>
-                        }
-                    </Box>
+                    {/* Низ списку: спінер або «Give more». Коли показувати нічого, блок не рендеримо —
+                        порожній, він усе одно додавав би відступи (gap + mb) і низ виглядав завеликим */}
+                    {!isLoadedItems
+                        ? <Box width="100%" textAlign="center">
+                            <CircularProgress color="text.main" />
+                        </Box>
+                        : (totalPages > page || displayedItems < items.length) && items.length > 0
+                            ? <Box display="flex" justifyContent="center" >
+                                <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
+                            </Box>
+                            : null}
                 </>
             }
 

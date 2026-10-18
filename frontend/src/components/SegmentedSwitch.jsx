@@ -15,7 +15,9 @@ export const SLIDE_MS = 300
  * Усі варіанти однакової ширини, тож повзунок — це просто translateX на n × 100%.
  * Колір: жовтий фон → темний текст (правило сайту), решта — звичайний текст теми.
  */
-function SegmentedSwitch({ options, value, onChange, sx }) {
+// compact — вужчі кнопки (для перемикача з іконками). option.label може бути й іконкою,
+// тоді варто задати option.ariaLabel.
+function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
     const index = Math.max(0, options.findIndex((o) => o.value === value))
     const isToggle = options.length === 2
     const handleToggle = () => onChange(options[1 - index].value)
@@ -64,22 +66,30 @@ function SegmentedSwitch({ options, value, onChange, sx }) {
                         key={option.value}
                         role="tab"
                         aria-selected={selected}
+                        aria-label={option.ariaLabel}
                         // Без хвилі від кліку: клік обробляє весь перемикач, а повзунок і так показує зміну
                         disableRipple
                         onClick={isToggle ? undefined : () => onChange(option.value)}
                         sx={{
                             position: 'relative',
-                            px: 3,
-                            py: 1,
+                            px: compact ? 1.5 : 3,
+                            py: compact ? 0 : 1,
+                            // Іконка по центру кнопки, а висота — фіксована (compact), щоб не залежала від рядка тексту
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            ...(compact && { height: 32 }),
                             borderRadius: 3,
                             // Над повзунком; колір міняється разом з ковзанням
                             color: selected ? 'yellow.contrastText' : 'text.main',
                             transition: `color ${SLIDE_MS}ms ease-in-out`,
                         }}
                     >
-                        <Typography variant="button" sx={{ color: 'inherit' }}>
-                            {option.label}
-                        </Typography>
+                        {/* Текст — у Typography; іконка (не рядок) — як є: у Typography вона отримувала
+                            висоту рядка тексту й висіла нерівно */}
+                        {typeof option.label === 'string'
+                            ? <Typography variant="button" sx={{ color: 'inherit' }}>{option.label}</Typography>
+                            : option.label}
                     </ButtonBase>
                 )
             })}
