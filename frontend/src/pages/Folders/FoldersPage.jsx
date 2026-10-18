@@ -342,7 +342,8 @@ function FoldersPage() {
                                 {/* Кнопка ⋮ */}
                                 <Box
                                     onClick={(e) => e.stopPropagation()}
-                                    sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1 }}
+                                    // Іконка ⋮ успадковує колір; без явного він лишався чорним і зникав у темній темі
+                                    sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1, color: 'text.main' }}
                                 >
                                     <UpdateFolder
                                         hasImage={Boolean(folder.image)}
