@@ -9,6 +9,8 @@ import instance from '../../axios';
 import { alertError, alertConfirm, alertSuccess } from '../../alerts';
 import useTextPrompt from '../_customMUI/useTextPrompt';
 import SideBar from '../SideBar/SideBar';
+import FolderThumb from '../SideBar/FolderThumb';
+import RatingDot from '../RatingDot';
 import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
@@ -176,6 +178,27 @@ function ItemSaveDialog({
         }
     };
 
+    // Нова папка з випадайки (мобільний вигляд): питаємо назву, створюємо й одразу вибираємо її.
+    // Перейменування, порядок і видалення папок на малих екранах недоступні — це робиться на сторінці Folders.
+    const handleCreateFolder = async () => {
+        const name = await promptText({
+            title: 'New folder',
+            label: 'Folder name',
+            confirmLabel: 'Create',
+        });
+        if (!name) return;
+
+        try {
+            const res = await instance.post('/folders', { name });
+            const created = res.data.results;
+            setFolders((prev) => [...prev, created]);
+            setSelectedFolder(created);
+        } catch (err) {
+            console.warn(err);
+            alertError(err);
+        }
+    };
+
     // -- API -- //
     // додавання фільму в папку (frontend)
     const addItem = (item) => {
@@ -330,7 +353,9 @@ function ItemSaveDialog({
                     p: 2
                 }}
             >
-                {/* LEFT: Folders */}
+                {/* LEFT: Folders — бічна панель лише на широких екранах. На вузьких вона мала б власний скрол,
+                    тому там папку вибирає випадайка в правому блоці. */}
+                {!isStacked && (
                 <Box sx={{
                     flex: { xs: '0 0 auto', md: 1 },
                     minWidth: 0,
@@ -357,6 +382,8 @@ function ItemSaveDialog({
                     />
                 </Box>
 
+                )}
+
                 {/* RIGHT: Description */}
                 <Box sx={{ flex: { xs: '1 1 auto', md: 2 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* flex: 1 притискає кнопки до низу — доречно лише при фіксованій
@@ -372,6 +399,59 @@ function ItemSaveDialog({
                             }
 
                         </Typography>
+                        {/* Вузькі екрани: вибір папки випадайкою замість бічної панелі зі скролом */}
+                        {isStacked && (
+                            <DropdownMenu
+                                width={280}
+                                items={[
+                                    ...[...(folders || [])].sort((x, y) => y.order - x.order).map((folder) => {
+                                        const isSelected = Boolean(selectedFolder && selectedFolder.name === folder.name);
+                                        return {
+                                            key: folder.name,
+                                            label: folder.name,
+                                            icon: <FolderThumb folder={folder} size={20} />,
+                                            selected: isSelected,
+                                            endAdornment: isSelected ? <CheckIcon fontSize="small" /> : null,
+                                            onClick: () => setSelectedFolder(folder),
+                                        };
+                                    }),
+                                    { key: '__divider__', divider: true },
+                                    {
+                                        key: '__new__',
+                                        label: 'New folder',
+                                        icon: <AddIcon fontSize="small" />,
+                                        onClick: handleCreateFolder,
+                                    },
+                                ]}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                renderTrigger={({ onClick }) => (
+                                    <Box
+                                        onClick={onClick}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            width: '100%',
+                                            minHeight: 40,
+                                            boxSizing: 'border-box',
+                                            px: 1,
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            border: '1px solid',
+                                            borderColor: 'text.main',
+                                            color: selectedFolder?.name ? 'text.main' : 'text.secondary',
+                                        }}
+                                    >
+                                        {selectedFolder?.name && <FolderThumb folder={selectedFolder} size={20} />}
+                                        <Typography variant="body2" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
+                                            {selectedFolder?.name || 'Choose a folder'}
+                                        </Typography>
+                                        <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
+                                    </Box>
+                                )}
+                            />
+                        )}
                         <Box sx={{
                             display: 'flex',
                             flexDirection: { xs: 'column', sm: 'row' },
@@ -476,7 +556,9 @@ function ItemSaveDialog({
                                                     key: lvl.value,
                                                     label: lvl.name,
                                                     selected: rating === lvl.value,
-                                                    icon: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
+                                                    // Кружечок кольору рівня; обране позначаємо галочкою справа
+                                                    icon: <RatingDot color={lvl.color} />,
+                                                    endAdornment: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
                                                     onClick: () => setRating(lvl.value),
                                                 })),
                                                 { key: '__divider__', divider: true },
@@ -500,13 +582,14 @@ function ItemSaveDialog({
                                                         '&:hover': { borderColor: 'text.main' },
                                                     }}
                                                 >
-                                                    <Typography
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                                                        {current && <RatingDot color={current.color} />}
+                                                        <Typography
                                                         variant="body2"
                                                         noWrap
                                                         sx={{ color: current ? 'text.main' : 'text.secondary', minWidth: 0 }}
-                                                    >
-                                                        {current ? current.name : 'Rating'}
-                                                    </Typography>
+                                                    >                                                            {current ? current.name : 'Rating'}                                                        </Typography>
+                                                    </Box>
                                                     <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
                                                 </Box>
                                             )}
@@ -551,34 +634,48 @@ function ItemSaveDialog({
                         />
                     </Box>
 
-                    <DialogActions sx={{ p: 0, gap: 1 }}>
-                        {/* Видалити — лише при редагуванні вже збереженого елемента */}
-                        {isOpenDialogEdit && (
-                            <MainButton
-                                onClick={() => handleDeleteItem(selectedItem, editFolderRef.current || selectedFolder)}
-                                sx={{
-                                    flex: { xs: 1, sm: '0 0 auto' },
-                                    m: 0,
-                                    mr: { sm: 'auto' },
-                                    backgroundColor: 'danger.main',
-                                    color: 'danger.contrastText',
-                                    ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' },
-                                }}
-                            >
-                                Delete
-                            </MainButton>
-                        )}
-                        <MainButton onClick={handleCloseDialog} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
-                            Cancel
-                        </MainButton>
-                        <MainButton onClick={handleSubmit} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
-                            {submitLabelRef.current}
-                        </MainButton>
-                    </DialogActions>
 
                 </Box>
 
             </DialogContent>
+
+            {/* Кнопки — поза прокручуваним вмістом, тож завжди притиснуті до низу вікна
+                (на телефоні вікно на весь екран, і вони не їдуть услід за довгою формою) */}
+            <DialogActions
+                sx={{
+                    flexShrink: 0,
+                    gap: 1,
+                    px: 2,
+                    pt: 1.5,
+                    pb: 2,
+                    backgroundColor: theme.palette.bg.second,
+                    borderTop: { xs: '1px solid', md: 'none' },
+                    borderColor: 'divider',
+                }}
+            >
+                {/* Видалити — лише при редагуванні вже збереженого елемента */}
+                {isOpenDialogEdit && (
+                    <MainButton
+                        onClick={() => handleDeleteItem(selectedItem, editFolderRef.current || selectedFolder)}
+                        sx={{
+                            flex: { xs: 1, sm: '0 0 auto' },
+                            m: 0,
+                            mr: { sm: 'auto' },
+                            backgroundColor: 'danger.main',
+                            color: 'danger.contrastText',
+                            ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' },
+                        }}
+                    >
+                        Delete
+                    </MainButton>
+                )}
+                <MainButton onClick={handleCloseDialog} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
+                    Cancel
+                </MainButton>
+                <MainButton onClick={handleSubmit} sx={{ flex: { xs: 1, sm: '0 0 auto' }, m: 0 }}>
+                    {submitLabelRef.current}
+                </MainButton>
+            </DialogActions>
         </Dialog >
 
         {/* Діалог введення тексту (створення тегу) — рендериться поверх цього */}

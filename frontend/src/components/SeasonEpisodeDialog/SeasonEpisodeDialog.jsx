@@ -10,6 +10,7 @@ import DropdownMenu from '../_customMUI/DropdownMenu';
 import { getRatingLevels, hasRatingSystem } from '../../utils/ratingSystem';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import { alertConfirm } from '../../alerts';
+import RatingDot from '../RatingDot';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
@@ -138,7 +139,9 @@ function SeasonEpisodeDialog({
                                             key: lvl.value,
                                             label: lvl.name,
                                             selected: rating === lvl.value,
-                                            icon: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
+                                            // Кружечок кольору рівня; обране позначаємо галочкою справа
+                                            icon: <RatingDot color={lvl.color} />,
+                                            endAdornment: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
                                             onClick: () => setRating(lvl.value),
                                         })),
                                         { key: '__divider__', divider: true },
@@ -161,9 +164,10 @@ function SeasonEpisodeDialog({
                                                 borderColor: 'text.main',
                                             }}
                                         >
-                                            <Typography variant="body2" noWrap sx={{ color: current ? 'text.main' : 'text.secondary' }}>
-                                                {current ? current.name : 'Rating'}
-                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                                                {current && <RatingDot color={current.color} />}
+                                                <Typography variant="body2" noWrap sx={{ color: current ? 'text.main' : 'text.secondary' }}>                                                    {current ? current.name : 'Rating'}                                                </Typography>
+                                            </Box>
                                             <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
                                         </Box>
                                     )}

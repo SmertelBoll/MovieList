@@ -89,7 +89,18 @@ function useTextPrompt() {
                 />
             </DialogContent>
 
-            <DialogActions sx={{ bgcolor: 'bg.second', p: 2, gap: 1 }}>
+            {/* Смуга кнопок така сама, як у діалозі збереження (ItemSaveDialog): лінія зверху на вузьких екранах */}
+            <DialogActions
+                sx={{
+                    bgcolor: 'bg.second',
+                    gap: 1,
+                    px: 2,
+                    pt: 1.5,
+                    pb: 2,
+                    borderTop: { xs: '1px solid', md: 'none' },
+                    borderColor: 'divider',
+                }}
+            >
                 <MainButton
                     onClick={() => settle(null)}
                     sx={{

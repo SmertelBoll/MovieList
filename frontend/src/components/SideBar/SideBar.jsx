@@ -261,13 +261,14 @@ function SideBar({
                                         // Кольорова іконка статусу на жовтому фоні (наведення / вибрана папка)
                                         // стає темною, як і текст — світлі кольори статусів там не читались би
                                         "&:hover .folder-status-icon": { color: "inherit" },
-                                        ...(selectedFolder && selectedFolder.order === folder.order && {
+                                        ...(selectedFolder && selectedFolder.name === folder.name && {
                                             "& .folder-status-icon": { color: "inherit" },
                                         }),
                                     }}
-                                    // Вибране на сайті завжди жовте з темним текстом,
-                                    // а не сіре. active обробляє SecondaryButton.
-                                    active={Boolean(selectedFolder && selectedFolder.order === folder.order)}
+                                    // Вибране на сайті завжди жовте з темним текстом, а не сіре. active обробляє SecondaryButton.
+                                    // Порівнюємо за назвою (вона унікальна): при редагуванні сторінка передає лише { name },
+                                    // без order, і порівняння за order не підсвічувало б поточну папку.
+                                    active={Boolean(selectedFolder && selectedFolder.name === folder.name)}
                                 >
                                     <Typography
                                         variant="desc1"

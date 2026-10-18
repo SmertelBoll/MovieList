@@ -59,6 +59,12 @@ export const createFolder = async (req, res) => {
     const name = req.body.name;
     const userId = req.userId;
 
+    // Усе на сайті адресується за назвою папки (/folders/:name, пошук findOne за name),
+    // тож у одного користувача назви мають бути унікальними — так само, як при перейменуванні
+    if (await FolderModel.exists({ name, user: userId })) {
+      return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
+    }
+
     const order = await FolderModel.countDocuments({ user: userId })
 
     const doc = new FolderModel({
