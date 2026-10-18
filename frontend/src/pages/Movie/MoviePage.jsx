@@ -1,11 +1,10 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Rating, Tooltip, useMediaQuery } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { selectSavedCopies } from '../../redux/slices/SavedSlice'
-import { formatRatingLabel } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { cleanCollectionName } from '../../utils/tmdb'
@@ -14,6 +13,7 @@ import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import ActorCart from '../../components/Carts/ActorCart'
 import TimelineCart from '../../components/Carts/TimelineCart'
 import ItemFolderButton from '../../components/ItemFolderButton'
+import EditableValue from '../../components/EditableValue'
 import StretchedLink from '../../components/StretchedLink'
 import { scrollbarSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
@@ -46,7 +46,6 @@ const scrollStripSx = {
 function MoviePage({ isSaved = false }) {
     const { id } = useParams()
     const isAuth = useSelector(selectIsAuth)
-    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
     const { language } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
     const [movie, setMovie] = useState(null)
@@ -306,6 +305,27 @@ function MoviePage({ isSaved = false }) {
             alertError(err)
         }
     }
+
+    // Редагування коментаря й оцінки прямо на сторінці. Решту полів шлемо як є, щоб нічого не затерти.
+    const saveFields = async (changes) => {
+        try {
+            const res = await instance.patch(`/movie/${movie._id}`, {
+                comment: movie.comment,
+                rating: movie.rating,
+                dateAdded: movie.dateAdded,
+                customType: movie.customType,
+                ...changes,
+            })
+            const saved = res.data.results
+            setMovie((prev) => ({ ...prev, comment: saved.comment, rating: saved.rating, dateAdded: saved.dateAdded, updatedAt: saved.updatedAt }))
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+            throw err
+        }
+    }
+    const handleSaveReview = (comment) => saveFields({ comment })
+    const handleSaveRatingDate = ({ rating, dateAdded }) => saveFields({ rating, dateAdded })
 
     // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
@@ -589,36 +609,22 @@ function MoviePage({ isSaved = false }) {
             {isSaved && (
                 <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 3 } }}>
                     {/* Коментар (займає всю решту місця) */}
-                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <Typography variant="h5" color="text.main" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>My review</Typography>
-                        <Typography variant="body1" color="text.main" sx={{ whiteSpace: "pre-wrap" }}>
-                            {movie.comment || "No comment"}
-                        </Typography>
-                    </Box>
+                    <EditableValue
+                        type="text"
+                        value={movie.comment}
+                        onSave={handleSaveReview}
+                        // На телефоні (колонка) коментар після оцінки
+                        sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}
+                    />
 
                     {/* Оцінка та дати (під розмір вмісту) */}
-                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Rating
-                                name="user-rating"
-                                value={(movie.rating || 0) / 20}
-                                precision={0.1}
-                                readOnly
-                            />
-                            <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
-                                {movie.rating == null ? "-" : formatRatingLabel(movie.rating, ratingSystem)}
-                            </Typography>
-                        </Box>
-                        {movie.dateAdded && (
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Added: {formatDateOnly(movie.dateAdded)}
-                            </Typography>
-                        )}
-                        {movie.updatedAt && (
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Updated: {formatDateOnly(movie.updatedAt)}
-                            </Typography>
-                        )}
+                    <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
+                        {/* Оцінка й дата перегляду — один блок: дотик відкриває редактор для обох (EditableValue, type="ratingDate") */}
+                        <EditableValue
+                            type="ratingDate"
+                            value={{ rating: movie.rating, dateAdded: movie.dateAdded }}
+                            onSave={handleSaveRatingDate}
+                        />
                     </Box>
                 </Box>
             )}

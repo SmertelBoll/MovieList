@@ -1,11 +1,11 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Rating, Tooltip, Menu, MenuItem } from '@mui/material'
+import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, Menu, MenuItem } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import { selectSavedCopies } from '../../redux/slices/SavedSlice'
-import { getRatingAbbr, formatRatingLabel, getRatingLevelColor, getContrastText, hasRatingSystem, getRatingLevels } from '../../utils/ratingSystem'
+import { getRatingAbbr, getRatingLevelColor, getContrastText, hasRatingSystem, getRatingLevels } from '../../utils/ratingSystem'
 import instance from '../../axios'
 import { getTmdbLanguage } from '../../utils/languages'
 import { toDateOnlyISO, formatDateOnly } from '../../utils/dates'
@@ -20,6 +20,7 @@ import ActorCart from '../../components/Carts/ActorCart'
 import EpisodeCart from '../../components/Carts/EpisodeCart'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import ItemFolderButton from '../../components/ItemFolderButton'
+import EditableValue from '../../components/EditableValue'
 import StretchedLink from '../../components/StretchedLink'
 import { scrollbarSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
@@ -284,6 +285,27 @@ function TVPage({ isSaved = false }) {
         setSelectedFolder(folderOfCopy(copy))
         setIsDeleteItem(true)
     }
+
+    // Редагування коментаря й оцінки прямо на сторінці. Решту полів шлемо як є, щоб нічого не затерти.
+    const saveFields = async (changes) => {
+        try {
+            const res = await instance.patch(`/tv/${serial._id}`, {
+                comment: serial.comment,
+                rating: serial.rating,
+                dateAdded: serial.dateAdded,
+                customType: serial.customType,
+                ...changes,
+            })
+            const saved = res.data.results
+            setSerial((prev) => ({ ...prev, comment: saved.comment, rating: saved.rating, dateAdded: saved.dateAdded, updatedAt: saved.updatedAt }))
+        } catch (err) {
+            console.warn(err)
+            alertError(err)
+            throw err
+        }
+    }
+    const handleSaveReview = (comment) => saveFields({ comment })
+    const handleSaveRatingDate = ({ rating, dateAdded }) => saveFields({ rating, dateAdded })
 
     // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
@@ -980,36 +1002,22 @@ function TVPage({ isSaved = false }) {
             {isSaved && (
                 <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3 }}>
                     {/* Коментар (займає всю решту місця) */}
-                    <Box bgcolor="bg.second" sx={{ flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <Typography variant="h5" color="text.main">My review</Typography>
-                        <Typography variant="body1" color="text.main" sx={{ whiteSpace: "pre-wrap" }}>
-                            {serial.comment || "No comment"}
-                        </Typography>
-                    </Box>
+                    <EditableValue
+                        type="text"
+                        value={serial.comment}
+                        onSave={handleSaveReview}
+                        // На телефоні (колонка) коментар після оцінки
+                        sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 2 }}
+                    />
 
                     {/* Оцінка та дати (під розмір вмісту) */}
-                    <Box bgcolor="bg.second" sx={{ flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Rating
-                                name="user-rating"
-                                value={(serial.rating || 0) / 20}
-                                precision={0.1}
-                                readOnly
-                            />
-                            <Typography variant="h6" color="text.main" sx={{ whiteSpace: "nowrap" }}>
-                                {serial.rating == null ? "-" : formatRatingLabel(serial.rating, ratingSystem)}
-                            </Typography>
-                        </Box>
-                        {serial.dateAdded && (
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Added: {formatDateOnly(serial.dateAdded)}
-                            </Typography>
-                        )}
-                        {serial.updatedAt && (
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                Updated: {formatDateOnly(serial.updatedAt)}
-                            </Typography>
-                        )}
+                    <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+                        {/* Оцінка й дата перегляду — один блок: дотик відкриває редактор для обох (EditableValue, type="ratingDate") */}
+                        <EditableValue
+                            type="ratingDate"
+                            value={{ rating: serial.rating, dateAdded: serial.dateAdded }}
+                            onSave={handleSaveRatingDate}
+                        />
                     </Box>
                 </Box>
             )}

@@ -50,6 +50,24 @@ export const getTheme = (mode) =>
           }),
         },
       },
+      // Кнопки Cancel / OK у вікні вибору дати (на телефоні календар відкривається модально).
+      // За замовчуванням вони кольору primary — жовтий текст на білому не читається.
+      // Текст — звичайний колір теми, а на наведенні/фокусі — жовтий фон з темним текстом (правило сайту).
+      // Панель дій — це DialogActions із класом MuiPickersLayout-actionBar, а не слот теми, тому
+      // стилізуємо її вкладеним селектором із root (ключ actionBar у styleOverrides не існує).
+      MuiPickersLayout: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            "& .MuiPickersLayout-actionBar .MuiButton-root": {
+              color: theme.palette.text.main,
+              "&:hover, &:focus-visible": {
+                backgroundColor: theme.palette.yellow.main,
+                color: theme.palette.yellow.contrastText,
+              },
+            },
+          }),
+        },
+      },
       MuiPickersDay: {
         styleOverrides: {
           root: ({ theme }) => ({
