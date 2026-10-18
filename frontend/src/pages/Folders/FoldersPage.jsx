@@ -208,7 +208,7 @@ function FoldersPage() {
         .sort((a, b) => b.order - a.order)
 
     return (
-        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {/* Прихований input для вибору картинки папки */}
             <input
                 ref={fileInputRef}

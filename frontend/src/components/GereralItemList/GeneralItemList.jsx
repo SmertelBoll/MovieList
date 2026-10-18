@@ -434,7 +434,7 @@ function GeneralItemList({
         || (!isPreperedData && items.length === 0 && isLoadedItems && page > 0 && searchValue.trim() === "");
 
     return (
-        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: 2, display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 2 }, display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
                     <Typography variant="p" color="text.main">{pageTitle}</Typography>

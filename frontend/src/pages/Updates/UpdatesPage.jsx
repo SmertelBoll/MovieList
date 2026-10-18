@@ -503,7 +503,7 @@ function UpdatesPage() {
     const isDroppedView = view === VIEWS.DROPPED
 
     return (
-        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
+        <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {/* Шапка */}
             {/* Три колонки: заголовок | перемикач по центру | сортування. Крайні колонки рівні (1fr),
                 тож перемикач завжди рівно посередині і не рухається, хоч би який був підсумок. */}
