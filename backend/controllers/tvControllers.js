@@ -266,6 +266,41 @@ export const deleteTvEpisode = async (req, res) => {
   }
 };
 
+// Видалити дані самого сезону: оцінку, коментар і дату. Серії сезону лишаються недоторканими —
+// вони не належать до «оцінки сезону». Якщо серій у сезоні немає, запис сезону прибирається повністю.
+export const deleteTvSeason = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mongoId, season } = req.params;
+
+    const tv = await TvModel.findOne({ _id: mongoId, user: userId });
+    if (!tv) {
+      return res.status(404).json({ title: "Delete error", message: "tv not found" });
+    }
+
+    const seasonNumber = Number(season);
+    const seasonDoc = tv.seasons.find(s => s.season === seasonNumber);
+    if (seasonDoc) {
+      if (seasonDoc.episodes.length === 0) {
+        tv.seasons = tv.seasons.filter(s => s.season !== seasonNumber);
+      } else {
+        seasonDoc.rating = undefined;
+        seasonDoc.comment = undefined;
+        seasonDoc.dateAdded = undefined;
+      }
+      await tv.save();
+    }
+
+    res.json({
+      success: true,
+      results: tv
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Delete error", message: "failed to delete season" });
+  }
+};
+
 // Позначити всі (передані) серії сезону як переглянуті (watchedCount = 1),
 // не чіпаючи серії, які вже мають перегляди / оцінку
 export const markSeasonEpisodesWatched = async (req, res) => {

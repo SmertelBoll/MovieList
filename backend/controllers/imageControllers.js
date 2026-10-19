@@ -15,6 +15,10 @@ export const uploadFile = async (req, res) => {
   try {
     const { image } = req.body;
 
+    if (!image) {
+      return res.status(400).json({ title: "Image error", message: "no image in the request" });
+    }
+
     const options = {
       use_filename: true,
       unique_filename: true, // кожне завантаження отримує унікальний public_id,
@@ -29,7 +33,13 @@ export const uploadFile = async (req, res) => {
       publicId: result.public_id,
     });
   } catch (error) {
-    console.log(error);
-    res.status(400).json({ title: "Image error", message: "failed to upload image" });
+    console.log("Cloudinary upload error:", error);
+    // Причину (напр. "Must supply api_key" на сервері без змінних Cloudinary) віддаємо клієнту:
+    // «failed to upload image» без деталей не дозволяє зрозуміти, що саме зламалось
+    const reason = error?.message || error?.error?.message;
+    res.status(400).json({
+      title: "Image error",
+      message: reason ? `failed to upload image: ${reason}` : "failed to upload image",
+    });
   }
 };

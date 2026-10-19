@@ -102,7 +102,7 @@ function ItemSaveDialog({
         // null — дата не вказана; підставляти сьогодні не можна, інакше
         // видалену дату не вийшло б зберегти видаленою.
         setSelectedDate(parseDateOnly(selectedItem.dateAdded));
-        setText(selectedItem.comment);
+        setText(selectedItem.comment ?? "");
         setTypeCustom(getTags(selectedItem.customType));
     }, [isOpenDialogEdit]);
 

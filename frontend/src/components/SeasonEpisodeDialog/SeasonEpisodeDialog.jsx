@@ -24,7 +24,7 @@ function SeasonEpisodeDialog({
     isNew = false,
     onClose,
     onSave,
-    // Видалення серії з бази. Кнопка лише для вже збереженої серії (mode="episode", не isNew)
+    // Видалення серії або сезону з бази. Кнопка лише для вже збереженого запису (не isNew)
     onDelete,
 }) {
     const theme = useTheme();
@@ -237,9 +237,14 @@ function SeasonEpisodeDialog({
                 />
 
                 <DialogActions sx={{ p: 0 }}>
-                    {mode === "episode" && !isNew && onDelete && (
+                    {!isNew && onDelete && (
                         <MainButton
-                            onClick={() => alertConfirm('Delete this episode from your list?', onDelete)}
+                            onClick={() => alertConfirm(
+                                mode === "episode"
+                                    ? 'Delete this episode from your list?'
+                                    : 'Delete the rating, comment and date of this season? Its episodes will stay.',
+                                onDelete
+                            )}
                             sx={{
                                 mr: 'auto',
                                 backgroundColor: 'danger.main',

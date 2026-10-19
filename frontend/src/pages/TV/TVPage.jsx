@@ -460,6 +460,19 @@ function TVPage({ isSaved = false }) {
             })
     }
 
+    // Видалення даних сезону (оцінка, коментар, дата). Серії сезону лишаються
+    const handleDeleteSeason = (sNum) => {
+        instance
+            .delete(`/tv/${serial._id}/season/${sNum}`)
+            .then((res) => {
+                setSerial(prev => ({ ...prev, seasons: res.data.results.seasons }))
+            })
+            .catch((err) => {
+                console.warn(err)
+                alertError(err)
+            })
+    }
+
     // Пропустити серію / зняти пропуск. Пропущена серія не переглянута (watchedCount 0, без оцінки);
     // при знятті пропуску серія лишається в базі з нулем переглядів, тобто стає непереглянутою.
     // Коментар зберігаємо — він може пояснювати причину пропуску. Дата: пропуск її очищає,
@@ -1197,7 +1210,8 @@ function TVPage({ isSaved = false }) {
                 onClose={() => setRatingDialogOpen(false)}
                 onSave={handleSaveRating}
                 onDelete={() => {
-                    handleDeleteEpisode(ratingTarget.season, ratingTarget.episode)
+                    if (ratingMode === "episode") handleDeleteEpisode(ratingTarget.season, ratingTarget.episode)
+                    else handleDeleteSeason(ratingTarget.season)
                     setRatingDialogOpen(false)
                 }}
             />

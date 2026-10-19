@@ -581,15 +581,11 @@ function UpdatesPage() {
                     <Typography variant="body1" color="text.secondary" textAlign="center">
                         {isDroppedView ? (
                             <>
-                                Nothing here. Movies and shows from folders with the
-                                <br />
-                                "Dropped" status that have new releases will appear here.
+                                Nothing here. Movies and shows from folders with the "Dropped" status that have new releases will appear here.
                             </>
                         ) : (
                             <>
-                                Nothing new. Add movies or shows to a folder with the
-                                <br />
-                                "Watching" or "Watched" status and come back later.
+                                Nothing new. Add movies or shows to a folder with the "Watching" or "Watched" status and come back later.
                             </>
                         )}
                     </Typography>

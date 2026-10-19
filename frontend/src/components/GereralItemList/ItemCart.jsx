@@ -107,11 +107,12 @@ function ItemCart({
                     color="text.secondary"
                     sx={{ mb: 1, display: { xs: "none", sm: "block" } }}
                 >
-                    {`${item?.overview.substring(0, 100)}${item?.overview?.length > 100 ? "..." : ""}` || "No description"}
+                    {`${(item?.overview ?? "").substring(0, 100)}${item?.overview?.length > 100 ? "..." : ""}` || "No description"}
                 </Typography>}
 
                 {isComment && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {`${item?.comment.substring(0, 100)}${item?.comment?.length > 100 ? "..." : ""}` || "No comment"}
+                    {/* comment може бути відсутнім: схема не задає значення за замовчуванням (напр. записи з імпорту) */}
+                    {`${(item?.comment ?? "").substring(0, 100)}${item?.comment?.length > 100 ? "..." : ""}` || "No comment"}
                 </Typography>}
 
                 {isDate && <Typography variant="body2" color="text.secondary">
