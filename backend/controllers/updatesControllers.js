@@ -33,10 +33,11 @@ export const getUpdates = async (req, res) => {
       ? [FOLDER_STATUSES.DROPPED]
       : [FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED];
 
+    // .lean() — прості обʼєкти замість документів Mongoose: для сотень серіалів із тисячами серій це суттєво швидше
     const folders = await FolderModel.find({
       user: userId,
       status: { $in: FOLDER_STATUS_VALUES },
-    }).exec();
+    }, { name: 1, status: 1, "folderElements.itemId": 1, "folderElements.itemModel": 1 }).lean().exec();
 
     // itemId -> { folderName, status }. Папки без статусу сюди не потрапляють.
     const placementByItem = new Map();
@@ -56,9 +57,20 @@ export const getUpdates = async (req, res) => {
       }
     }
 
+    // З серіалів потрібні лише ті поля серій, які сторінка показує або передає у діалог редагування
     const [movies, tvs] = await Promise.all([
-      MovieModel.find({ _id: { $in: movieRefs }, user: userId }).exec(),
-      TvModel.find({ _id: { $in: tvRefs }, user: userId }).exec(),
+      MovieModel.find({ _id: { $in: movieRefs }, user: userId }, { tmdbId: 1, rating: 1, comment: 1, dateAdded: 1, customType: 1 }).lean().exec(),
+      TvModel.find({ _id: { $in: tvRefs }, user: userId }, {
+        tmdbId: 1,
+        customType: 1,
+        "seasons.season": 1,
+        "seasons.episodes.episode": 1,
+        "seasons.episodes.dateAdded": 1,
+        "seasons.episodes.rating": 1,
+        "seasons.episodes.comment": 1,
+        "seasons.episodes.watchedCount": 1,
+        "seasons.episodes.skipped": 1,
+      }).lean().exec(),
     ]);
 
     // Фільми: групуємо за tmdbId, статус — найсильніший серед копій
@@ -117,14 +129,16 @@ export const getUpdates = async (req, res) => {
         for (const episode of season.episodes) {
           // Перша копія перемагає — при кількох копіях редагування все одно вимкнене
           if (episodes.has(episode.episode)) continue;
-          episodes.set(episode.episode, {
-            dateAdded: episode.dateAdded || null,
-            rating: episode.rating ?? null,
-            comment: episode.comment || "",
-            watchedCount: episode.watchedCount ?? 1,
-            // Пропущена серія теж «опрацьована» (не нова), але показується хрестиком
-            skipped: Boolean(episode.skipped),
-          });
+          // Віддаємо лише значення, що відрізняються від типових (оцінки немає, коментаря немає, 1 перегляд,
+          // не пропущена): фронт підставляє типові сам. Так відповідь для тисяч серій втричі менша.
+          const data = {};
+          if (episode.dateAdded) data.dateAdded = episode.dateAdded;
+          if (episode.rating != null) data.rating = episode.rating;
+          if (episode.comment) data.comment = episode.comment;
+          if ((episode.watchedCount ?? 1) !== 1) data.watchedCount = episode.watchedCount;
+          // Пропущена серія теж «опрацьована» (не нова), але показується хрестиком
+          if (episode.skipped) data.skipped = true;
+          episodes.set(episode.episode, data);
         }
       }
     }

@@ -7,7 +7,7 @@ import ViewListIcon from '@mui/icons-material/ViewList'
 import instance from '../../axios'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
-import { cleanCollectionName } from '../../utils/tmdb'
+import { cacheGet, cacheSet, isFresh } from '../../utils/tmdbCache'
 import { toDateOnlyISO } from '../../utils/dates'
 import { FOLDER_STATUSES, getBestStatus } from '../../utils/folderStatus'
 import { fetchSavedDoc } from '../../utils/savedItems'
@@ -20,13 +20,17 @@ import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
 import MarkWatchedDialog from '../../components/MarkWatchedDialog/MarkWatchedDialog'
 import UpdateRow from './UpdateRow'
+import {
+    HANDLED_STATUSES, SEED_STATUSES, VIEWS, isCollectionVisible,
+    slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow,
+} from './buildRows'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const TMDB = process.env.REACT_APP_URL_TMDB
 
 // TMDB не має пакетного ендпоінта, тож на кожен фільм/серіал іде свій запит.
 // Обмежуємо паралельність, щоб не впертися в ліміт і не забити мережу.
-const CONCURRENCY = 8
+const CONCURRENCY = 10
 
 async function mapLimit(items, limit, fn) {
     const results = new Array(items.length)
@@ -40,30 +44,6 @@ async function mapLimit(items, limit, fn) {
     await Promise.all(workers)
     return results
 }
-
-// Колекція потрапляє в список, тільки якщо з неї щось дивилися.
-// watching тут є — саме він вводить франшизу в список.
-const SEED_STATUSES = new Set([FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED])
-
-// Опрацьоване — не рахується як нове: переглянуте й кинуте.
-// watching і planned сюди НЕ входять: фільм ще не подивилися, тож він
-// лишається в лічильниках. Через це watching водночас і затравка, і "нове".
-// skipped теж опрацьоване (свідомо пропущена частина не «нова»), але на відміну від dropped
-// не ховає франшизу й не має власного режиму — hasDropped його не враховує.
-const HANDLED_STATUSES = new Set([
-    FOLDER_STATUSES.WATCHED,
-    FOLDER_STATUSES.DROPPED,
-    FOLDER_STATUSES.SKIPPED,
-])
-
-// Якщо хоча б одна частина франшизи кинута (є в папці зі статусом dropped), увесь Timeline
-// на сторінці нових релізів не показується. Це правило для фільмів; серіали живуть за своєю логікою.
-const hasDroppedPart = (parts) => parts.some((p) => p.hasDropped)
-
-// Режими сторінки: звичайний («нові релізи») і по кинутих — та сама логіка, інший набір.
-// Кинуті колекції в звичайному режимі приховані, у режимі dropped — навпаки, показані лише вони.
-const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped' }
-const isCollectionVisible = (view, parts) => (view === VIEWS.DROPPED ? hasDroppedPart(parts) : !hasDroppedPart(parts))
 
 // order — напрямок за замовчуванням: desc дає той самий порядок, що й раніше
 // (спершу найбільше нового / найсвіжіші релізи), Title — за зростанням (A–Z).
@@ -128,13 +108,19 @@ function UpdatesPage() {
         }
     }, [isGetFolders, isAuth])
 
+    // Фонове оновлення даних TMDB: { done, total } поки йде, інакше null
+    const [refresh, setRefresh] = useState(null)
+
     useEffect(() => {
         if (!isAuth) { setIsLoading(false); return }
 
         let cancelled = false
+        let flushTimer = null
         setIsLoading(true)
+        setRefresh(null)
 
         const load = async () => {
+            // 1) Збережене користувачем (що позначено, папки, оцінки) беремо з бекенда щоразу — воно ніколи не кешується.
             const { data } = await instance.get('/updates', { params: { view } })
             const { movies, tv } = data.results
             if (cancelled) return
@@ -142,114 +128,111 @@ function UpdatesPage() {
             // tmdbId -> збережений документ (для редагування та іконки статусу)
             const savedByTmdbId = new Map(movies.map((m) => [m.tmdbId, m]))
 
-            // --- ФІЛЬМИ: збираємо колекції ---
-            // Затравка — лише watching/watched. Якщо з франшизи нічого не дивилися
-            // (усе в planned) або її кинули (dropped), колекція не зʼявляється.
-            // У режимі dropped затравка — фільм, що лежить у кинутій папці
+            // Затравка — лише watching/watched. Якщо з франшизи нічого не дивилися (усе в planned) або її кинули (dropped),
+            // колекція не зʼявляється. У режимі dropped затравка — фільм, що лежить у кинутій папці
             const seeds = movies.filter((m) => (view === VIEWS.DROPPED ? m.hasDropped : SEED_STATUSES.has(m.status)))
 
-            const details = await mapLimit(seeds, CONCURRENCY, async (m) => {
-                try { return await tmdbGet(`/movie/${m.tmdbId}`) } catch { return null }
-            })
-            if (cancelled) return
+            // 2) Метадані TMDB: що є в кеші (хай і застаріле) — малюємо одразу, решту (немає / прострочено) оновимо у фоні.
+            const isShown = (row) => row.unwatchedCount > 0 && (row.kind !== 'collection' || isCollectionVisible(view, row.parts))
+            const rowsByKey = new Map()
+            const tasks = []
+            const scheduledCollections = new Set() // колекція одна на кілька переглянутих частин
 
-            // Колекції унікальні: кілька переглянутих частин дають один рядок
-            const collectionIds = [...new Set(
-                details.filter(Boolean).map((m) => m.belongs_to_collection?.id).filter(Boolean)
-            )]
-
-            const collections = await mapLimit(collectionIds, CONCURRENCY, async (id) => {
-                try { return await tmdbGet(`/collection/${id}`) } catch { return null }
-            })
-            if (cancelled) return
-
-            const collectionRows = collections.filter(Boolean).map((collection) => {
-                const parts = [...(collection.parts || [])]
-                    .sort((a, b) => (a.release_date || '').localeCompare(b.release_date || ''))
-                    .map((part) => {
-                        const saved = savedByTmdbId.get(part.id)
-                        return {
-                            id: part.id,
-                            title: part.title,
-                            posterPath: part.poster_path,
-                            releaseDate: part.release_date || '',
-                            // null — не збережений; інакше статус папки
-                            status: saved?.status || null,
-                            hasDropped: Boolean(saved?.hasDropped),
-                            mongoId: saved?.mongoId || null,
-                            folderName: saved?.folderName || null,
-                            // Дані збереженого документа — щоб редагування відкривалось заповненим
-                            saved: saved || null,
-                        }
-                    })
-                // Позаду лише переглянуте й кинуте. Те, що дивляться зараз (watching)
-                // або заплановане (planned), лишається в лічильнику — просто з іншою іконкою.
-                const unwatched = parts.filter((p) => !HANDLED_STATUSES.has(p.status))
-                return {
-                    key: `collection-${collection.id}`,
-                    kind: 'collection',
-                    id: collection.id,
-                    title: cleanCollectionName(collection.name),
-                    posterPath: collection.poster_path,
-                    parts,
-                    unwatchedCount: unwatched.length,
-                    latestDate: unwatched.reduce((max, p) => (p.releaseDate > max ? p.releaseDate : max), ''),
+            for (const entry of tv) {
+                const cached = cacheGet('tv', tmdbLanguage, entry.tmdbId)
+                if (cached) {
+                    const row = buildTvRow(entry, cached.d)
+                    if (isShown(row)) rowsByKey.set(row.key, row)
                 }
-            }).filter((row) => row.unwatchedCount > 0 && isCollectionVisible(view, row.parts))
-
-            // --- СЕРІАЛИ ---
-            const serials = await mapLimit(tv, CONCURRENCY, async (entry) => {
-                try { return { entry, data: await tmdbGet(`/tv/${entry.tmdbId}`) } } catch { return null }
-            })
-            if (cancelled) return
-
-            const tvRows = serials.filter(Boolean).map(({ entry, data }) => {
-                const seasons = (data.seasons || [])
-                    .filter((s) => s.season_number > 0 && s.episode_count > 0)
-                    .map((s) => {
-                        const watchedEpisodes = entry.watched[String(s.season_number)] || {}
-                        // Сезон переглянутий, лише якщо переглянуті ВСІ серії
-                        const unwatchedCount = Math.max(0, s.episode_count - Object.keys(watchedEpisodes).length)
-                        return {
-                            seasonNumber: s.season_number,
-                            name: s.name,
-                            posterPath: s.poster_path,
-                            airDate: s.air_date || '',
-                            episodeCount: s.episode_count,
-                            watchedEpisodes,
-                            unwatchedCount,
-                        }
-                    })
-                const unwatchedCount = seasons.reduce((sum, s) => sum + s.unwatchedCount, 0)
-                // Усього серій — по тих самих сезонах, що й лічильник нового
-                // (спецвипуски відфільтровані вище), щоб "X з Y" були співмірні
-                const episodeCount = seasons.reduce((sum, s) => sum + s.episodeCount, 0)
-                return {
-                    key: `tv-${entry.tmdbId}`,
-                    kind: 'tv',
-                    id: entry.tmdbId,
-                    mongoId: entry.mongoId,
-                    folderName: entry.folderName,
-                    copies: entry.copies,
-                    customTypes: entry.customTypes || [],
-                    title: data.name,
-                    posterPath: data.poster_path,
-                    seasons,
-                    unwatchedCount,
-                    episodeCount,
-                    latestDate: seasons
-                        .filter((s) => s.unwatchedCount > 0)
-                        .reduce((max, s) => (s.airDate > max ? s.airDate : max), ''),
-                }
-            }).filter((row) => row.unwatchedCount > 0)
-
-            if (!cancelled) {
-                setRows([...collectionRows, ...tvRows])
-                // Нове завантаження — список сортується заново (див. sortOrder)
-                setLoadVersion((v) => v + 1)
-                setHasLoadedOnce(true)
-                setIsLoading(false)
+                if (!isFresh('tv', cached)) tasks.push({ type: 'tv', entry })
             }
+
+            for (const seed of seeds) {
+                // До якої колекції належить фільм від мови не залежить — ключ «all»
+                const movieMeta = cacheGet('movie', 'all', seed.tmdbId)
+                if (!movieMeta || !isFresh('movie', movieMeta)) tasks.push({ type: 'seed', seed })
+                const collectionId = movieMeta?.d.collectionId
+                if (!collectionId || scheduledCollections.has(collectionId)) continue
+                scheduledCollections.add(collectionId)
+                const cachedCollection = cacheGet('collection', tmdbLanguage, collectionId)
+                if (cachedCollection) {
+                    const row = buildCollectionRow(cachedCollection.d, savedByTmdbId)
+                    if (isShown(row)) rowsByKey.set(row.key, row)
+                }
+                if (!isFresh('collection', cachedCollection)) tasks.push({ type: 'collection', id: collectionId })
+            }
+
+            // Перший показ: список зʼявляється одразу, а не після всіх запитів до TMDB
+            const hadCache = rowsByKey.size > 0
+            setRows([...rowsByKey.values()])
+            setLoadVersion((v) => v + 1)
+            setHasLoadedOnce(true)
+            setIsLoading(false)
+            if (!tasks.length) return
+
+            // 3) Фонове оновлення. Свіжі рядки накопичуються й зливаються в стан порціями, щоб не перемальовувати сторінку
+            // після кожного запиту. Наявні рядки оновлюються на місці (порядок не чіпаємо), нові йдуть у кінець.
+            const total = tasks.length
+            let done = 0
+            const fresh = []
+            const flush = () => {
+                flushTimer = null
+                if (cancelled) return
+                setRefresh(done >= total ? null : { done, total })
+                if (!fresh.length) return
+                const batch = fresh.splice(0)
+                setRows((prev) => {
+                    const next = [...prev]
+                    for (const row of batch) {
+                        const at = next.findIndex((r) => r.key === row.key)
+                        if (at >= 0) next[at] = row.kind === 'tv' ? mergeTvRow(next[at], row) : mergeCollectionRow(next[at], row)
+                        else if (isShown(row)) next.push(row)
+                    }
+                    return next
+                })
+                // Перший візит без кешу: рядки приходять по одному, тож впорядковуємо кожну порцію.
+                // З кешем порядок не чіпаємо — інакше список стрибав би просто від завершення оновлення.
+                if (!hadCache) setLoadVersion((v) => v + 1)
+            }
+            const emit = (row) => {
+                fresh.push(row)
+                if (!flushTimer) flushTimer = setTimeout(flush, 300)
+            }
+            setRefresh({ done: 0, total })
+
+            const fetchCollection = async (id) => {
+                const meta = slimCollection(await tmdbGet(`/collection/${id}`))
+                cacheSet('collection', tmdbLanguage, id, meta)
+                emit(buildCollectionRow(meta, savedByTmdbId))
+            }
+
+            await mapLimit(tasks, CONCURRENCY, async (task) => {
+                try {
+                    if (task.type === 'tv') {
+                        const meta = slimTv(await tmdbGet(`/tv/${task.entry.tmdbId}`))
+                        cacheSet('tv', tmdbLanguage, task.entry.tmdbId, meta)
+                        emit(buildTvRow(task.entry, meta))
+                    } else if (task.type === 'seed') {
+                        const details = await tmdbGet(`/movie/${task.seed.tmdbId}`)
+                        const collectionId = details.belongs_to_collection?.id || null
+                        cacheSet('movie', 'all', task.seed.tmdbId, { collectionId })
+                        if (collectionId && !scheduledCollections.has(collectionId)) {
+                            scheduledCollections.add(collectionId)
+                            await fetchCollection(collectionId)
+                        }
+                    } else {
+                        await fetchCollection(task.id)
+                    }
+                } catch (err) {
+                    // Лишаємо те, що є в кеші: збій одного запиту не повинен ламати сторінку
+                    console.warn(err)
+                } finally {
+                    done += 1
+                }
+            })
+            if (cancelled) return
+            clearTimeout(flushTimer)
+            flush()
         }
 
         load().catch((err) => {
@@ -259,8 +242,11 @@ function UpdatesPage() {
             setIsLoading(false)
         })
 
-        return () => { cancelled = true }
-    }, [isAuth, tmdbGet, view])
+        return () => {
+            cancelled = true
+            clearTimeout(flushTimer)
+        }
+    }, [isAuth, tmdbGet, view, tmdbLanguage])
 
     // Порядок рядків фіксується лише тоді, коли список завантажено або користувач змінив сортування чи фільтр.
     // Локальні правки (позначили серію — лічильник змінився) порядок не чіпають: інакше рядок «стрибав» би
@@ -518,6 +504,9 @@ function UpdatesPage() {
     const totalNew = sortedRows.reduce((sum, row) => sum + row.unwatchedCount, 0)
     // Рядки, де нового вже не лишилось (щойно все позначили), ще на екрані, але в підсумок не входять
     const titlesWithNew = sortedRows.filter((row) => row.unwatchedCount > 0).length
+    // Ще чекаємо: або вантажиться відповідь бекенда, або порожній список, який наповнюється з TMDB (перший візит без кешу) —
+    // без цього на мить показалось би «все переглянуто»
+    const isWaiting = isLoading || (refresh !== null && sortedRows.length === 0)
     const isDroppedView = view === VIEWS.DROPPED
 
     return (
@@ -537,11 +526,11 @@ function UpdatesPage() {
                         {isDroppedView ? 'Dropped' : 'New releases'}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        {isLoading
+                        {isWaiting
                             ? 'Loading…'
                             : sortedRows.length === 0
                             ? (isDroppedView ? 'No dropped titles with new releases' : 'Everything you are watching is up to date')
-                            : `${totalNew} new in ${titlesWithNew} ${titlesWithNew === 1 ? 'title' : 'titles'}`}
+                            : `${totalNew} new in ${titlesWithNew} ${titlesWithNew === 1 ? 'title' : 'titles'}${refresh ? ' · updating…' : ''}`}
                     </Typography>
                 </Box>
 
@@ -587,7 +576,7 @@ function UpdatesPage() {
             </Box>
 
             {/* Список */}
-            {isLoading ? (
+            {isWaiting ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <CircularProgress color="primary" />
                 </Box>

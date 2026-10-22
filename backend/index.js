@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import multer from "multer";
 import cors from "cors";
+import compression from "compression";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -46,6 +47,7 @@ const upload = multer({ storage });
 // Настройки
 // app.use(express.json()); // дозволяє читати json
 app.use(express.json({ limit: "50mb" }));
+app.use(compression()); // gzip: відповідь /updates без нього — сотні КБ, що на мобільній мережі відчутно
 app.use(cors());
 app.use("/uploads", express.static("uploads")); // щоб діставати статичні файли з папки (в гугл наприклад)
 
