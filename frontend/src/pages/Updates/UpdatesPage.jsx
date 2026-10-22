@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Typography } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
 import GridViewIcon from '@mui/icons-material/GridView'
@@ -245,6 +245,8 @@ function UpdatesPage() {
 
             if (!cancelled) {
                 setRows([...collectionRows, ...tvRows])
+                // Нове завантаження — список сортується заново (див. sortOrder)
+                setLoadVersion((v) => v + 1)
                 setHasLoadedOnce(true)
                 setIsLoading(false)
             }
@@ -259,6 +261,21 @@ function UpdatesPage() {
 
         return () => { cancelled = true }
     }, [isAuth, tmdbGet, view])
+
+    // Порядок рядків фіксується лише тоді, коли список завантажено або користувач змінив сортування чи фільтр.
+    // Локальні правки (позначили серію — лічильник змінився) порядок не чіпають: інакше рядок «стрибав» би
+    // по сторінці просто від того, що в ньому стало менше нового.
+    const rowsRef = useRef(rows)
+    rowsRef.current = rows
+    const [loadVersion, setLoadVersion] = useState(0)
+    const sortOrder = useMemo(() => {
+        const compare = SORT_COMPARATORS[nameSortBy] || SORT_COMPARATORS['New episodes']
+        const keys = [...rowsRef.current]
+            .sort((a, b) => sortDirection === 'asc' ? compare(a, b) : -compare(a, b))
+            .map((row) => row.key)
+        return new Map(keys.map((key, index) => [key, index]))
+        // typeTMDB / customTypes — теж «клік по фільтру»: вони не впливають на порядок, але тоді список упорядковується заново
+    }, [loadVersion, nameSortBy, sortDirection, typeTMDB, customTypes]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Фільтри з шапки застосовуються до вже завантажених даних — без нових запитів
     const sortedRows = useMemo(() => {
@@ -282,9 +299,10 @@ function UpdatesPage() {
             return (row.customTypes.length ? row.customTypes : ['']).some((tag) => matchesTag(tag))
         })
 
-        const compare = SORT_COMPARATORS[nameSortBy] || SORT_COMPARATORS['New episodes']
-        return list.sort((a, b) => sortDirection === 'asc' ? compare(a, b) : -compare(a, b))
-    }, [rows, nameSortBy, sortDirection, typeTMDB, customTypes])
+        // Порядок — зі збереженого sortOrder; рядки, яких там ще немає, йдуть в кінець
+        const position = (row) => sortOrder.get(row.key) ?? Number.MAX_SAFE_INTEGER
+        return list.sort((a, b) => position(a) - position(b))
+    }, [rows, sortOrder, typeTMDB, customTypes])
 
     // --- ЛОКАЛЬНЕ ОНОВЛЕННЯ ---
     // Перезавантажувати весь список після кожної дії надто дорого: це десятки
