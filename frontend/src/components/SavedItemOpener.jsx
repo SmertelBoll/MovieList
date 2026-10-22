@@ -11,16 +11,27 @@ import useFolderPicker from '../hooks/useFolderPicker'
  *   кілька копій (папок)   -> вікно вибору папки: одна копія в папці — відкриваємо її,
  *                             кілька в одній папці — папка з пошуком за назвою (це робить сам useFolderPicker).
  *
- * Це не посилання, а кліковий елемент: усі кліки (звичайний, Ctrl, колесо) поводяться однаково.
- * Клік не спливає вище, тож не розгортає рядок, у якому лежить.
+ * Це справжнє посилання (<a href>), тому Ctrl/Cmd+клік і колесо миші відкривають сторінку в новій вкладці. Адреса
+ * та сама, куди веде звичайний клік, — щоб Ctrl+клік не відкривав щось інше, ніж просто клік (з цього ми колись
+ * відмовились від посилання, поки його адреса була незалежна від логіки кліку). Єдиний виняток — кілька копій:
+ * одного адресата немає (звичайний клік питає, яку папку відкрити), тому в новій вкладці відкриється сторінка
+ * TMDB, де видно всі папки фільму.
+ * Звичайний клік не спливає вище, тож не розгортає рядок, у якому лежить.
  */
 function SavedItemOpener({ mediaType, tmdbId, title, sx, children }) {
     const navigate = useNavigate()
     const copies = useSelector(selectSavedCopies(mediaType, tmdbId))
     const [pickFolder, pickerDialog] = useFolderPicker()
 
+    // Куди веде посилання без вибору папки
+    const href = copies.length === 1 ? `/user/${mediaType}/${copies[0].mongoId}` : `/${mediaType}/${tmdbId}`
+
     const handleClick = async (e) => {
         e.stopPropagation()
+        // Ctrl / Cmd / Shift / Alt + клік: лишаємо поведінку браузера (нова вкладка чи вікно). Колесо миші сюди не доходить —
+        // браузер сам відкриває посилання (подія auxclick), а клік рядка не спрацьовує.
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return
+        e.preventDefault()
         if (copies.length === 0) {
             navigate(`/${mediaType}/${tmdbId}`)
         } else if (copies.length === 1) {
@@ -32,7 +43,14 @@ function SavedItemOpener({ mediaType, tmdbId, title, sx, children }) {
     }
 
     return (
-        <Box onClick={handleClick} sx={{ cursor: 'pointer', ...sx }}>
+        <Box
+            component="a"
+            href={href}
+            onClick={handleClick}
+            aria-label={title}
+            // Посилання не повинно виглядати як текст-посилання: у ньому лише постер
+            sx={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', ...sx }}
+        >
             {children}
             {pickerDialog}
         </Box>
