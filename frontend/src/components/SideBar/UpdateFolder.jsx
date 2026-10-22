@@ -14,8 +14,8 @@ import { getStatusLabel } from '../../utils/folderStatus';
 import { StatusDot, buildStatusMenuItems } from '../FolderStatusMenu';
 
 function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
-    // DropdownMenu не має вкладених підменю, тож робимо drill-down усередині
-    // одного попапу: пункт "Status" не закриває меню, а перемикає його вміст.
+    // DropdownMenu has no submenus, so drill down inside one popup: the "Status" item switches the menu
+    // content instead of closing it.
     const [view, setView] = useState('main')
 
     const canChangeStatus = Boolean(actionFunctions.handleChangeStatus)
@@ -30,7 +30,6 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
             ? [{
                 key: "Status",
                 label: "Status",
-                // Поточний статус видно одразу, без зайвого кліку
                 subLabel: getStatusLabel(status),
                 icon: <LabelIcon />,
                 endAdornment: <StatusDot status={status} />,
@@ -52,7 +51,6 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
             onClick: () => setView('main'),
         },
         { key: "__statusDivider__", divider: true },
-        // Спільний список — той самий, що й у чіпа на сторінці папки
         ...buildStatusMenuItems({ status, onChange: actionFunctions.handleChangeStatus }),
     ]
 
@@ -67,8 +65,8 @@ function UpdateFolder({ actionFunctions, hasImage = false, status = null }) {
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                     <MoreVertIcon
                         aria-haspopup="true"
-                        // Меню завжди відкривається з головного списку:
-                        // DropdownMenu не повідомляє про закриття, тож скидаємо тут
+                        // The menu always opens on the main list; DropdownMenu doesn't report closing, so
+                        // reset here.
                         onClick={(e) => { setView('main'); onClick(e); }}
                         sx={{
                             py: 1.5,

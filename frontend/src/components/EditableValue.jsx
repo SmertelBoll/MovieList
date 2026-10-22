@@ -13,12 +13,10 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { formatRatingLabel, getRatingLevels, hasRatingSystem } from '../utils/ratingSystem'
 import { formatDateOnly, parseDateOnly, toDateOnlyISO } from '../utils/dates'
 
-// Мітки під повзунком: 0, 20, … 100 (рідше, ніж у діалозі збереження, — тут менше місця)
 const SLIDER_MARKS = Array.from({ length: 6 }, (_, index) => ({ value: 20 * index, label: 20 * index }))
 
 const clamp = (number) => Math.min(100, Math.max(0, number))
 
-// Cancel / Save: однакові в обох режимах
 function EditActions({ onCancel, onSave, isSaving }) {
     return (
         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
@@ -43,25 +41,8 @@ function EditActions({ onCancel, onSave, isSaving }) {
     )
 }
 
-/**
- * Значення на сторінці збереженого фільму/серіалу, яке редагується прямо на місці. Тип задає параметр \`type\`:
- *
- *  type="text" (за замовчуванням) — блок «My review» з коментарем.
- *    Дотик / клік по тексту вмикає поле вводу. Save (Ctrl/Cmd+Enter), Cancel (Esc).
- *    value — рядок; sx — стилі зовнішнього блока; title — заголовок; emptyText — що показати без коментаря.
- *
- *  type="ratingDate" — оцінка Й дата перегляду разом. Дотик по будь-якому з двох рядків відкриває
- *    ОДИН редактор для обох полів з одними кнопками Save / Cancel.
- *    value — { rating, dateAdded } (число 0–100 / null; ISO-рядок / null).
- *    Власна система оцінок: рівень вибирається зі списку (з кольоровими кружечками);
- *    стандартна шкала: повзунок з числом. Дата — вибір дати у форматі з профілю, поле можна очистити.
- *    Рендериться без власного блока — вставляється у блок сторінки.
- *
- * onSave(value) — рядок (text) або { rating, dateAdded } (ratingDate); має повернути проміс.
- * Якщо він відхиляється, лишаємось у редагуванні (помилку показує той, хто викликає).
- *
- * Подвійний клік не використовуємо: на телефоні подвійний дотик збільшує сторінку.
- */
+// In-place editor for a saved item's values: type="text" (comment) or type="ratingDate" (rating + date saved
+// together). A tap enables editing.
 function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', emptyText = 'No comment' }) {
     const theme = useTheme()
     const isRatingDate = type === 'ratingDate'
@@ -71,14 +52,13 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
     const useRatingSystem = hasRatingSystem(ratingSystem)
     const levels = getRatingLevels(ratingSystem)
 
-    // Для оцінки й дати — менший padding поля (компактні редактори), для тексту — звичайний
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, isRatingDate),
         [theme.palette.bg.second, theme.palette.text.main, isRatingDate]
     )
 
     const [isEditing, setIsEditing] = useState(false)
-    // text: рядок; ratingDate: { rating: число 0–100 (0 = без оцінки), date: Date | null }
+    // text: string; ratingDate: { rating 0-100 (0 = none), date: Date | null }
     const [draft, setDraft] = useState('')
     const [isSaving, setIsSaving] = useState(false)
 
@@ -99,18 +79,17 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                 : draft)
             setIsEditing(false)
         } catch {
-            // помилку вже показано — лишаємо значення в полі, щоб його не втратити
+            // The error is already shown; keep the value in the field so it isn't lost.
         } finally {
             setIsSaving(false)
         }
     }
 
-    // ---------- оцінка + дата ----------
     if (isRatingDate) {
         const rating = value?.rating
 
         if (!isEditing) {
-            // Обидва рядки — одна область: дотик по будь-якому відкриває редактор для обох полів
+            // Both rows are one tap area: a tap on either opens the editor for both fields.
             return (
                 <Box
                     onClick={startEditing}
@@ -145,7 +124,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: { sm: 380 } }}>
                 {useRatingSystem ? (
-                    // Власна система: вибір рівня (зберігається разом з датою кнопкою Save)
                     <DropdownMenu
                         width={240}
                         items={[
@@ -183,7 +161,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                         )}
                     />
                 ) : (
-                    // Стандартна шкала: повзунок + число, як у діалозі збереження
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
                         <Slider
                             value={draft.rating}
@@ -191,7 +168,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                             min={0}
                             max={100}
                             step={1}
-                            // Вигляд як у діалозі збереження (ItemSaveDialog): темний повзунок і мітки 0–100, але кожні 20
                             marks={SLIDER_MARKS}
                             valueLabelDisplay="auto"
                             color="text.dark"
@@ -203,7 +179,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                             onChange={(e) => setRating(e.target.value === '' ? 0 : clamp(Number(e.target.value)))}
                             onKeyDown={handleKeyDown}
                             inputProps={{ step: 1, min: 0, max: 100, type: 'number' }}
-                            // Достатньо широке, щоб «100» влазило разом зі стрілками числового поля
                             sx={{ width: 112, flexShrink: 0, mt: -0.5 }}
                         />
                     </Box>
@@ -218,7 +193,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                         slots={{ textField: InputBox }}
                         slotProps={{
                             textField: { fullWidth: true, size: 'small', sx: { mb: 0 } },
-                            // Хрестик очищення — дату можна прибрати
                             field: { clearable: true },
                         }}
                     />
@@ -229,7 +203,6 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
         )
     }
 
-    // ---------- текст (коментар) ----------
     const handleTextKeyDown = (e) => {
         if (e.key === 'Escape') {
             e.preventDefault()

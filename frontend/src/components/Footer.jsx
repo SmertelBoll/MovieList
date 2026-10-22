@@ -12,15 +12,13 @@ import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import PersonIcon from '@mui/icons-material/Person';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
-// Висота нижньої навігації на телефоні (px). Від неї залежить відступ під контентом і позиція
-// кнопки «нагору» (ScrollToTopButton).
+// Mobile bottom nav height (px): drives the bottom spacing and the scroll-to-top position.
 export const BOTTOM_NAV_HEIGHT = 56;
 
 function Footer() {
   const isAuth = useSelector(selectIsAuth);
   const { pathname } = useLocation();
 
-  // Нижня навігація на телефоні. Профіль для гостя веде на вхід.
   const items = [
     { key: 'home', label: 'Home', to: '/', active: pathname === '/', Icon: HomeIcon, IconOff: HomeOutlinedIcon },
     { key: 'new', label: 'New releases', to: '/updates', active: pathname.startsWith('/updates'), Icon: NewReleasesIcon, IconOff: NewReleasesOutlinedIcon },
@@ -36,7 +34,6 @@ function Footer() {
 
   return (
     <>
-      {/* Десктоп / планшет: звичайний підвал */}
       <Box component="footer" bgcolor="bg.second" sx={{ boxShadow: 0, display: { xs: 'none', sm: 'block' } }}>
         <ContainerCustom sx={{ py: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -49,7 +46,6 @@ function Footer() {
         </ContainerCustom>
       </Box>
 
-      {/* Телефон: нижня навігація, завжди закріплена знизу — Home, New, Profile */}
       <Box
         component="nav"
         aria-label="Main navigation"
@@ -62,7 +58,6 @@ function Footer() {
           bottom: 0,
           zIndex: 1000,
           height: `calc(${BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
-          // Відступ під «жест вниз» / рядок home на сучасних телефонах
           pb: 'env(safe-area-inset-bottom)',
           borderTop: '1px solid',
           borderColor: 'divider',
@@ -86,7 +81,6 @@ function Footer() {
                 justifyContent: 'center',
               }}
             >
-              {/* Активна сторінка — іконка на жовтій плашці (жовтий фон → темна іконка) */}
               <Box
                 sx={{
                   width: 56,
@@ -107,7 +101,6 @@ function Footer() {
         })}
       </Box>
 
-      {/* Місце під закріплену навігацію, щоб вона не перекривала кінець сторінки */}
       <Box sx={{ display: { xs: 'block', sm: 'none' }, height: `calc(${BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom))` }} />
     </>
   )

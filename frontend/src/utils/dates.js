@@ -1,37 +1,21 @@
-/**
- * Дати перегляду — це календарні дні, а не моменти часу.
- *
- * Якщо зберігати повний timestamp, той самий запис показується різними днями
- * залежно від часового поясу: сира дата з ISO дає один день, а локальний
- * рендер — інший. Наприклад збережене 3 серпня в UTC+3 лягало в базу як
- * 2026-08-02T21:00:00Z, і тултіп показував 02.08, а поле вибору дати — 03.08.
- *
- * Рішення: усі дати проходять через parseDateOnly, тож інтерпретація одна
- * на весь застосунок, а в базу пишемо опівніч UTC.
- */
+// Watch dates are calendar days, not moments in time. A full timestamp would show the same record as
+// different days depending on timezone, so only the day is stored (UTC midnight).
 
 import { format } from 'date-fns';
 import store from '../redux/store';
 
-// Формат, який користувач вибрав у профілі. Читаємо зі store в момент виклику,
-// тож усі місця, що показують дату, беруть актуальний формат без жодних пропсів.
+// The format picked in the profile, read from the store at call time, so every place showing a date uses the
+// current format without props.
 const getDateFormat = () => store.getState().config.dateFormat;
 
-// Момент -> локальні рік/місяць/день (те, що бачив користувач)
 const localParts = (date) => ({
     year: date.getFullYear(),
     month: date.getMonth(),
     day: date.getDate(),
 });
 
-/**
- * ISO або "YYYY-MM-DD" -> Date на локальну опівніч потрібного дня.
- *
- * Записи в новому форматі (опівніч UTC) і чисті "YYYY-MM-DD" читаємо як
- * календарний день без перетворень. Старі записи з довільним часом — це
- * моменти, тож беремо їхню ЛОКАЛЬНУ дату: саме її користувач бачив у полі
- * вибору, коли зберігав.
- */
+// ISO or "YYYY-MM-DD" -> Date at local midnight of that day. New-format records (UTC midnight) and plain days
+// keep the calendar day; old records with a time use the local date of that moment.
 export const parseDateOnly = (value) => {
     if (!value) return null;
     const raw = String(value);
@@ -43,17 +27,15 @@ export const parseDateOnly = (value) => {
 
     const asCalendarDay = () => new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 
-    // Без часу або рівно опівніч UTC — календарний день як є
     if (!raw.includes('T') || /T00:00:00(\.000)?Z$/.test(raw)) return asCalendarDay();
 
-    // Старий запис із часом — беремо локальну дату цього моменту
     const instant = new Date(raw);
     if (Number.isNaN(instant.getTime())) return asCalendarDay();
     const { year, month, day } = localParts(instant);
     return new Date(year, month, day);
 };
 
-/** Date -> "YYYY-MM-DDT00:00:00.000Z". Зберігаємо саме обраний календарний день. */
+// Date -> "YYYY-MM-DDT00:00:00.000Z": store exactly the chosen calendar day.
 export const toDateOnlyISO = (value) => {
     if (!value) return null;
     const date = value instanceof Date ? value : parseDateOnly(value);
@@ -62,11 +44,8 @@ export const toDateOnlyISO = (value) => {
     return new Date(Date.UTC(year, month, day)).toISOString();
 };
 
-/**
- * Для показу: у форматі з профілю (за замовчуванням MM/dd/yyyy). Іде через parseDateOnly,
- * щоб старі записи відображались тим самим днем і в тултіпі, і в полі вибору дати.
- * Приймає і дати TMDB ("YYYY-MM-DD"), і ISO-рядки з бази.
- */
+// For display, in the profile format (default MM/dd/yyyy); goes through parseDateOnly so old records display
+// correctly.
 export const formatDateOnly = (value) => {
     const date = parseDateOnly(value);
     if (!date) return '';

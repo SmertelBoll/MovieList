@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Серія (епізод) — власні поля оцінки/коментаря/дат
 const EpisodeSchema = new mongoose.Schema(
     {
         episode: { type: Number, required: true },
@@ -8,16 +7,14 @@ const EpisodeSchema = new mongoose.Schema(
         comment: { type: String },
         dateAdded: { type: Date },
         watchedCount: { type: Number, default: 0 },
-        // Серія свідомо пропущена: не переглянута (watchedCount 0), але й не «нова».
-        // Показується хрестиком замість галочки.
+        // Skipped on purpose: not watched (watchedCount 0) but not "new"; shown with a cross.
         skipped: { type: Boolean, default: false },
     },
     {
-        timestamps: true, // createdAt / updatedAt (updatedAt = дата редагування)
+        timestamps: true,
     }
 );
 
-// Сезон — власні поля + масив серій
 const SeasonSchema = new mongoose.Schema(
     {
         season: { type: Number, required: true },
@@ -27,7 +24,7 @@ const SeasonSchema = new mongoose.Schema(
         episodes: { type: [EpisodeSchema], default: [] },
     },
     {
-        timestamps: true, // createdAt / updatedAt (updatedAt = дата редагування)
+        timestamps: true,
     }
 );
 
@@ -35,28 +32,26 @@ const TvSchema = new mongoose.Schema(
     {
         tmdbId: { type: Number, required: true },
         tmdbTitle: { type: String, required: true },
-        // Мова, якою було збережено tmdbTitle (короткий код: "en", "uk", ...).
-        // Старі документи її не мають — вважаємо їх англійськими.
+        // Language tmdbTitle was saved in ("en", "uk", ...). Older docs have none and count as English.
         language: { type: String, default: "en" },
 
-        // Поля для всього серіалу
         dateAdded: { type: Date },
         rating: { type: Number },
         comment: { type: String },
 
-        // Вкладені сезони (не створюються автоматично при додаванні в папку)
+        // Nested seasons (not created automatically when adding to a folder).
         seasons: { type: [SeasonSchema], default: [] },
 
-        // Теги (кілька). Назва поля лишилась customType, але це масив рядків
+        // Tags: the field is still named customType but holds an array of strings.
         customType: { type: [String], default: [] },
         user: {
-            type: mongoose.Schema.Types.ObjectId, // бо це користувач
-            ref: "User", // з UserController
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
         },
     },
     {
-        timestamps: true, // Додає поля createdAt та updatedAt
+        timestamps: true,
     }
 );
 

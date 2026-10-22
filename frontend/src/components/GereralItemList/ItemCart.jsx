@@ -8,7 +8,7 @@ import { formatRatingLabel } from '../../utils/ratingSystem';
 import { formatDateOnly } from '../../utils/dates';
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`;
 
 function ItemCart({
     item,
@@ -30,14 +30,13 @@ function ItemCart({
     const isAuth = useSelector(selectIsAuth);
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
 
-    // Текст оцінки: для mongo — назва рівня (якщо збігається) або "rating/100"; для tmdb — "x/10"
+    // mongo: level name (if matched) or rating/100; tmdb: x/10
     const mongoRatingText = item.rating == null ? '-' : formatRatingLabel(item.rating, ratingSystem);
     const tmdbRatingText = `${Math.round((item.vote_average || 0) * 10) / 10}/10`;
 
-    // Куди веде картка: збережена копія — /user/..., каталог TMDB — /movie|tv/...
     const href = getItemHref(item, dbType);
 
-    // tmdbId: у mongo-картки (сторінка папки) tmdb-дані змішані з документом, id = tmdbId
+    // tmdbId: on folder-page cards tmdb data is mixed into the document, so id = tmdbId.
     const tmdbId = item.tmdbId ?? item.id;
 
     return (
@@ -54,10 +53,8 @@ function ItemCart({
                 } }
             }}
         >
-            {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
             {href && <StretchedLink to={href} label={mediaType === "movie" ? item.title : item.name} />}
 
-            {/* Кнопка додавання в папку / редагування збереженого. На сторінці папки картка — конкретна копія */}
             {isAuth && (
                 <ItemFolderButton
                     mediaType={mediaType}
@@ -101,7 +98,6 @@ function ItemCart({
                     {`Job: ${item.job}`}
                 </Typography>}
 
-                {/* На вузьких екранах картка вдвічі вужча — опис туди не влазить */}
                 {isDescription && <Typography
                     variant="body2"
                     color="text.secondary"
@@ -111,19 +107,17 @@ function ItemCart({
                 </Typography>}
 
                 {isComment && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {/* comment може бути відсутнім: схема не задає значення за замовчуванням (напр. записи з імпорту) */}
+                    {/* comment may be missing: the schema has no default (e.g. imported records). */}
                     {`${(item?.comment ?? "").substring(0, 100)}${item?.comment?.length > 100 ? "..." : ""}` || "No comment"}
                 </Typography>}
 
                 {isDate && <Typography variant="body2" color="text.secondary">
-                    {/* На вузькій картці лишаємо саму дату — підпис з'їдає місце */}
                     <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
                         {{ tmdb: "Release: ", mongo: "Added: " }[dbType]}
                     </Box>
                     {
                         {
                             tmdb: (mediaType === "movie" ? formatDateOnly(item.release_date) : mediaType === "tv" ? formatDateOnly(item.first_air_date) : "") || "—",
-                            // Дата не обов'язкова — без неї показуємо прочерк
                             mongo: formatDateOnly(item.dateAdded) || "—"
                         }[dbType] || "Error dbType"
                     }
@@ -134,18 +128,15 @@ function ItemCart({
                         name="item-rating"
                         value={
                             {
-                                tmdb: item.vote_average / 2, // TMDb дає рейтинг від 0 до 10, MUI Rating - від 0 до 5
+                                tmdb: item.vote_average / 2, // TMDb rating is 0-10, MUI Rating is 0-5
                                 mongo: item.rating / 20
                             }[dbType] || 0
                         }
-                        // precision 0.1 змушує MUI малювати по 10 сегментів на зірку —
-                        // 50 SVG на картку, ~94% її DOM. У списках це сотні карток,
-                        // через що перемикання теми перемальовувало десятки тисяч вузлів.
-                        // Точне значення однаково показане цифрою поруч.
+                        // precision 0.1 made MUI draw 50 SVGs per card (~94% of its DOM): a theme switch repainted tens
+                        // of thousands of nodes. The number shows the exact value.
                         precision={0.5}
                         readOnly
                         size="small"
-                        // Зірочки на вузькій картці не влазять — лишається саме значення оцінки
                         sx={{ display: { xs: "none", sm: "inline-flex" } }}
                     />
                     <Box sx={{

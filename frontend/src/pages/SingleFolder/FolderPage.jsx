@@ -15,12 +15,11 @@ function FolderPage() {
 
     const isAuth = useSelector(selectIsAuth);
 
-    const [folders, setFolders] = useState([])                  // Папки
+    const [folders, setFolders] = useState([])
     const [curFolder, setCurFolder] = useState({})
-    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+    const [isGetFolders, setIsGetFolders] = useState(true)
 
     //-- GET -- //
-    // Отримати назви папок
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -43,7 +42,6 @@ function FolderPage() {
         }
     }, [folders, folderName])
 
-    // Зміна статусу прямо з чіпа біля заголовка
     const handleChangeStatus = (status) => {
         instance
             .patch(`/folders/status/${folderName}`, { status })
@@ -58,7 +56,6 @@ function FolderPage() {
     const statusChip = (
         <DropdownMenu
             width={180}
-            // Спільний список — той самий, що й у меню «⋮»
             items={buildStatusMenuItems({ status: curFolder?.status, onChange: handleChangeStatus })}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
@@ -70,7 +67,7 @@ function FolderPage() {
                     sx={{
                         ...getStatusChipSx(curFolder?.status),
                         cursor: 'pointer',
-                        // Власний колір чіпа лишається й під час hover / фокусу (MUI підставляє action.hover)
+                        // Keep the chip's own color under hover/focus (MUI substitutes action.hover).
                         '&.MuiChip-clickable:hover, &.MuiChip-clickable.Mui-focusVisible': { bgcolor: getStatusChipSx(curFolder?.status).bgcolor },
                         '@media (hover: hover) and (pointer: fine)': { '&:hover': { opacity: 0.85 } },
                     }}
@@ -86,22 +83,18 @@ function FolderPage() {
                 transition: "flex-basis 0.7s ease-in-out"
             }}>
                 <GeneralItemList
-                    // Бокова панель
                     folders={folders}
                     setFolders={setFolders}
                     setIsGetFolders={setIsGetFolders}
-                    // Робота з базами даних
                     dbType="mongo"
                     urlParams={{}}
                     isPreperedData={false}
                     preperedData={false}
-                    // Інформація сторінки
                     pageType="folder"
                     pageTitle={folderName}
                     titleAdornment={statusChip}
                     isSearch={true}
                     isSort={true}
-                    // Інше
                     objectOfFolderPage={curFolder}
                     customEndpoint={`${process.env.REACT_APP_URL_MONGO}/folders/${folderName}`}
                 />

@@ -1,18 +1,17 @@
-// Контрастна пара для тексту поверх довільного кольору (рівні оцінок, чіпи).
-// Експортується окремо, бо потрібна і в чистих утилітах без доступу до теми.
+// Contrast pair for text on any color (rating levels, chips). Exported separately: needed in pure utils
+// without theme access.
 export const CONTRAST_DARK = "#0C1618";
 export const CONTRAST_LIGHT = "#FAF8FF";
 
 const YELLOW_MAIN = "#F9F919";
 const YELLOW_DARK = "#F2DB0B";
-// Доріжка смуги прокрутки. Те саме значення захардкоджене в styles/index.css
-// для скролу сторінки — тримаємо їх однаковими, щоб усі смуги виглядали як одна.
+// Scrollbar track. The same value is hardcoded in styles/index.css for the page scroll: keep them equal so
+// all bars look the same.
 const SCROLLBAR_TRACK = "#363636";
 
-// Токени, однакові в обох темах. Тримаємо їх в одному місці, бо коли вони
-// дублювалися в light і dark, зміна легко потрапляла лише в одну гілку.
+// Tokens identical in both themes, kept in one place: duplicated in light and dark, a change easily landed in
+// only one branch.
 const SHARED = {
-  // Смуги прокрутки — жовті в обох темах, як основний скрол сторінки
   scrollbar: {
     track: SCROLLBAR_TRACK,
     thumb: YELLOW_MAIN,
@@ -21,19 +20,16 @@ const SHARED = {
   yellow: {
     main: YELLOW_MAIN,
     dark: YELLOW_DARK,
-    // Жовтий — світлий у будь-якій темі, тож текст та іконки поверх нього
-    // ЗАВЖДИ темні. Це правило діє на весь сайт.
+    // Yellow is light in every theme, so text and icons on it are ALWAYS dark. Site-wide rule.
     contrastText: CONTRAST_DARK,
-    // Заблокована кнопка: приглушений жовтий, але текст лишається читабельним
     disabled: "#d8d87a",
     disabledText: "#5c5c33",
   },
   primary: {
-    main: "#ffeb3b", // Використовуємо жовтий колір
+    main: "#ffeb3b",
     dark: "#F2DB0B",
     light: "#ffef62",
   },
-  // Статуси папок. Світлі відтінки з темним текстом — читаються в обох темах
   status: {
     planned: "#8fa0f5",
     watching: "#7ed48a",
@@ -41,8 +37,8 @@ const SHARED = {
     dropped: "#ff7b6b",
     skipped: "#b4b4c4",
   },
-  // Напівпрозорі шари поверх зображень. Навмисно не залежать від теми:
-  // світлий скрим на темному постері не працює
+  // Semi-transparent layers over images. Deliberately theme-independent: a light scrim on a dark poster
+  // doesn't work.
   overlay: {
     strong: "rgba(0,0,0,0.8)",
     medium: "rgba(0,0,0,0.75)",
@@ -51,13 +47,11 @@ const SHARED = {
     hairline: "rgba(0,0,0,0.2)",
     none: "rgba(0,0,0,0)",
     onImage: "#FAF8FF",
-    // Чіпи поверх темного героя
     chip: "rgba(255,255,255,0.2)",
     chipSubtle: "rgba(255,255,255,0.05)",
   },
-  // Шкала оцінок у тепловій карті епізодів. Самі кольори шкали однакові
-  // в обох темах, а от нейтральна клітинка (cell/cellText) — ні: у темній
-  // темі сітка з білих квадратів сліпить, тож вона задається окремо нижче.
+  // Episode heat-map scale: same colors in both themes, except the neutral cell (cell/cellText): a grid of white
+  // squares glares in dark, so it's set separately below.
   rating: {
     awesome: "#1b5e20",
     great: "#4caf50",
@@ -72,7 +66,7 @@ const SHARED = {
     dark: "#b32020",
     contrastText: "#FAF8FF",
   },
-  // Кнопки в діалогах swal2 (рендеряться поза деревом React)
+  // Buttons in swal2 dialogs (rendered outside the React tree)
   action: {
     confirm: "#3085d6",
   },
@@ -95,7 +89,6 @@ const palette = (mode) => {
         dark: CONTRAST_DARK,
         white: CONTRAST_LIGHT,
       },
-      // Нейтральна клітинка теплової карти (без оцінки / чекбокс)
       rating: { ...SHARED.rating, cell: "#ffffff", cellText: CONTRAST_DARK },
     };
 
@@ -114,7 +107,7 @@ const palette = (mode) => {
       dark: CONTRAST_DARK,
       white: CONTRAST_LIGHT,
     },
-    // Темна клітинка зі світлим значком — інакше сітка світиться білим
+    // Dark cell with a light mark, otherwise the grid glares white
     rating: { ...SHARED.rating, cell: "#1f1f1f", cellText: CONTRAST_LIGHT },
   };
 };

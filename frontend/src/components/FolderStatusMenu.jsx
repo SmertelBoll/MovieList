@@ -3,9 +3,7 @@ import CheckIcon from '@mui/icons-material/Check'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { FOLDER_STATUS_OPTIONS, getStatusColorToken } from '../utils/folderStatus'
 
-// Кольорова крапка статусу. Без статусу — порожнє кільце.
-// Обгортка 24×24 збігається з розміром іконок MUI, тож підписи в меню
-// вирівнюються однаково незалежно від того, крапка це чи іконка.
+// Colored status dot; no status = empty ring. The 24x24 wrapper matches MUI icon size so menu labels line up.
 export function StatusDot({ status, size = 10 }) {
     const token = getStatusColorToken(status)
     return (
@@ -24,13 +22,8 @@ export function StatusDot({ status, size = 10 }) {
     )
 }
 
-/**
- * Пункти вибору статусу для DropdownMenu — єдине джерело для всіх місць,
- * де статус змінюється (меню «⋮» і чіп на сторінці папки).
- *
- * onChange(value) — value це код статусу або null («прибрати статус»).
- * Пункт «Remove status» з'являється лише коли статус є, інакше він нічого не робив би.
- */
+// Status items for DropdownMenu: single source for the ⋮ menu and the folder page chip. onChange(value): status code or
+// null (remove).
 export function buildStatusMenuItems({ status, onChange }) {
     return [
         ...FOLDER_STATUS_OPTIONS.map((option) => ({

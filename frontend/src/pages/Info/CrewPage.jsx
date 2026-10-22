@@ -14,8 +14,8 @@ import {
 } from './heroStyles'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
+const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function CrewPage() {
@@ -24,16 +24,13 @@ function CrewPage() {
     const { typeTMDB, language } = useSelector((state) => state.config);
     const tmdbLanguage = getTmdbLanguage(language);
 
-    // Дані про людину
     const [crew, setCrew] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Дані про папки користувача
-    const [folders, setFolders] = useState([])                  // Папки
-    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+    const [folders, setFolders] = useState([])
+    const [isGetFolders, setIsGetFolders] = useState(true)
 
 
-    // Загрузка даних про людину
     useEffect(() => {
         setIsLoading(true)
 
@@ -56,7 +53,6 @@ function CrewPage() {
             })
     }, [id, tmdbLanguage])
 
-    // Завантаження папок користувача
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -72,22 +68,17 @@ function CrewPage() {
         }
     }, [isGetFolders])
 
-    // Фільтруємо тільки crew ролі (без акторських ролей)
     const crewCredits = crew?.combined_credits?.crew || []
 
-    // Групуємо фільми за ID та об'єднуємо ролі
     const groupedItems = crewCredits.reduce((acc, item) => {
         if (!acc[item.id]) {
-            // Створюємо новий об'єкт фільму з об'єднаними ролями
             acc[item.id] = {
                 ...item,
                 job: item.job,
                 department: item.department
             };
         } else {
-            // Додаємо роль до існуючого фільму
             acc[item.id].job = acc[item.id].job + ', ' + item.job;
-            // Якщо відділи різні, додаємо їх теж
             if (acc[item.id].department !== item.department) {
                 acc[item.id].department = acc[item.id].department + ', ' + item.department;
             }
@@ -95,7 +86,6 @@ function CrewPage() {
         return acc;
     }, {});
 
-    // Конвертуємо об'єкт назад в масив
     const uniqueItems = Object.values(groupedItems).filter(item => typeTMDB.includes(item.media_type));
 
     return (
@@ -115,8 +105,6 @@ function CrewPage() {
                     {/* Hero Section */}
                     <Box sx={{
                         ...heroSectionSx,
-                        // Саме backgroundImage, а не background: скорочений запис скинув би
-                        // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
                         backgroundImage: (theme) => [
                             `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
                             crew.profile_path && `url(${IMAGE_BASE_URL_ORIGINAL}${crew.profile_path})`,
@@ -215,16 +203,13 @@ function CrewPage() {
 
                     {/* Filmography Section */}
                     <GeneralItemList
-                        // Бокова панель
                         folders={folders}
                         setFolders={setFolders}
                         setIsGetFolders={setIsGetFolders}
-                        // Робота з базами даних
                         dbType="tmdb"
                         urlParams={false}
                         isPreperedData={true}
                         preperedData={uniqueItems}
-                        // Інформація сторінки
                         pageType="crew"
                         pageTitle="Filmography"
                         isSearch={true}

@@ -1,7 +1,6 @@
 import cloudinary from "../utils/cloudinary.js";
 
-// Видаляє файл з Cloudinary за його public_id. Помилки лише логуємо,
-// щоб збій видалення картинки не ламав основну операцію.
+// Delete errors are only logged so a failed image removal never breaks the main operation.
 export const destroyImage = async (publicId) => {
   if (!publicId) return;
   try {
@@ -21,8 +20,8 @@ export const uploadFile = async (req, res) => {
 
     const options = {
       use_filename: true,
-      unique_filename: true, // кожне завантаження отримує унікальний public_id,
-      overwrite: false,      // щоб різні папки не ділили один файл і видалення було безпечним
+      unique_filename: true, // unique public_id per upload: folders never share a file, so deletes stay safe
+      overwrite: false,
       folder: "MovieList",
     };
 
@@ -34,8 +33,7 @@ export const uploadFile = async (req, res) => {
     });
   } catch (error) {
     console.log("Cloudinary upload error:", error);
-    // Причину (напр. "Must supply api_key" на сервері без змінних Cloudinary) віддаємо клієнту:
-    // «failed to upload image» без деталей не дозволяє зрозуміти, що саме зламалось
+    // Return the real reason (e.g. missing Cloudinary env) instead of a generic message.
     const reason = error?.message || error?.error?.message;
     res.status(400).json({
       title: "Image error",

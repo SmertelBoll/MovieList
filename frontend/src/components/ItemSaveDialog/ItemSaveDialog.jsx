@@ -46,18 +46,12 @@ function ItemSaveDialog({
     setIsGetFolders,
 }) {
     const theme = useTheme();
-    // Введення тексту — власний діалог замість swal2-інпута
     const [promptText, textPromptDialog] = useTextPrompt()
-    // Поточна мова — зберігається разом з елементом, щоб було видно,
-    // якою мовою записано tmdbTitle
     const { language, dateFormat } = useSelector((state) => state.config)
-    // Нижче sm діалог на весь екран, нижче md дві колонки складаються в одну
     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isStacked = useMediaQuery(theme.breakpoints.down('md'));
     const dispatch = useDispatch();
-    // Список кастомних типів користувача (свій у кожного)
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
-    // Власна система оцінок користувача
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
     const hasRatingSystem = hasRatingSystemUtil(ratingSystem);
     const ratingLevels = getRatingLevels(ratingSystem);
@@ -66,10 +60,9 @@ function ItemSaveDialog({
         [theme.palette.bg.second, theme.palette.text.main]
     );
 
-    // Підпис кнопки зберігання. Під час анімації закриття обидва прапорці вже false —
-    // без запам'ятованого значення на мить зʼявлявся запасний текст.
-    // Папка, в якій елемент лежав на момент відкриття редагування. Видалення йде саме з неї,
-    // навіть якщо в сайдбарі вже обрано іншу папку для переносу.
+    // Submit label is remembered: during the close animation both flags are already false and a fallback would flash.
+    // Folder the item was in when editing opened: deletion always targets it, even if another folder is selected for a
+    // move.
     const editFolderRef = useRef(null);
     const submitLabelRef = useRef('Add');
     if (isOpenDialogAdd) submitLabelRef.current = 'Add';
@@ -81,7 +74,6 @@ function ItemSaveDialog({
     const [typeCustom, setTypeCustom] = useState(DEFAULT_TYPE_CUSTOM);
 
     // -- USE EFFECTS -- //
-    // Відкрито додавання фільму в папку
     useEffect(() => {
         if (!isOpenDialogAdd) return;
 
@@ -91,22 +83,18 @@ function ItemSaveDialog({
         setTypeCustom(DEFAULT_TYPE_CUSTOM);
     }, [isOpenDialogAdd]);
 
-    // Відкрито редагування фільму в папці
     useEffect(() => {
         if (!selectedItem || !isOpenDialogEdit) return;
 
         editFolderRef.current = selectedFolder;
         setRating(selectedItem.rating);
-        // Календарний день, а не момент часу — інакше дата стрибає на добу
-        // залежно від часового поясу (див. utils/dates.js).
-        // null — дата не вказана; підставляти сьогодні не можна, інакше
-        // видалену дату не вийшло б зберегти видаленою.
+        // Calendar day, not a moment (see utils/dates.js). null = no date; never substitute today, or a removed date
+        // couldn't be saved.
         setSelectedDate(parseDateOnly(selectedItem.dateAdded));
         setText(selectedItem.comment ?? "");
         setTypeCustom(getTags(selectedItem.customType));
     }, [isOpenDialogEdit]);
 
-    // Видалення фільму з папки
     useEffect(() => {
         if (!isDeleteItem || !selectedItem || !selectedFolder) return;
 
@@ -114,13 +102,12 @@ function ItemSaveDialog({
     }, [isDeleteItem]);
 
     // -- HELP FUNCTIONS -- //
-    // Оцінка
     const marks = Array.from({ length: 11 }, (_, index) => ({
         value: 10 * index,
         label: 10 * index,
     }));
 
-    // 0 означає "оцінки немає" — зберігаємо як null
+    // 0 means no rating: stored as null
     const handleSliderChange = (event, newValue) => {
         setRating(newValue === 0 ? null : newValue);
     };
@@ -136,23 +123,18 @@ function ItemSaveDialog({
         }
     };
 
-    // Дата
     const handleDateChange = (newDate) => {
         setSelectedDate(newDate);
     };
 
-    // Папка
     const handleFolderClick = (folder) => {
         setSelectedFolder(folder);
     };
 
-    // Кастомний тип
-    // Теги можна вибрати кілька: клік додає тег, повторний клік по обраному — знімає
     const handleSelectType = (type) => {
         setTypeCustom((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
     };
 
-    // Додавання нового типу до списку користувача (зберігається в акаунті)
     const handleAddType = async () => {
         const newType = await promptText({
             title: 'New tag',
@@ -178,8 +160,8 @@ function ItemSaveDialog({
         }
     };
 
-    // Нова папка з випадайки (мобільний вигляд): питаємо назву, створюємо й одразу вибираємо її.
-    // Перейменування, порядок і видалення папок на малих екранах недоступні — це робиться на сторінці Folders.
+    // New folder from the dropdown (mobile): ask for a name, create and select it. Rename/reorder/delete live
+    // on the Folders page.
     const handleCreateFolder = async () => {
         const name = await promptText({
             title: 'New folder',
@@ -200,19 +182,15 @@ function ItemSaveDialog({
     };
 
     // -- API -- //
-    // додавання фільму в папку (frontend)
     const addItem = (item) => {
         setItems(prev => sortItems([...prev, item]));
     }
-    // оновлення фільму в папці (frontend)
     const updateItem = (item) => {
         setItems(prev => sortItems(prev.map(el => el._id === item._id ? item : el)));
     }
-    // видалення фільму з папки (frontend)
     const removeItem = (item) => {
         setItems(prev => prev.filter(el => el._id !== item._id));
     }
-    // додавання фільму в папку / оновлення фільму в папці (backend)
     const handleSubmit = () => {
         if (!selectedFolder) {
             alertError(null, 'Choose some folder!', '');
@@ -229,7 +207,6 @@ function ItemSaveDialog({
                 rating: rating,
                 comment: text,
                 customType: typeCustom,
-                // Фіксуємо, якою мовою збережено tmdbTitle нижче
                 language: language
             }
 
@@ -305,7 +282,6 @@ function ItemSaveDialog({
                 });
         }
     };
-    // видалення фільму з папки (backend)
     const handleDeleteItem = (item, folder) => {
         const title = item.tmdbTitle || item.title || item.name || "this item";
         alertConfirm(`Are you sure you want to delete "${title}" from this folder?`, () => {
@@ -344,7 +320,7 @@ function ItemSaveDialog({
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row' },
                     gap: { xs: 2, md: 3 },
-                    // На весь екран висоту диктує вікно, інакше — фіксовані 450px
+                    // Fullscreen: the window dictates the height; otherwise a fixed 450px
                     minHeight: { xs: 'auto', md: 450 },
                     maxHeight: { xs: 'none', md: 450 },
                     overflowY: { xs: 'auto', md: 'visible' },
@@ -353,13 +329,11 @@ function ItemSaveDialog({
                     p: 2
                 }}
             >
-                {/* LEFT: Folders — бічна панель лише на широких екранах. На вузьких вона мала б власний скрол,
-                    тому там папку вибирає випадайка в правому блоці. */}
+                {/* LEFT: folder sidebar only on wide screens (on narrow ones it would need its own scroll; a dropdown picks the folder instead). */}
                 {!isStacked && (
                 <Box sx={{
                     flex: { xs: '0 0 auto', md: 1 },
                     minWidth: 0,
-                    // У колонку розділювач має бути знизу, а не збоку
                     borderRight: { xs: 'none', md: '1px solid' },
                     borderBottom: { xs: '1px solid', md: 'none' },
                     borderColor: 'divider',
@@ -372,7 +346,6 @@ function ItemSaveDialog({
                         handleClickToFolder={handleFolderClick}
                         selectedFolder={selectedFolder}
                         sx={{
-                            // Складеним списком папок не даємо з'їсти весь екран
                             maxHeight: { xs: '30vh', md: '100%' },
                             overflowY: 'auto',
                             p: 0,
@@ -386,8 +359,7 @@ function ItemSaveDialog({
 
                 {/* RIGHT: Description */}
                 <Box sx={{ flex: { xs: '1 1 auto', md: 2 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* flex: 1 притискає кнопки до низу — доречно лише при фіксованій
-                        висоті 450px. На весь екран це давало величезну порожнечу. */}
+                    {/* flex: 1 pins the buttons to the bottom only with the fixed 450px height; fullscreen it left a huge gap. */}
                     <Box sx={{ flex: { xs: '0 0 auto', md: 1 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography variant="p" sx={{ textAlign: 'left' }}>
                             Save {selectedItem.tmdbType} to {
@@ -399,7 +371,6 @@ function ItemSaveDialog({
                             }
 
                         </Typography>
-                        {/* Вузькі екрани: вибір папки випадайкою замість бічної панелі зі скролом */}
                         {isStacked && (
                             <DropdownMenu
                                 width={280}
@@ -459,15 +430,11 @@ function ItemSaveDialog({
                             gap: 2,
                             width: '100%'
                         }}>
-                            {/* Дата — зліва */}
                             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                    {/* x-date-pickers v7: renderInput видалено. Через нього поле
-                                        лишалось нестилізованим і при фокусі бралo жовту обводку
-                                        з primary. Тепер поле підставляється через slots. */}
+                                    {/* x-date-pickers v7 dropped renderInput: the field is plugged in via slots (otherwise unstyled, with a yellow primary focus ring). */}
                                     <DatePicker
                                         label="Choose date"
-                                        // Формат дати з профілю
                                         format={dateFormat}
                                         value={selectedDate}
                                         onChange={handleDateChange}
@@ -475,21 +442,19 @@ function ItemSaveDialog({
                                         slotProps={{
                                             textField: {
                                                 fullWidth: true,
-                                                // У InputBox зменшений padding, тож поле ~39px, а не 56px.
-                                                // Без size="small" MUI рахує лейбл під повну висоту
-                                                // і в порожньому полі той з'їжджає до низу.
+                                                // InputBox has reduced padding (~39px); without size="small" MUI sizes
+                                                // the label for full height and it sinks in an empty field.
                                                 size: 'small',
                                                 sx: { width: '100%', mb: 0 },
                                             },
-                                            // Хрестик очищення — дата не обов'язкова,
-                                            // запис може лежати в папці зовсім без неї
+                                            // Clear button: the date is optional, an item can sit in a folder
+                                            // without one.
                                             field: { clearable: true },
                                         }}
                                     />
                                 </LocalizationProvider>
                             </Box>
 
-                            {/* Випадайка тегів — справа, така ж ширина і висота як дата */}
                             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', '& > div': { width: '100%', display: 'flex' } }}>
                             <DropdownMenu
                                 width={200}
@@ -499,7 +464,6 @@ function ItemSaveDialog({
                                         label: type,
                                         selected: typeCustom.includes(type),
                                         icon: typeCustom.includes(type) ? <CheckIcon fontSize="small" /> : null,
-                                        // Меню лишається відкритим — можна відмітити кілька тегів підряд
                                         closeOnClick: false,
                                         onClick: () => handleSelectType(type),
                                     })),
@@ -522,10 +486,10 @@ function ItemSaveDialog({
                                             justifyContent: 'space-between',
                                             gap: 0.5,
                                             width: '100%',
-                                            minHeight: 40,        // тягнеться до висоти поля дати
+                                            minHeight: 40,
                                             boxSizing: 'border-box',
                                             px: 1,
-                                            borderRadius: '4px', // як у блока вибору дати
+                                            borderRadius: '4px',
                                             cursor: 'pointer',
                                             border: '1px solid',
                                             borderColor: 'text.main',
@@ -544,7 +508,6 @@ function ItemSaveDialog({
                             </Box>
                         </Box>
                         {hasRatingSystem ? (
-                            // Власна система оцінок — вибір рівня через випадайку
                             (() => {
                                 const current = ratingLevels.find((l) => l.value === rating);
                                 return (
@@ -556,7 +519,6 @@ function ItemSaveDialog({
                                                     key: lvl.value,
                                                     label: lvl.name,
                                                     selected: rating === lvl.value,
-                                                    // Кружечок кольору рівня; обране позначаємо галочкою справа
                                                     icon: <RatingDot color={lvl.color} />,
                                                     endAdornment: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
                                                     onClick: () => setRating(lvl.value),
@@ -639,8 +601,7 @@ function ItemSaveDialog({
 
             </DialogContent>
 
-            {/* Кнопки — поза прокручуваним вмістом, тож завжди притиснуті до низу вікна
-                (на телефоні вікно на весь екран, і вони не їдуть услід за довгою формою) */}
+            {/* Buttons sit outside the scrolling content so they stay pinned to the bottom (fullscreen on phones, long form). */}
             <DialogActions
                 sx={{
                     flexShrink: 0,
@@ -653,7 +614,6 @@ function ItemSaveDialog({
                     borderColor: 'divider',
                 }}
             >
-                {/* Видалити — лише при редагуванні вже збереженого елемента */}
                 {isOpenDialogEdit && (
                     <MainButton
                         onClick={() => handleDeleteItem(selectedItem, editFolderRef.current || selectedFolder)}
@@ -678,7 +638,6 @@ function ItemSaveDialog({
             </DialogActions>
         </Dialog >
 
-        {/* Діалог введення тексту (створення тегу) — рендериться поверх цього */}
         {textPromptDialog}
         </>
     );

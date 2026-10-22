@@ -28,9 +28,8 @@ function Header({ mode }) {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Шапка position: fixed, тож контент під нею треба відсунути на її висоту.
-  // Публікуємо реальну висоту в CSS-змінну — щоб не тримати це числом у коді
-  // і щоб відступ сам підлаштувався, коли шапка стане вищою (напр. на телефоні).
+  // The header is position: fixed, so content is offset by its real height, published as a CSS variable
+  // (adapts when the header grows, e.g. on mobile).
   const headerRef = useRef(null);
   useLayoutEffect(() => {
     const el = headerRef.current;
@@ -48,11 +47,9 @@ function Header({ mode }) {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Показуємо хедер коли прокручуємо вгору або на початку сторінки
       if (currentScrollY < lastScrollY || currentScrollY < 100) {
         setIsVisible(true);
       } else {
-        // Ховаємо хедер коли прокручуємо вниз
         setIsVisible(false);
       }
 
@@ -94,11 +91,10 @@ function Header({ mode }) {
       }}
     >
       <ContainerCustom sx={{ py: 1 }}>
-        {/* Три блоки в сітці: лого притиснуте вліво, вибори — по центру, меню / вхід — вправо.
-            Крайні колонки однакові (minmax(0, 1fr)), тож середній блок завжди рівно посередині,
-            хоч би яка була ширина лого й кнопок справа.
-            На телефоні (< sm) усі три в один рядок не влазять: вибори переходять у другий рядок
-            на всю ширину, а лого й меню лишаються нагорі. */}
+        {/*
+           Three-block grid: logo left, selectors centered, menu/login right. Side columns are equal (minmax(0, 1fr)), so the middle block stays centered.
+           On phones the selectors move to a second full-width row.
+        */}
         <Box sx={{
           display: "grid",
           gridTemplateColumns: { xs: "minmax(0, 1fr) auto", sm: "minmax(0, 1fr) auto minmax(0, 1fr)" },
@@ -108,8 +104,7 @@ function Header({ mode }) {
           rowGap: { xs: 0.5, sm: 0 },
         }}>
           <Box sx={{ gridArea: "logo", justifySelf: "start" }}>
-            {/* Текстове лого: «Movie» звичайним кольором, «List» на жовтій плашці з темним текстом
-                (жовтий фон → темний текст, правило сайту). Шрифт Bungee вже підключено в styles/index.css. */}
+            {/* Text logo: "Movie" plain, "List" on a yellow plate with dark text. The Bungee font comes from styles/index.css. */}
             <Link to="/" aria-label="MovieList — home" style={{ display: "inline-flex" }}>
               <Typography
                 variant="logo"
@@ -146,15 +141,12 @@ function Header({ mode }) {
             gridArea: "controls",
             display: "flex",
             alignItems: "center",
-            // На телефоні — рівномірно по всій ширині другого рядка, від sm — компактно по центру
             justifyContent: { xs: "space-around", sm: "center" },
             gap: 1,
             justifySelf: { xs: "stretch", sm: "center" },
           }}>
-            {/* Вибір мови */}
             <LanguageSelector />
 
-            {/* Зміна теми */}
             <IconButton onClick={() => dispatch(toggleThemeMode())} color="inherit">
               {mode === "light" ? (
                 <DarkModeIcon style={{ color: theme.palette.text.main }} />
@@ -163,15 +155,14 @@ function Header({ mode }) {
               )}
             </IconButton>
 
-            {/* Вибір категорії */}
             <TypeTMDBSelector />
           </Box>
 
           {/* button menu */}
           <Box sx={{ gridArea: "menu", justifySelf: "end", display: "flex", alignItems: "center", gap: 2 }}>
             {isChecking ? (
-              // Поки перевіряємо вхід, не знаємо, що показати (Sign up / Log in чи профіль):
-              // лишаємо лише неклікабельне бургер-меню
+              // While the auth check runs we don't know what to show (Sign up / Log in or profile): only a
+              // disabled burger menu.
               <BurgerMenu disabled onClickLogout={onClickLogout} />
             ) : !isAuth ? (
               <>

@@ -19,12 +19,11 @@ function SeasonEpisodeDialog({
     mode = "season", // "season" | "episode"
     title = "",
     initial = {},
-    // Запису ще немає в базі — тоді дату підставляємо сьогоднішню.
-    // Для наявного запису порожня дата означає, що її навмисно видалили.
+    // New record (not in the DB yet): default the date to today. For an existing one an empty date means it
+    // was removed on purpose.
     isNew = false,
     onClose,
     onSave,
-    // Видалення серії або сезону з бази. Кнопка лише для вже збереженого запису (не isNew)
     onDelete,
 }) {
     const theme = useTheme();
@@ -32,16 +31,14 @@ function SeasonEpisodeDialog({
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
     );
-    // Без зменшеного padding — щоб висота збігалася з полем дати (DatePicker)
+    // Without reduced padding, to match the date field height (DatePicker).
     const InputBoxRegular = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, false),
         [theme.palette.bg.second, theme.palette.text.main]
     );
 
-    // Власна система оцінок користувача
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
     const useRatingSystem = hasRatingSystem(ratingSystem);
-    // Формат дати з профілю
     const dateFormat = useSelector((state) => state.config.dateFormat);
     const ratingLevels = getRatingLevels(ratingSystem);
 
@@ -49,10 +46,9 @@ function SeasonEpisodeDialog({
     const [selectedDate, setSelectedDate] = useState(null);
     const [text, setText] = useState("");
     const [watchedCount, setWatchedCount] = useState(1);
-    // Пропущена серія: не дивилися й не збираємось. Оцінка, перегляди й дата тоді не потрібні.
+    // Skipped episode: not watched and not planned to be; rating, views and date don't apply.
     const [skipped, setSkipped] = useState(false);
 
-    // Заповнюємо поля при відкритті
     useEffect(() => {
         if (!open) return;
         setRating(initial.rating ?? null);
@@ -62,13 +58,12 @@ function SeasonEpisodeDialog({
         setSkipped(Boolean(initial.skipped));
     }, [open]);
 
-    // Пропуск вмикає порожню дату (серію не дивилися), зняття — повертає сьогоднішню
+    // Skipping clears the date (not watched), unskipping sets today.
     const handleSkippedChange = (checked) => {
         setSkipped(checked);
         setSelectedDate(checked ? null : new Date());
     };
 
-    // Поки серія пропущена, поля оцінки / переглядів / дати приглушені й недоступні
     const skippedSx = skipped ? { opacity: 0.4, pointerEvents: 'none' } : {};
 
     const marks = Array.from({ length: 11 }, (_, index) => ({
@@ -89,7 +84,6 @@ function SeasonEpisodeDialog({
     };
 
     const handleSubmit = () => {
-        // Пропущена серія — не переглянута: без оцінки й переглядів
         onSave({
             rating: mode === "episode" && skipped ? null : rating,
             comment: text,
@@ -116,7 +110,6 @@ function SeasonEpisodeDialog({
                     <Typography variant="p" sx={{ textAlign: 'left' }}>
                         {title}
                     </Typography>
-                    {/* Лише для серій. У рядку з заголовком — щоб не збільшувати висоту вікна */}
                     {mode === "episode" && (
                         <FormControlLabel
                             control={<Checkbox checked={skipped} onChange={(e) => handleSkippedChange(e.target.checked)} />}
@@ -127,7 +120,6 @@ function SeasonEpisodeDialog({
                 </Box>
 
                 {useRatingSystem ? (
-                    // Власна система оцінок — вибір рівня через випадайку
                     (() => {
                         const current = ratingLevels.find((l) => l.value === rating);
                         return (
@@ -139,7 +131,6 @@ function SeasonEpisodeDialog({
                                             key: lvl.value,
                                             label: lvl.name,
                                             selected: rating === lvl.value,
-                                            // Кружечок кольору рівня; обране позначаємо галочкою справа
                                             icon: <RatingDot color={lvl.color} />,
                                             endAdornment: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
                                             onClick: () => setRating(lvl.value),
@@ -209,9 +200,7 @@ function SeasonEpisodeDialog({
                         />
                     )}
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
-                        {/* x-date-pickers v7: renderInput видалено. Через нього поле
-                            лишалось нестилізованим і при фокусі брало жовту обводку
-                            з primary. Поле підставляється через slots. */}
+                        {/* x-date-pickers v7 dropped renderInput: the field is plugged in via slots (otherwise unstyled, with a yellow primary focus ring). */}
                         <DatePicker
                             label="Choose date"
                             format={dateFormat}
@@ -220,7 +209,6 @@ function SeasonEpisodeDialog({
                             slots={{ textField: InputBoxRegular }}
                             slotProps={{
                                 textField: { fullWidth: true, sx: { mb: 0 } },
-                                // Хрестик очищення — серію можна зберегти без дати
                                 field: { clearable: true },
                             }}
                         />

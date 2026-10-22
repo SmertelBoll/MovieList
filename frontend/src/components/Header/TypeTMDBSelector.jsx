@@ -16,18 +16,15 @@ const TMDB_TYPES = [
 function TypeTMDBSelector() {
     const dispatch = useDispatch();
     const { typeTMDB, customTypes } = useSelector((state) => state.config);
-    // Кастомні типи користувача (свій список у кожного)
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
     const theme = useTheme();
     const location = useLocation();
 
-    // Кастомні типи доступні там, де дані беруться з mongo:
-    // сторінки папок і сторінка нових релізів
+    // Custom types exist where data comes from mongo: folder pages and the Updates page.
     const isFolderPage = location.pathname.startsWith('/folders')
         || location.pathname.startsWith('/updates');
 
-    // Залишаючи сторінки папок, скидаємо фільтр кастомних типів,
-    // щоб при поверненні був активний обраний tmdbType
+    // Leaving folder pages resets the custom-type filter so the chosen tmdbType is active on return.
     useEffect(() => {
         if (!isFolderPage && customTypes.length) {
             dispatch(setCustomTypes([]));
@@ -41,15 +38,12 @@ function TypeTMDBSelector() {
         codes.length === typeTMDB.length && codes.every((code) => typeTMDB.includes(code));
 
     const activeCategory = TMDB_TYPES.find((c) => isActive(c.codes)) || TMDB_TYPES[0];
-    // Назва тегу для показу (спецзначення → "No tag")
     const tagLabel = (t) => (t === NO_TAG ? 'No tag' : t);
 
-    // У тригері завжди показуємо tmdbType на початку, далі через "|" — обрані теги
     const triggerLabel = activeCustomTypes.length
         ? `${activeCategory.name} | ${activeCustomTypes.map(tagLabel).join(', ')}`
         : activeCategory.name;
 
-    // Перемикання одного кастомного типу в множинному виборі
     const toggleCustomType = (type) => {
         const next = customTypes.includes(type)
             ? customTypes.filter((t) => t !== type)
@@ -62,21 +56,18 @@ function TypeTMDBSelector() {
             key: cat.name,
             label: cat.name,
             selected: isActive(cat.codes),
-            // tmdbType і customTypes — незалежні фільтри (комбінуються через AND)
+            // tmdbType and customTypes are independent filters (AND).
             onClick: () => dispatch(setTypeTMDB(cat.codes)),
         })),
-        // Кастомні типи користувача — лише на сторінці папки, множинний вибір
         ...(showCustomTypes ? [{ key: '__divider__', divider: true }] : []),
         ...(showCustomTypes ? [...userTypes].map((type) => ({
             key: `custom_${type}`,
             label: type,
             selected: customTypes.includes(type),
             icon: customTypes.includes(type) ? <CheckIcon fontSize="small" /> : null,
-            // не закриваємо меню, щоб зручно обрати кілька
             closeOnClick: false,
             onClick: () => toggleCustomType(type),
         })) : []),
-        // Окрема опція — показати збережене без тегів
         ...(showCustomTypes ? [{
             key: 'no_tag',
             label: 'No tag',

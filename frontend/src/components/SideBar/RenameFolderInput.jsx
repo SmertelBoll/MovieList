@@ -19,8 +19,8 @@ function RenameFolderInput({
         [theme.palette.mode]
     );
 
-    // autoFocus не спрацьовує коли Menu закривається і повертає фокус на тригер —
-    // тому фокусуємо вручну після того як Menu завершить анімацію закриття
+    // autoFocus doesn't fire when the Menu closes and returns focus to its trigger, so focus manually after
+    // the close animation.
     useEffect(() => {
         const timer = setTimeout(() => { inputRef.current?.focus() }, 100)
         return () => clearTimeout(timer)

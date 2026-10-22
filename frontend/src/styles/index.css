@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Nunito&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Bungee&family=Kanit:wght@400;600;700&display=swap");
-/* Rubik з підтримкою кирилиці — фолбек для нелатинських символів */
+/* Rubik with Cyrillic support: fallback for non-Latin glyphs */
 @import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin");
 
 :root {

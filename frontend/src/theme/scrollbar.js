@@ -1,6 +1,5 @@
-// Смуга горизонтального скролу всередині блоків (команда, каст, сезони): така сама, як у скролу
-// сторінки (styles/index.css) — жовта «пігулка» з рамкою кольору доріжки.
-// Один спільний стиль, щоб усі горизонтальні стрічки на сайті виглядали однаково.
+// Horizontal scrollbar inside blocks (cast, crew, seasons), same as the page one (styles/index.css): a yellow pill with
+// a track-colored border.
 export const scrollbarSx = {
   "&::-webkit-scrollbar": {
     height: { xs: 10, sm: 14 },
@@ -20,8 +19,8 @@ export const scrollbarSx = {
   },
 };
 
-// Горизонтальна стрічка карток (команда, каст, Timeline): тримається в межах падінгу контейнера,
-// щоб смуга прокрутки не впиралась у краї екрана. На телефоні картки «прилипають» до початку.
+// Horizontal card strip (cast, crew, Timeline): stays within the container padding so the scrollbar doesn't
+// touch the screen edges. On phones cards snap to the start.
 export const scrollStripSx = {
   display: "flex",
   gap: 2,

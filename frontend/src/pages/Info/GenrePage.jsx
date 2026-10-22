@@ -20,21 +20,17 @@ function GenrePage() {
     const { typeTMDB, language } = useSelector((state) => state.config);
     const tmdbLanguage = getTmdbLanguage(language);
 
-    // Дані про жанр
     const [genre, setGenre] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [totalItems, setTotalItems] = useState(null)
 
-    // Дані про папки користувача
-    const [folders, setFolders] = useState([])                  // Папки
-    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+    const [folders, setFolders] = useState([])
+    const [isGetFolders, setIsGetFolders] = useState(true)
 
 
-    // Загрузка даних про жанр
     useEffect(() => {
         setIsLoading(true)
 
-        // Спочатку отримуємо інформацію про жанр
         instance
             .get(`${process.env.REACT_APP_URL_TMDB}/genre/movie/list`, {
                 params: {
@@ -46,7 +42,6 @@ function GenrePage() {
                 const currentGenre = res.data.genres.find(g => g.id === parseInt(id))
                 setGenre(currentGenre)
 
-                // Тепер отримуємо першу сторінку фільмів по жанру
                 const endpoint = `${process.env.REACT_APP_URL_TMDB}/discover`
 
                 let params = {
@@ -76,7 +71,6 @@ function GenrePage() {
             })
     }, [id, typeTMDB, tmdbLanguage])
 
-    // Завантаження папок користувача
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -172,16 +166,13 @@ function GenrePage() {
 
                     {/* Items Section */}
                     <GeneralItemList
-                        // Бокова панель
                         folders={folders}
                         setFolders={setFolders}
                         setIsGetFolders={setIsGetFolders}
-                        // Робота з базами даних
                         dbType="tmdb"
                         urlParams={{ with_genres: id }}
                         isPreperedData={false}
                         preperedData={false}
-                        // Інформація сторінки
                         pageType="genre"
                         pageTitle="Filmography"
                         isSearch={false}

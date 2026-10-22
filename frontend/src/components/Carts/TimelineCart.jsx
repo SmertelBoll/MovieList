@@ -7,19 +7,15 @@ import ItemFolderButton from '../ItemFolderButton'
 import StretchedLink from '../StretchedLink'
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // w342 — щоб постер був чіткий на retina
+const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // w342 keeps the poster sharp on retina
 
-// Картка однієї частини колекції для блоку Timeline.
-// Кнопка в куті: плюс (додати), для збереженої — значок статусу (редагувати; кілька папок — вибір папки).
-// onAdd(part), onEdit(part, copy) — діалог відкриває сторінка.
 function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
     const isAuth = useSelector(selectIsAuth)
-    // Переглянуту й кинуту частину приглушуємо так само, як на сторінці New releases
     const copies = useSelector(selectSavedCopies('movie', part.id))
     const isDimmed = isDimmedStatus(getBestStatus(copies.map((c) => c.status)))
 
     const year = part.release_date ? part.release_date.slice(0, 4) : null
-    // Без дати — це анонсована частина; з датою в майбутньому — ще не вийшла
+    // No date = announced; a future date = not released yet
     const isUpcoming = !part.release_date || new Date(part.release_date) > new Date()
 
     return (
@@ -32,8 +28,6 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                 flexDirection: 'column',
                 gap: 1,
                 cursor: isCurrent ? 'default' : 'pointer',
-                // Піднімаємо картку цілком (разом з назвою). Висота підйому й
-                // підсилення тіні — як у карток фільмів у списках
                 transition: 'transform 0.2s ease-in-out',
                 ...(isCurrent ? {} : {
                     '@media (hover: hover) and (pointer: fine)': { '&:hover': {
@@ -43,10 +37,8 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                 }),
             }}
         >
-            {/* Справжнє посилання на всю картку (крім поточного фільму) */}
             {!isCurrent && <StretchedLink to={`/movie/${part.id}`} label={part.title} />}
 
-            {/* Постер */}
             <Box
                 className="timeline-poster"
                 sx={{
@@ -70,13 +62,11 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                         height: '100%',
                         objectFit: 'cover',
                         display: 'block',
-                        // Ще не вийшла — приглушуємо, щоб хронологія читалась з першого погляду
                         filter: isUpcoming && !isCurrent ? 'grayscale(0.45)' : 'none',
                         ...(isDimmed && DIMMED_POSTER_SX),
                     }}
                 />
 
-                {/* Затемнення знизу, щоб рік читався на будь-якому постері */}
                 <Box
                     sx={{
                         position: 'absolute',
@@ -86,7 +76,6 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                     }}
                 />
 
-                {/* Рік виходу */}
                 <Typography
                     sx={{
                         position: 'absolute',
@@ -102,7 +91,6 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                     {year || 'TBA'}
                 </Typography>
 
-                {/* Кнопки на постері — справа зверху, як у картках списків */}
                 {isAuth && (
                     <ItemFolderButton
                         variant="direct"
@@ -115,7 +103,6 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                     />
                 )}
 
-                {/* Бейдж стану */}
                 {(isCurrent || isUpcoming) && (
                     <Box
                         sx={{
@@ -138,11 +125,10 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
                 )}
             </Box>
 
-            {/* Назва */}
             <Typography
                 variant="body2"
-                // Повна назва на наведення (в картці вона обрізана до двох рядків).
-                // Не на кореневому Box: native-підказка батька накладалась би на підказку значка.
+                // Full title on hover (the card truncates it to two lines). Not on the root Box: the parent's
+                // native tooltip would overlap the badge's.
                 title={part.title}
                 sx={{
                     fontWeight: 500,

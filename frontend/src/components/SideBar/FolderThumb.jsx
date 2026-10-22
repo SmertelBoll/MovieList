@@ -3,18 +3,9 @@ import { useSelector } from 'react-redux'
 import FolderIcon from '@mui/icons-material/Folder'
 import { getStatusColorToken } from '../../utils/folderStatus'
 
-/**
- * Мініатюра папки: показує картинку папки (folder.image), якщо вона є,
- * інакше — стандартну іконку. Під час завантаження — спіннер.
- * size — розмір зарезервованого квадрата (px).
- *
- * Картинка, іконка і спіннер рендеряться у боксі однакового розміру,
- * тож текст поряд завжди починається з тієї самої позиції.
- *
- * Якщо в профілі ввімкнено «Color folder icons» (за замовчуванням вимкнено), стандартна іконка
- * фарбується в колір статусу папки; без статусу — звичайний колір тексту.
- * Клас folder-status-icon дозволяє кнопці-батьку повернути темний колір на жовтому фоні.
- */
+// Folder thumbnail: image, default icon or upload spinner in an equal-size box. With "Color folder icons" (profile) the
+// icon takes the status color;
+// folder-status-icon lets the parent restore dark on yellow.
 function FolderThumb({ folder, size = 24, loading = false }) {
     const colorByStatus = useSelector((state) => Boolean(state.auth.data?.colorFolderIcons))
     return (
@@ -44,8 +35,8 @@ function FolderThumb({ folder, size = 24, loading = false }) {
                     }}
                 />
             ) : (
-                // Без кольору (чи без статусу) inherit — щоб на жовтому фоні (наведення / вибрана папка)
-                // іконка темніла разом з текстом кнопки
+                // No color (or no status) = inherit, so on yellow (hover / selected folder) the icon darkens
+                // with the button text.
                 <FolderIcon
                     className="folder-status-icon"
                     sx={{ fontSize: size, color: (colorByStatus && getStatusColorToken(folder?.status)) || 'inherit' }}

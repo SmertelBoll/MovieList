@@ -1,8 +1,6 @@
-// Формати дат, які користувач може вибрати в профілі (рядки date-fns).
-// Окремий файл без імпортів: ConfigSlice імпортує його, а dates.js імпортує store —
-// спільним модулем вони утворили б цикл.
-//
-// Тримати синхронно з ALLOWED_DATE_FORMATS у backend/controllers/userControllers.js.
+// Date formats selectable in the profile (date-fns). Import-free file: ConfigSlice imports it and dates.js imports the
+// store, so sharing would create a cycle.
+// Keep in sync with ALLOWED_DATE_FORMATS in backend/controllers/userControllers.js.
 
 export const DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
 

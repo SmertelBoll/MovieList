@@ -66,19 +66,15 @@ const CATEGORIES_SORT_BY = {
 const LIMIT_ITEMS = 12;
 
 function GeneralItemList({
-    // Бокова панель
     folders,
     setFolders,
     setIsGetFolders,
-    // Робота з базами даних
     dbType,
     urlParams = false,
     isPreperedData = false,
     preperedData = [],
-    // Інше
     pageType = "NotFound",
     pageTitle = "Page don't have title",
-    // Довільний вузол праворуч від заголовка (напр. чіп статусу папки)
     titleAdornment = null,
     isSearch = false,
     isSort = false,
@@ -87,16 +83,15 @@ function GeneralItemList({
     const { typeTMDB, customTypes, language, viewMode } = useSelector((state) => state.config);
     const dispatch = useDispatch();
     const tmdbLanguage = getTmdbLanguage(language);
-    // Кастомні типи застосовуються лише для mongo-сторінок; для tmdb їх ігноруємо повністю
+    // Custom types apply only to mongo pages; ignored for tmdb.
     const effectiveCustomTypes = dbType === "mongo" ? customTypes : [];
     const customTypesKey = effectiveCustomTypes.join(",");
     const location = useLocation();
     const navigate = useNavigate();
     const navigationType = useNavigationType();
 
-    // Пошук, сортування й теги зберігаємо в sessionStorage за адресою сторінки. Відновлюємо лише при поверненні
-    // назад (POP: кнопка «назад», navigate(-1), оновлення сторінки) — щоб перехід у фільм і назад не збивав фільтр,
-    // а вхід у папку посиланням чи з бокової панелі починався з чистого списку.
+    // Search/sort/tags are kept in sessionStorage per page URL and restored only on back navigation (POP); entering via
+    // a link starts clean.
     const listStateKey = `MovieList-list:${location.pathname}`;
     const [restored] = useState(() => {
         if (navigationType !== 'POP') return null;
@@ -107,28 +102,24 @@ function GeneralItemList({
         }
     });
 
-    // Параметр filter з URL важливіший за збережений пошук
+    // A ?filter= URL param beats the stored search.
     const initialFilter = new URLSearchParams(location.search).get('filter') || restored?.search || "";
 
-    // об'єкти для search (input)
-    const [inputText, setInputText] = useState(initialFilter);     // відповідає за відображення тексту в input
-    const [searchValue, setSearchValue] = useState(initialFilter); // загружається кінцеве значення після debounce для запроса
+    const [inputText, setInputText] = useState(initialFilter);
+    const [searchValue, setSearchValue] = useState(initialFilter);
 
-    // об'єкти для query
-    const [isLoadedItems, setIsLoadedItems] = useState(true);    // фільми загружені (T/F)
-    const [items, setItems] = useState([])                       // об'єкти фільму
-    const [displayedItems, setDisplayedItems] = useState(0)      // скільки фільмів на екрані
-    const [page, setPage] = useState(0)                          // сторінка запиту
-    const [totalPages, setTotalPages] = useState(1)              // загальна кількість сторінок
+    const [isLoadedItems, setIsLoadedItems] = useState(true);
+    const [items, setItems] = useState([])
+    const [displayedItems, setDisplayedItems] = useState(0)
+    const [page, setPage] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
 
-    // об'єкти для ItemsDialog
-    const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false);    // відкрито панель додавання фільму (T/F)
-    const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false);  // відкрито панель редагування фільму (T/F)
-    const [isDeleteItem, setIsDeleteItem] = useState(false);        // тригер видалення фільму (T/F)
-    const [selectedFolder, setSelectedFolder] = useState({});      // яка папка (obj) обрана у ItemsDialog
-    const [selectedItem, setSelectedItem] = useState({});        // який фільм (obj) обраний у ItemsDialog
+    const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false);
+    const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false);
+    const [isDeleteItem, setIsDeleteItem] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState({});
+    const [selectedItem, setSelectedItem] = useState({});
 
-    // робота з сортуванням
     const [nameSortBy, setNameSortBy] = useState(
         restored?.sortBy in CATEGORIES_SORT_BY[dbType] ? restored.sortBy : Object.keys(CATEGORIES_SORT_BY[dbType])[0]
     );
@@ -138,13 +129,11 @@ function GeneralItemList({
 
 
     // -- HELP FUNCTIONS -- //
-    // Функція для сортування фільмів на клієнті
     const sortItems = useCallback((items, nameSortBy, order) => {
         return [...items].sort((a, b) => {
             let aValue = a[CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][a.media_type]]
             let bValue = b[CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][b.media_type]]
 
-            // Обробка спеціальних випадків
             if (nameSortBy === 'Release Date' || nameSortBy === 'Add Date' || nameSortBy === 'Update Date') {
                 aValue = aValue ? new Date(aValue) : new Date(0);
                 bValue = bValue ? new Date(bValue) : new Date(0);
@@ -164,7 +153,6 @@ function GeneralItemList({
         });
     }, []);
 
-    // Отримання даних про фільм з TMDB
     const getItemsById = useCallback(async (item) => {
         const params = {
             api_key: API_KEY,
@@ -186,13 +174,12 @@ function GeneralItemList({
 
 
     // -- USE EFFECTS -- //
-    // Теги (фільтр кастомних типів) живуть у redux, а при виході зі сторінок папок скидаються (TypeTMDBSelector).
-    // Тому при поверненні назад повертаємо їх із збереженого стану.
+    // Tags live in redux and are reset when leaving folder pages (TypeTMDBSelector), so restore them from the
+    // saved state on back navigation.
     useEffect(() => {
         if (dbType === "mongo" && Array.isArray(restored?.tags)) dispatch(setCustomTypes(restored.tags));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Зберігаємо стан списку, щоб відновити його при поверненні
     useEffect(() => {
         try {
             window.sessionStorage.setItem(listStateKey, JSON.stringify({
@@ -202,11 +189,10 @@ function GeneralItemList({
                 tags: dbType === "mongo" ? customTypes : [],
             }));
         } catch {
-            // сховище недоступне (приватний режим) — просто не зберігаємо
         }
     }, [listStateKey, searchValue, nameSortBy, sortDirection, customTypesKey, dbType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Очищуємо параметр filter з URL після завантаження, щоб він не застосовувався повторно
+    // Clear the filter param after loading so it isn't applied again.
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         if (queryParams.has('filter')) {
@@ -216,17 +202,15 @@ function GeneralItemList({
         }
     }, [location.search, navigate]);
 
-    // Почати завантаження з початку
     useEffect(() => {
         setIsLoadedItems(false)
         setItems([])
         setDisplayedItems(0)
         setTotalPages(1)
         setPage(0)
-        // tmdbLanguage теж скидає список: при зміні мови треба перезапитати назви й описи
+        // tmdbLanguage resets the list too: titles and descriptions must be refetched.
     }, [searchValue, nameSortBy, sortDirection, typeTMDB, customTypesKey, tmdbLanguage])
 
-    // Загрузка даних
     useEffect(() => {
         setIsLoadedItems(false);
 
@@ -235,11 +219,10 @@ function GeneralItemList({
             return
         }
 
-        // Використовуємо передані дані
         if (isPreperedData && page === 1) {
             let resData = preperedData.filter(el => ((el?.title || el?.name) || "").toLowerCase().includes((searchValue || "").toLowerCase()))
             resData = sortItems(resData, nameSortBy, sortDirection)
-            setDisplayedItems(resData.length)  // відображаємо усі фільми
+            setDisplayedItems(resData.length)
 
             setItems(resData)
             setIsLoadedItems(true)
@@ -247,7 +230,6 @@ function GeneralItemList({
             return
         }
 
-        // Якщо нова сторінка уже завантажена, показуємо її
         if (page !== 1 && items.length - displayedItems >= LIMIT_ITEMS) {
             setDisplayedItems(prev => prev + LIMIT_ITEMS)
             setIsLoadedItems(true)
@@ -255,7 +237,6 @@ function GeneralItemList({
         }
 
         if (dbType === "tmdb") {
-            // Якщо пошуковий запит порожній, використовуємо популярні фільми
             const endpoint = `${process.env.REACT_APP_URL_TMDB}/${searchValue.trim() === "" ? "discover" : "search"}`
 
             let params = {
@@ -265,7 +246,6 @@ function GeneralItemList({
                 ...urlParams
             };
 
-            // Додаємо query тільки для пошукового запиту
             if (searchValue.trim() !== "") {
                 params.query = searchValue;
             }
@@ -301,7 +281,6 @@ function GeneralItemList({
                 });
         }
         else if (dbType === "mongo") {
-            // Якщо пошуковий запит порожній, використовуємо популярні фільми
             const endpoint = props.customEndpoint || process.env.REACT_APP_URL_MONGO
 
             let params = {
@@ -313,7 +292,6 @@ function GeneralItemList({
                 ...urlParams
             };
 
-            // Додаємо query тільки для пошукового запиту
             if (searchValue.trim() !== "") {
                 params.query = searchValue;
             }
@@ -321,7 +299,6 @@ function GeneralItemList({
             instance
                 .get(endpoint, { params })
                 .then(async (res) => {
-                    // Створюємо масив промісів для паралельного завантаження даних з TMDB
                     let results = res.data.results;
 
                     const resultsWithTmdb = await Promise.all(
@@ -337,7 +314,7 @@ function GeneralItemList({
 
                     setItems(prev => [...prev, ...resultsWithTmdb]);
                     setTotalPages(res.data.pagination.totalPages)
-                    setDisplayedItems(prev => prev + LIMIT_ITEMS)  // При першому запиті відображаємо 24 фільмів
+                    setDisplayedItems(prev => prev + LIMIT_ITEMS)
                     setIsLoadedItems(true);
                 })
                 .catch((err) => {
@@ -350,7 +327,6 @@ function GeneralItemList({
     }, [page, preperedData]);
 
 
-    // Обираємо за замовчуванням папку, яка відповідає сторінці
     useEffect(() => {
         setSelectedFolder(props.objectOfFolderPage);
     }, [props.objectOfFolderPage]);
@@ -365,7 +341,6 @@ function GeneralItemList({
     );
     const onChangeInput = (e, empty = false) => {
         if (empty) {
-            // затираємо значення
             setInputText("");
             updateSearchValue("");
         } else {
@@ -376,16 +351,15 @@ function GeneralItemList({
 
 
     // // -- FOLDER FUNCTIONS -- //
-    // додавання фільму до папки
     const handleDialogAddItem = (item) => {
         setSelectedItem(item);
         setIsOpenDialogAdd(true);
     };
-    // Копія з індексу збережених → повний об'єкт папки (сайдбар діалогу підсвічує вибране за order)
+    // Saved-index copy -> full folder object (the dialog sidebar highlights the selection by order).
     const folderOfCopy = (copy) => folders?.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status };
 
-    // редагування фільму в папці. copy — копія, обрана кнопкою на сторінках зі списком tmdb:
-    // тоді дані копії (оцінка, коментар...) підтягуємо за mongoId. Без copy картка вже є копією.
+    // copy = the copy chosen via the button on tmdb list pages: load its data (rating, comment...) by
+    // mongoId. Without copy the card already is a copy.
     const handleDialogEditItem = async (item, copy = null) => {
         if (!copy) {
             setSelectedItem(item);
@@ -402,7 +376,6 @@ function GeneralItemList({
             alertError(err);
         }
     };
-    // закриття діалогу
     const handleCloseDialog = () => {
         setIsOpenDialogAdd(false);
         setIsOpenDialogEdit(false);
@@ -411,7 +384,7 @@ function GeneralItemList({
             setSelectedFolder(null)
         }
     };
-    // видалення фільму або серіалу (copy — копія з індексу, коли картка не є копією сама)
+    // delete a movie or tv (copy comes from the saved index when the card isn't a copy itself)
     const handleDeleteItem = (item, copy = null) => {
         if (copy) {
             setSelectedFolder(folderOfCopy(copy))
@@ -423,9 +396,7 @@ function GeneralItemList({
     };
 
 
-    // Кешуємо сітку фільмів, щоб вона не ререндерилася при кожному введі в інпут (Search)
-    // чи зміні іншого стейту поза межами залежностей
-    // Пропси, спільні для картки й рядка
+    // Memoized so typing in Search doesn't re-render the whole grid.
     const itemProps = (item) => ({
         item,
         onAddItem: handleDialogAddItem,
@@ -443,7 +414,6 @@ function GeneralItemList({
     });
 
     const renderedItemGrid = React.useMemo(() => viewMode === "list" ? (
-        // Режим «таблиця»: компактні рядки замість карток
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {items.slice(0, displayedItems).map((item, i) => (
                 <ItemRow key={item?._id || item?.id || i} {...itemProps(item)} />
@@ -464,7 +434,7 @@ function GeneralItemList({
         pageType,
         viewMode,
         props.objectOfFolderPage,
-        // Обробники редагування/видалення беруть папку копії зі списку папок
+        // Edit/delete handlers take the copy's folder from the folder list.
         folders
     ]);
 
@@ -479,7 +449,6 @@ function GeneralItemList({
                     {titleAdornment}
                 </Box>
 
-                {/* Як показувати список: картки (за замовчуванням) або компактні рядки. Завжди справа зверху */}
                 <SegmentedSwitch
                     compact
                     value={viewMode}
@@ -511,7 +480,6 @@ function GeneralItemList({
                                 const isSearching = searchValue.trim() !== "";
                                 const isBothTypes = typeTMDB.length > 1;
                                 const isSortDisabled = dbType === "tmdb" && !preperedData && (isSearching || isBothTypes);
-                                // Підказка називає конкретну причину і що зробити
                                 const disabledReason = [
                                     isBothTypes && "Select only movies or only TV shows",
                                     isSearching && "clear the search",
@@ -569,8 +537,7 @@ function GeneralItemList({
                         setIsGetFolders={setIsGetFolders}
                     />
 
-                    {/* Низ списку: спінер або «Give more». Коли показувати нічого, блок не рендеримо —
-                        порожній, він усе одно додавав би відступи (gap + mb) і низ виглядав завеликим */}
+                    {/* Bottom of the list: spinner or "Give more". Not rendered when empty, otherwise its gap/margin would make the bottom look too big. */}
                     {!isLoadedItems
                         ? <Box width="100%" textAlign="center">
                             <CircularProgress color="text.main" />

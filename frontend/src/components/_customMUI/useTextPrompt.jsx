@@ -4,24 +4,13 @@ import { useTheme } from '@mui/material/styles'
 import TextFieldCustom from './TextFieldCustom'
 import MainButton from '../Buttons/MainButton'
 
-/**
- * Діалог введення тексту замість swal2-інпута.
- * swal2 лишається тільки для повідомлень і підтверджень.
- *
- * Повертає [prompt, dialog]:
- *   prompt(options) -> Promise<string|null>  (null — скасовано)
- *   dialog — вузол, який треба відрендерити в компоненті
- *
- * options: { title, label, placeholder, initialValue, maxLength, confirmLabel }
- *
- * Проміс дозволяє лишити місця виклику у вигляді `const v = await prompt(...)`,
- * як було з alertInput.
- */
+// Text input dialog instead of a swal2 input. Returns [prompt, dialog]: prompt(options) -> Promise<string|null> (null =
+// cancelled); render dialog in the tree.
 function useTextPrompt() {
     const theme = useTheme()
     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
-    // Звичайна висота поля — з плаваючим label інакше з'їжджає підпис
+    // Regular field height: with a floating label the caption would otherwise shift.
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
         [theme.palette.bg.second, theme.palette.text.main]
@@ -89,7 +78,6 @@ function useTextPrompt() {
                 />
             </DialogContent>
 
-            {/* Смуга кнопок така сама, як у діалозі збереження (ItemSaveDialog): лінія зверху на вузьких екранах */}
             <DialogActions
                 sx={{
                     bgcolor: 'bg.second',

@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
-// Статуси перегляду. Значення — короткі машинні ключі, назви папок
-// для показу лежать окремо в DEFAULT_FOLDERS нижче.
+// Machine keys for view statuses; display names live in DEFAULT_FOLDERS below.
 export const FOLDER_STATUSES = {
     PLANNED: "planned",
     WATCHING: "watching",
@@ -12,9 +11,8 @@ export const FOLDER_STATUSES = {
 
 export const FOLDER_STATUS_VALUES = Object.values(FOLDER_STATUSES);
 
-// Якщо елемент лежить одразу в кількох папках зі статусами — перемагає найвищий
-// за пріоритетом: кинуте > дивлюсь > заплановано > переглянуто > пропущено.
-// Тримати синхронно з STATUS_PRIORITY у frontend/src/utils/folderStatus.js.
+// Highest priority wins when an item sits in several status folders: dropped > watching > planned > watched > skipped.
+// Keep in sync with STATUS_PRIORITY in frontend/src/utils/folderStatus.js.
 const STATUS_PRIORITY = [
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.WATCHING,
@@ -29,9 +27,8 @@ export const betterStatus = (a, b) => {
     return STATUS_PRIORITY.indexOf(a) <= STATUS_PRIORITY.indexOf(b) ? a : b;
 };
 
-// Папки, які створюються автоматично при реєстрації.
-// Список папок на сайті сортується за order від більшого до меншого, тож зверху найбільший.
-// Бажаний порядок згори вниз: Watched, Watching, Planned, Dropped, Skipped.
+// Folders created on registration. Sorted by order descending, so the largest is on top: Watched, Watching,
+// Planned, Dropped, Skipped.
 export const DEFAULT_FOLDERS = [
     { name: "Watched", status: FOLDER_STATUSES.WATCHED, order: 4 },
     { name: "Watching", status: FOLDER_STATUSES.WATCHING, order: 3 },
@@ -43,11 +40,10 @@ export const DEFAULT_FOLDERS = [
 const FolderSchema = new mongoose.Schema(
     {
         name: {
-            type: String, // Назва папки
-            required: true, // Обов'язкове поле
+            type: String,
+            required: true,
         },
-        // Статус перегляду. У папок, створених користувачем вручну, його немає —
-        // тому null дозволений і стоїть за замовчуванням.
+        // Status is null for folders the user created manually.
         status: {
             type: String,
             enum: [...FOLDER_STATUS_VALUES, null],
@@ -58,11 +54,11 @@ const FolderSchema = new mongoose.Schema(
             required: true
         },
         image: {
-            type: String, // URL картинки папки (Cloudinary). Якщо немає — показуємо стандартну іконку
+            type: String,
             default: "",
         },
         imagePublicId: {
-            type: String, // public_id у Cloudinary — потрібен, щоб видаляти файл із хмари
+            type: String, // Cloudinary public_id, needed to delete the file.
             default: "",
         },
         folderElements: [
@@ -80,13 +76,13 @@ const FolderSchema = new mongoose.Schema(
             }
         ],
         user: {
-            type: mongoose.Schema.Types.ObjectId, // бо це користучав
-            ref: "User", // з UserController
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
         },
     },
     {
-        timestamps: true, // Додає поля createdAt та updatedAt
+        timestamps: true,
     }
 );
 

@@ -20,7 +20,6 @@ import NewReleasesIcon from "@mui/icons-material/NewReleases";
 
 
 
-// disabled — поки йде перевірка входу: кнопка видна, але не натискається
 const BurgerMenu = ({ sx, onClickLogout, disabled = false }) => {
   // auth: show information to
   //  0 - users without registration
@@ -89,7 +88,6 @@ const BurgerMenu = ({ sx, onClickLogout, disabled = false }) => {
       >
         {/* user */}
         {isAuth && (
-          // Справжнє посилання на профіль: працюють колесо миші та Ctrl/Cmd+клік
           <Box
             component={Link}
             to="/profile"

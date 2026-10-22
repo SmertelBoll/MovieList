@@ -6,7 +6,6 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
 
-// Один перетягуваний рядок кастомного типу
 function SortableTypeItem({ type, onRename, onDelete }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: type })
 
@@ -33,7 +32,6 @@ function SortableTypeItem({ type, onRename, onDelete }) {
                 zIndex: isDragging ? 1 : 'auto',
             }}
         >
-            {/* Ручка перетягування */}
             <Box
                 {...attributes}
                 {...listeners}

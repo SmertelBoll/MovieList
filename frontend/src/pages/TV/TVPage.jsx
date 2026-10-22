@@ -28,17 +28,15 @@ import { fetchSavedDoc } from '../../utils/savedItems'
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
 const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
-const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`; // горизонтальний кадр для вузьких екранів
+const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
-// Мемоїзована клітинка серії. Перемальовується ЛИШЕ коли змінюються її власні
-// (примітивні) пропси, тому збереження однієї серії не чіпає решту сотень клітинок.
-// Важливо: onClick має бути стабільним (useCallback), а content/kind — примітивами.
+// Memoized episode cell: re-renders only when its own primitive props change, so saving one episode doesn't touch
+// hundreds of cells. onClick must be stable.
 const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, content, active, onClick, watched, dateAdded }) {
     let node = content
     if (kind === 'empty') node = <CheckBoxOutlineBlankIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
     else if (kind === 'checked') node = <CheckBoxIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
-    // Пропущена серія — хрестик замість галочки
     else if (kind === 'skipped') node = <CloseIcon sx={{ fontSize: 20, color: "rating.cellText" }} />
 
     const cart = (
@@ -53,7 +51,6 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
         </EpisodeCart>
     )
 
-    // Tooltip для mongo-режиму (watched/dateAdded — примітиви, memo не ламається)
     if (active && (watched != null || dateAdded || kind === 'skipped')) {
         const tooltipTitle = (
             <Box sx={{ p: 0.5 }}>
@@ -80,52 +77,47 @@ const EpisodeCell = memo(function EpisodeCell({ sNum, eNum, bg, text, kind, cont
 
 function TVPage({ isSaved = false }) {
     const { id } = useParams()
-    // Кольори теплової карти беруться з палітри, тож потрібен доступ до теми
     const theme = useTheme()
     const isAuth = useSelector(selectIsAuth)
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
     const { language } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
     const useRatingSystem = hasRatingSystem(ratingSystem)
-    // Рівні власної системи — для легенди під сіткою
     const ratingLevels = useMemo(() => getRatingLevels(ratingSystem), [ratingSystem])
     const [serial, setSerial] = useState(null)
     const [seasonDetails, setSeasonDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true)
 
-    // Завжди актуальне посилання на serial для стабільних колбеків (без перестворення)
+    // Always-current serial ref for stable callbacks (no re-creation).
     const serialRef = useRef(serial)
     useEffect(() => { serialRef.current = serial }, [serial])
 
-    // Папка, у якій збережено цей серіал (тільки для збереженого серіалу)
     const [currentFolderName, setCurrentFolderName] = useState(null)
 
-    // Стани для діалогу
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
     const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
     const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
-    // Елемент діалогу, коли це не серіал сторінки, а обрана кнопкою копія. null — серіал сторінки
+    // Dialog item when it isn't the page's tv: the copy chosen via the button; null = the page's tv
     const [dialogItem, setDialogItem] = useState(null)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
-    const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей серіал
-    // Копії з індексу збережених: за ними чіп папки вирішує, куди вести
+    const [itemFolders, setItemFolders] = useState([])
     const savedCopies = useSelector(selectSavedCopies('tv', serial?.tmdbId))
 
-    // Куди веде чіп папки: одна копія в папці — її сторінка, кілька (дублікати) — папка з пошуком за назвою
+    // Folder chip target: one copy in the folder -> its page; several (duplicates) -> the folder filtered by
+    // title.
     const savedFolderPath = (folderName) => {
         const inFolder = savedCopies.filter((c) => c.folderName === folderName)
         return inFolder.length === 1
             ? `/user/tv/${inFolder[0].mongoId}`
             : `/folders/${encodeURIComponent(folderName)}?filter=${encodeURIComponent(serial.name)}`
     }
-    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей серіал
+    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true)
 
     const navigate = useNavigate()
 
-    // Завантаження даних серіалу з TMDB (за потреби — спочатку дані зі збереженого документа mongo)
     useEffect(() => {
         setIsLoading(true)
 
@@ -141,7 +133,6 @@ function TVPage({ isSaved = false }) {
                 .then((res) => {
                     setSerial({ ...res.data, media_type: "tv", tmdbId: res.data.id, ...savedFields })
 
-                    // Завантажуємо деталі всіх сезонів, щоб отримати оцінки серій
                     const seasonPromises = res.data.seasons
                         .filter(s => s.season_number > 0)
                         .map(s =>
@@ -205,7 +196,6 @@ function TVPage({ isSaved = false }) {
         }
     }, [id, isSaved, tmdbLanguage])
 
-    // Завантаження папок користувача
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -221,7 +211,6 @@ function TVPage({ isSaved = false }) {
         }
     }, [isGetFolders, isAuth])
 
-    // Завантаження папок, де є цей серіал
     useEffect(() => {
         const tmdbId = serial?.tmdbId
         if (isAuth && tmdbId) {
@@ -242,7 +231,6 @@ function TVPage({ isSaved = false }) {
         }
     }, [serial?.tmdbId, isAuth, isGetFolders])
 
-    // Функції для роботи з діалогом
     const handleOpenDialogAdd = () => {
         setSelectedFolder(false)
         setIsOpenDialogAdd(true)
@@ -263,11 +251,10 @@ function TVPage({ isSaved = false }) {
         setDialogItem(null)
     }
 
-    // Об'єкт папки зі списку папок сторінки (сайдбар діалогу підсвічує вибране за order)
     const folderOfCopy = (copy) => folders.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status }
 
-    // Редагування / видалення копії, обраної кнопкою на сторінці серіалу з TMDB
-    // (на сторінці копії кнопка викликає звичайні handleOpenDialogEdit / handleDeleteItem)
+    // Edit/delete of the copy chosen via the button on the TMDB tv page (on a copy page the button calls the
+    // regular handleOpenDialogEdit / handleDeleteItem).
     const handleEditCopy = async (copy) => {
         if (!copy) return handleOpenDialogEdit()
         try {
@@ -287,14 +274,13 @@ function TVPage({ isSaved = false }) {
         setIsDeleteItem(true)
     }
 
-    // На вузьких екранах опис згортаємо і розкриваємо кліком (як на сторінці фільму)
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
     const overviewRef = useRef(null)
     const [overviewExpanded, setOverviewExpanded] = useState(false)
     const [overviewOverflows, setOverviewOverflows] = useState(false)
 
-    // Чи справді опис не влазить у згорнутий вигляд — інакше кнопка "Show more" бреше.
-    // У розгорнутому стані не переобчислюємо: там scrollHeight завжди дорівнює clientHeight.
+    // Whether the overview really overflows the collapsed view, otherwise "Show more" lies. Not recomputed
+    // when expanded: scrollHeight always equals clientHeight there.
     useEffect(() => {
         if (!isSmall) {
             setOverviewOverflows(false)
@@ -306,12 +292,11 @@ function TVPage({ isSaved = false }) {
         setOverviewOverflows(el.scrollHeight > el.clientHeight + 1)
     }, [serial?.overview, isSmall, overviewExpanded])
 
-    // Скидаємо стан при переході на інший серіал
     useEffect(() => {
         setOverviewExpanded(false)
     }, [serial?.tmdbId])
 
-    // Редагування коментаря й оцінки прямо на сторінці. Решту полів шлемо як є, щоб нічого не затерти.
+    // In-place comment/rating edit. Other fields are sent as is so nothing is wiped.
     const saveFields = async (changes) => {
         try {
             const res = await instance.patch(`/tv/${serial._id}`, {
@@ -332,18 +317,16 @@ function TVPage({ isSaved = false }) {
     const handleSaveReview = (comment) => saveFields({ comment })
     const handleSaveRatingDate = ({ rating, dateAdded }) => saveFields({ rating, dateAdded })
 
-    // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
-        // Збережено іншу копію — дані сторінки не чіпаємо
+        // Another copy was saved: leave the page data alone.
         if (isSaved && !dialogItem) {
             setSerial(prev => ({ ...prev, ...updated }))
             if (updated.folderName) setCurrentFolderName(updated.folderName)
         }
-        setIsGetFolders(true) // оновити блок "Saved in" без спіннера сторінки
+        setIsGetFolders(true)
     }
 
 
-    // -- Оцінка сезонів / серій (тільки для збереженого серіалу) -- //
     const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
     const [ratingMode, setRatingMode] = useState("season")
     const [ratingTarget, setRatingTarget] = useState({ season: null, episode: null })
@@ -353,8 +336,8 @@ function TVPage({ isSaved = false }) {
     const findMongoSeason = (sNum) => serial?.seasons?.find(s => s.season === Number(sNum))
     const findMongoEpisode = (sNum, eNum) => findMongoSeason(sNum)?.episodes?.find(e => e.episode === Number(eNum))
 
-    // Швидкі O(1) карти для рендеру таблиці (перераховуються лише коли змінюються дані)
-    // Ключ "season_episode" -> mongo-серія
+    // Fast O(1) lookup maps for rendering the grid (recomputed only when data changes); key "season_episode"
+    // -> mongo episode.
     const mongoEpisodeMap = useMemo(() => {
         const map = {}
         serial?.seasons?.forEach(s => {
@@ -363,7 +346,7 @@ function TVPage({ isSaved = false }) {
         return map
     }, [serial?.seasons])
 
-    // Зсув кожного сезону (перша серія -> перша колонка) — рахуємо один раз
+    // Per-season offset (first episode -> first column), computed once.
     const seasonOffsets = useMemo(() => {
         const offsets = {}
         Object.keys(seasonDetails).forEach(sNum => {
@@ -377,7 +360,7 @@ function TVPage({ isSaved = false }) {
         const s = findMongoSeason(sNum)
         setRatingMode("season")
         setRatingTarget({ season: Number(sNum), episode: null })
-        // Нового сезону в базі ще немає -> діалог підставить сьогоднішню дату
+        // A season not in the DB yet: the dialog defaults the date to today.
         setRatingIsNew(!s)
         setRatingInitial({ rating: s?.rating, comment: s?.comment, dateAdded: s?.dateAdded })
         setRatingDialogOpen(true)
@@ -408,30 +391,27 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // -- Кількість переглянутих серій у сезоні + "переглянути всі" -- //
     const getSeasonWatchedCount = (sNum) => {
         const total = Object.keys(seasonDetails[sNum] || {}).length
         const seasonDoc = findMongoSeason(sNum)
         const watched = seasonDoc?.episodes?.filter(e => (e.watchedCount ?? 0) > 0).length ?? 0
-        // Пропущені — не «залишилось переглянути»
         const skipped = seasonDoc?.episodes?.filter(e => e.skipped).length ?? 0
         return { watched, skipped, total }
     }
 
-    // Дія масова: замість простого підтвердження відкриваємо діалог, де обирається дата перегляду
-    // (за замовчуванням сьогодні). Стан: { season, epNums, remaining } або null.
+    // Bulk action: instead of a plain confirm, open a dialog to pick the watch date (default today). State: {
+    // season, epNums, remaining } or null.
     const [markDialog, setMarkDialog] = useState(null)
     const handleMarkSeasonWatched = (sNum) => {
         const epNums = Object.keys(seasonDetails[sNum] || {}).map(Number)
         const { watched, skipped, total } = getSeasonWatchedCount(sNum)
         const remaining = Math.max(0, total - watched - skipped)
-        // Бекенд чіпає лише непереглянуті серії — якщо таких немає, робити нічого
+        // The backend only touches unwatched episodes; nothing to do if there are none.
         if (!remaining) return
 
         setMarkDialog({ season: sNum, epNums, remaining })
     }
 
-    // Підтвердження в діалозі: позначаємо серії з обраною датою (null — без дати)
     const handleConfirmMarkSeason = (dateAdded) => {
         const { season, epNums } = markDialog
         setMarkDialog(null)
@@ -446,8 +426,6 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // -- Дії над серією -- //
-    // Повне видалення серії з бази
     const handleDeleteEpisode = (sNum, eNum) => {
         instance
             .delete(`/tv/${serial._id}/season/${sNum}/episode/${eNum}`)
@@ -460,7 +438,6 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // Повне видалення сезону з бази разом з усіма його серіями
     const handleDeleteSeason = (sNum) => {
         instance
             .delete(`/tv/${serial._id}/season/${sNum}`)
@@ -473,10 +450,8 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // Пропустити серію / зняти пропуск. Пропущена серія не переглянута (watchedCount 0, без оцінки);
-    // при знятті пропуску серія лишається в базі з нулем переглядів, тобто стає непереглянутою.
-    // Коментар зберігаємо — він може пояснювати причину пропуску. Дата: пропуск її очищає,
-    // зняття пропуску ставить сьогоднішню (так само, як чекбокс у діалозі серії).
+    // Skip/unskip. A skipped episode is unwatched (watchedCount 0, no rating); unskipping keeps it with 0 views.
+    // The comment is kept; skipping clears the date, unskipping sets today.
     const handleSkipEpisode = (sNum, eNum, skip) => {
         const ep = findMongoEpisode(sNum, eNum)
         instance
@@ -496,25 +471,23 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // Одне спільне меню Edit/Skip/Delete для всіх серій (швидше за DropdownMenu на кожну клітинку)
+    // One shared Edit/Skip/Delete menu for all episodes (faster than a DropdownMenu per cell).
     const [episodeMenuAnchor, setEpisodeMenuAnchor] = useState(null)
     const [episodeMenuTarget, setEpisodeMenuTarget] = useState({ season: null, episode: null })
 
-    // Стабільний колбек (не перестворюється при зміні serial) -> EpisodeCell не ре-рендериться через нього.
-    // serial читаємо з ref, тому залежностей немає.
+    // Stable callback (not re-created when serial changes) so EpisodeCell doesn't re-render because of it;
+    // serial is read from a ref.
     const handleEpisodeCellClick = useCallback((e, sNum, eNum) => {
         const current = serialRef.current
         const season = current?.seasons?.find(s => s.season === Number(sNum))
         const ep = season?.episodes?.find(item => item.episode === Number(eNum))
-        // Пропущена серія теж «збережена»: клік відкриває меню Edit/Delete (щоб зняти пропуск), а не ставить перегляд
+        // A skipped episode counts as saved: a click opens Edit/Delete (to unskip) instead of adding a view.
         const isEpisodeSaved = Boolean(ep && ((ep.watchedCount ?? 0) > 0 || ep.skipped))
 
         if (isEpisodeSaved) {
-            // Серія вже переглянута -> відкриваємо меню Edit/Delete
             setEpisodeMenuAnchor(e.currentTarget)
             setEpisodeMenuTarget({ season: sNum, episode: eNum })
         } else {
-            // Серія без переглядів (0) -> тихо ставимо 1 перегляд
             instance
                 .patch(`/tv/${current._id}/season/${sNum}/episode/${eNum}`, {
                     watchedCount: 1,
@@ -534,7 +507,6 @@ function TVPage({ isSaved = false }) {
     const closeEpisodeMenu = () => setEpisodeMenuAnchor(null)
 
 
-    // Функція для отримання кольору за оцінкою (шкала 0-10)
     const getRatingColor = (rating) => {
         if (!rating || rating === 0) return theme.palette.rating.empty;
         if (rating >= 9) return theme.palette.rating.awesome; // Awesome
@@ -550,18 +522,15 @@ function TVPage({ isSaved = false }) {
         return theme.palette.text.white;
     };
 
-    // Вигляд клітинки оцінки сезону (mongo). Прямокутник із "rating/100"
     const getSeasonCell = (sNum) => {
         const season = findMongoSeason(sNum);
         const rating = season?.rating ? season.rating : null; // 0-100
         if (rating == null) {
             return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, content: "-" };
         }
-        // Якщо оцінка збігається з рівнем системи — показуємо 2 букви та колір рівня
         const abbr = getRatingAbbr(rating, ratingSystem);
         const content = abbr || `${rating}`;
         const customColor = getRatingLevelColor(rating, ratingSystem);
-        // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
         const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating / 10);
         const text = useRatingSystem
             ? (customColor ? getContrastText(customColor) : theme.palette.rating.cellText)
@@ -569,9 +538,9 @@ function TVPage({ isSaved = false }) {
         return { bg, text, content };
     };
 
-    // Стан клітинки серії у вигляді ПРИМІТИВІВ (для React.memo).
+    // Episode cell state as PRIMITIVES (for React.memo): 'empty'/'checked' make EpisodeCell render the icon
+    // itself (no JSX as a prop).
     // kind: 'none' | 'empty' | 'checked' | 'rating' | 'dash'
-    //  - 'empty'/'checked' -> EpisodeCell сам рендерить іконку (щоб не передавати JSX як проп)
     const getEpisodeCellState = (sNum, eNum) => {
         const exists = Boolean(seasonDetails[sNum]?.[eNum]);
         if (!exists) {
@@ -579,14 +548,13 @@ function TVPage({ isSaved = false }) {
         }
 
         if (isSaved) {
-            // mongo: не переглянуто -> порожній чекбокс (навіть якщо є оцінка);
-            // переглянуто з оцінкою -> число; переглянуто без оцінки -> галочка
+            // mongo: not watched -> empty checkbox (even with a rating); watched with a rating -> number;
+            // without -> check.
             const ep = mongoEpisodeMap[`${sNum}_${eNum}`];
             const isWatched = (ep?.watchedCount ?? 0) > 0;
             const watched = isWatched ? ep.watchedCount : null;
             const dateAdded = ep?.dateAdded ? formatDateOnly(ep.dateAdded) : null;
 
-            // Пропущена серія: хрестик (перемагає і порожній чекбокс, і галочку)
             if (ep?.skipped) {
                 return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "skipped", content: "", active: true, watched: null, dateAdded };
             }
@@ -596,11 +564,10 @@ function TVPage({ isSaved = false }) {
             }
             const rating = ep?.rating ? ep.rating / 10 : null;
             if (rating != null) {
-                // Скорочення + колір з системи оцінок, якщо оцінка (0-100) збігається з рівнем
                 const abbr = getRatingAbbr(ep.rating, ratingSystem);
                 const content = abbr || rating.toFixed(1);
                 const customColor = getRatingLevelColor(ep.rating, ratingSystem);
-                // У кастомній системі без заданого кольору — нейтральний фон (не дефолтна шкала)
+                // Custom rating system without a color: neutral background (not the default scale).
                 const bg = useRatingSystem ? (customColor || theme.palette.rating.cell) : getRatingColor(rating);
                 const text = useRatingSystem
                     ? (customColor ? getContrastText(customColor) : theme.palette.rating.cellText)
@@ -610,7 +577,6 @@ function TVPage({ isSaved = false }) {
             return { bg: theme.palette.rating.cell, text: theme.palette.rating.cellText, kind: "checked", content: "", active: true, watched, dateAdded };
         }
 
-        // TMDB: оцінка -> число; без оцінки -> білий квадрат
         const episode = seasonDetails[sNum]?.[eNum];
         const rating = episode?.vote_average ? episode.vote_average : null;
         if (rating == null) {
@@ -619,11 +585,10 @@ function TVPage({ isSaved = false }) {
         return { bg: getRatingColor(rating), text: getTextColor(rating), kind: "rating", content: rating.toFixed(1), active: true };
     };
 
-    // Зсув сезону: якщо нумерація серій не починається з 1 (напр. перша серія 65),
-    // зсуваємо серії так, щоб перша серія опинилась у першій колонці
+    // Season offset: if numbering doesn't start at 1 (e.g. first episode 65), shift so the first episode
+    // lands in the first column.
     const getSeasonOffset = (sNum) => seasonOffsets[sNum] ?? 0;
 
-    // Тултіп для серії (TMDB): номер серії, кількість голосів, дата виходу
     const getEpisodeTooltip = (sNum, eNum) => {
         const ep = seasonDetails[sNum]?.[eNum];
         if (!ep) return "";
@@ -646,7 +611,6 @@ function TVPage({ isSaved = false }) {
         () => Object.keys(seasonDetails).sort((a, b) => a - b),
         [seasonDetails]
     );
-    // Кількість колонок з урахуванням зсуву кожного сезону
     const maxEpisodes = useMemo(
         () => Math.max(
             ...seasonNumbers.map(sNum => {
@@ -660,15 +624,14 @@ function TVPage({ isSaved = false }) {
     );
 
     // Legend Component.
-    // Легенда повторює те, чим реально пофарбована сітка:
-    //  - власні оцінки (mongo) + своя система -> рівні користувача зі скороченнями;
-    //  - усе інше (зокрема сторінка TMDB, де свої рівні не застосовуються) -> дефолтні діапазони.
+    // The legend mirrors how the grid is actually colored: own ratings + custom system -> user levels with
+    // abbreviations;
+    // everything else (incl. the TMDB page) -> default ranges.
     const Legend = () => {
         const items = useRatingSystem && isSaved
             ? ratingLevels.map((level) => ({
                 key: level.name,
                 label: level.name,
-                // Рівень без кольору малюється нейтральним — так само, як у клітинці
                 color: level.color || theme.palette.rating.cell,
                 abbr: level.abbr || level.name.slice(0, 2).toUpperCase(),
                 abbrColor: level.color ? getContrastText(level.color) : theme.palette.rating.cellText,
@@ -704,8 +667,8 @@ function TVPage({ isSaved = false }) {
         );
     };
 
-    // Таблиця серій. Мемоїзуємо, щоб зміна стану меню/діалогів НЕ перемальовувала сотні клітинок.
-    // Перераховується лише коли реально змінюються дані (seasonDetails / serial.seasons / isSaved).
+    // Episode grid. Memoized so menu/dialog state changes don't repaint hundreds of cells; recomputed only
+    // when seasonDetails / serial.seasons / isSaved change.
     const heatmapGrid = useMemo(() => (
         <Box sx={{ minWidth: "fit-content", display: "flex", flexDirection: "column", gap: 1 }}>
             {/* Column Headers (Episodes) */}
@@ -783,7 +746,7 @@ function TVPage({ isSaved = false }) {
                                             isHoverActive={true}
                                             onClick={onClick}
                                         >
-                                            {/* Пропущені серії теж враховуються: сезон «закритий», коли все переглянуто або пропущено */}
+                                            {/* Skipped count too: a season is closed when everything is watched or skipped. */}
                                             {`${wc.watched + wc.skipped}/${wc.total}`}
                                         </EpisodeCart>
                                     )}
@@ -808,7 +771,6 @@ function TVPage({ isSaved = false }) {
                                 const cell = getEpisodeCellState(sNum, eNum);
 
                                 if (isSaved) {
-                                    // Мемоїзована клітинка зі стабільним onClick -> ре-рендериться лише вона сама
                                     return (
                                         <EpisodeCell
                                             key={`${sNum}_${eNum}`}
@@ -838,7 +800,6 @@ function TVPage({ isSaved = false }) {
                                     />
                                 );
 
-                                // На сторінці TMDB показуємо тултіп з інфою про серію
                                 if (!isSaved && cell.active) {
                                     return (
                                         <Tooltip key={`${sNum}_${eNum}`} title={getEpisodeTooltip(sNum, eNum)} arrow>
@@ -856,10 +817,9 @@ function TVPage({ isSaved = false }) {
                 );
             })}
         </Box>
-        // theme обов'язково в залежностях: кольори клітинок беруться з палітри
-        // ЗНАЧЕННЯМИ (не через sx-шляхи), тож без нього після зміни теми сітка
-        // лишалася зі старими кольорами — білі клітинки в темній темі.
-        // theme стабільний (useMemo від mode в App.js), тож мемоїзація не ламається.
+        // theme must be a dependency: cell colors come from the palette as VALUES (not sx paths), so without
+        // it the grid kept old colors after a theme change (white cells in dark).
+        // theme is stable (useMemo on mode in App.js), so memoization holds.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     ), [seasonDetails, serial?.seasons, isSaved, maxEpisodes, seasonNumbers, mongoEpisodeMap, seasonOffsets, ratingSystem, theme]);
 
@@ -881,10 +841,7 @@ function TVPage({ isSaved = false }) {
         )
     }
 
-    // Постер вертикальний, backdrop горизонтальний. Картка і фон завжди беруть різні
-    // зображення (як на сторінці фільму):
-    //   телефон  — картка backdrop (горизонтальна), фон постер (вертикальний)
-    //   десктоп  — картка постер (вертикальна),     фон backdrop (горизонтальний)
+    // Poster is portrait, backdrop landscape; card and background take different images (as on the movie page).
     const posterUrl = serial.poster_path ? `${IMAGE_BASE_URL_W500}${serial.poster_path}` : null
     const backdropUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_W780}${serial.backdrop_path}` : null
     const backdropFullUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path}` : null
@@ -896,7 +853,6 @@ function TVPage({ isSaved = false }) {
             {/* Hero Section */}
             <Box sx={{
                 position: "relative",
-                // На мобільному висоту диктує вміст, на десктопі — фіксовані 400px
                 minHeight: { xs: "auto", sm: 400 },
                 borderRadius: 2,
                 overflow: "hidden",
@@ -910,7 +866,6 @@ function TVPage({ isSaved = false }) {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка дій для авторизованих користувачів. На /user/tv/:id сторінка — конкретна копія */}
                 {isAuth && (
                     <ItemFolderButton
                         tone="hero"
@@ -925,8 +880,7 @@ function TVPage({ isSaved = false }) {
                 )}
                 <Box sx={{
                     display: "flex",
-                    // Вертикально на телефоні, горизонтально від sm — інакше на 360px
-                    // постер з'їдає майже всю ширину і тексту не лишається місця
+                    // Column on phones, row from sm: at 360px the poster would eat almost all the width.
                     flexDirection: { xs: "column", sm: "row" },
                     gap: { xs: 2, sm: 3 },
                     alignItems: "center",
@@ -940,7 +894,8 @@ function TVPage({ isSaved = false }) {
                         <Card
                             sx={{
                                 position: "relative",
-                                // На телефоні — широкий кадр 16:9 на всю ширину: вертикальний постер з'їдав забагато висоти
+                                // Phones: wide 16:9 frame full width; the vertical poster took too much
+                                // height.
                                 width: { xs: "100%", sm: 170, md: 200 },
                                 height: { xs: "auto", sm: 255, md: 300 },
                                 flexShrink: 0,
@@ -956,7 +911,6 @@ function TVPage({ isSaved = false }) {
                                 })
                             }}
                         >
-                            {/* Справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік */}
                             {isSaved && <StretchedLink to={`/tv/${serial.tmdbId}`} label="Open the TV page" />}
                             <CardMedia
                                 component="img"
@@ -1015,7 +969,6 @@ function TVPage({ isSaved = false }) {
                             ))}
                         </Box>
 
-                        {/* Overview — на вузькому екрані згорнутий до 4 рядків, розкривається кліком */}
                         <Box sx={{ width: "100%" }}>
                             <Typography
                                 ref={overviewRef}
@@ -1023,7 +976,6 @@ function TVPage({ isSaved = false }) {
                                 onClick={overviewOverflows ? () => setOverviewExpanded((v) => !v) : undefined}
                                 sx={{
                                     opacity: 0.9,
-                                    // Довгий абзац читається погано по центру — завжди зліва
                                     textAlign: "left",
                                     ...(overviewOverflows && { cursor: "pointer" }),
                                     ...(isSmall && !overviewExpanded && {
@@ -1106,21 +1058,16 @@ function TVPage({ isSaved = false }) {
                 </Box>
             </Box>
 
-            {/* User review (тільки для збереженого серіалу) */}
             {isSaved && (
                 <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 3 } }}>
-                    {/* Коментар (займає всю решту місця) */}
                     <EditableValue
                         type="text"
                         value={serial.comment}
                         onSave={handleSaveReview}
-                        // На телефоні (колонка) коментар після оцінки
                         sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}
                     />
 
-                    {/* Оцінка та дати (під розмір вмісту) */}
                     <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
-                        {/* Оцінка й дата перегляду — один блок: дотик відкриває редактор для обох (EditableValue, type="ratingDate") */}
                         <EditableValue
                             type="ratingDate"
                             value={{ rating: serial.rating, dateAdded: serial.dateAdded }}
@@ -1134,12 +1081,9 @@ function TVPage({ isSaved = false }) {
             <Box>
                 <Typography variant="sectionTitle" color="text.main" sx={{ mb: 2, textAlign: "center" }}>Episode Ratings</Typography>
 
-                {/* Легенда — поза контейнером зі скролом: усередині нього вона
-                    їхала б убік разом із серіями замість того, щоб стояти
-                    по центру під заголовком */}
+                {/* Legend sits outside the scroll container: inside it, it would scroll away with the episodes instead of staying centered under the title. */}
                 <Legend />
 
-                {/* Той самий вигляд скролбара, що в команди й каст */}
                 <Box sx={{ overflowX: "auto", pb: 2, px: 1, ...scrollbarSx }}>
                     {heatmapGrid}
                 </Box>
@@ -1182,7 +1126,6 @@ function TVPage({ isSaved = false }) {
                 </Box>
             )}
 
-            {/* Діалог додавання / редагування / видалення */}
             <ItemSaveDialog
                 isOpenDialogAdd={isOpenDialogAdd}
                 isOpenDialogEdit={isOpenDialogEdit}
@@ -1192,7 +1135,7 @@ function TVPage({ isSaved = false }) {
                 setSelectedFolder={setSelectedFolder}
                 selectedItem={dialogItem || serial}
                 onSaved={handleItemSaved}
-                // Після видалення копії, на якій відкрита сторінка, повертаємось назад
+                // After deleting the copy the page is open on, go back.
                 onAfterDelete={() => { if (isSaved && !dialogItem) navigate(-1) }}
                 // sidebar props
                 folders={folders}
@@ -1200,7 +1143,6 @@ function TVPage({ isSaved = false }) {
                 setIsGetFolders={setIsGetFolders}
             />
 
-            {/* Діалог оцінки сезону / серії */}
             <SeasonEpisodeDialog
                 open={ratingDialogOpen}
                 mode={ratingMode}
@@ -1218,7 +1160,6 @@ function TVPage({ isSaved = false }) {
                 }}
             />
 
-            {/* Діалог дати для «Mark all as watched» */}
             <MarkWatchedDialog
                 open={Boolean(markDialog)}
                 title={markDialog ? `Season ${markDialog.season}` : ''}
@@ -1229,7 +1170,6 @@ function TVPage({ isSaved = false }) {
                 onConfirm={handleConfirmMarkSeason}
             />
 
-            {/* Спільне меню Edit/Delete для серій */}
             <Menu
                 anchorEl={episodeMenuAnchor}
                 open={Boolean(episodeMenuAnchor)}
@@ -1250,7 +1190,6 @@ function TVPage({ isSaved = false }) {
             >
                 {[
                     { key: 'edit', label: 'Edit', onClick: () => openEpisodeDialog(episodeMenuTarget.season, episodeMenuTarget.episode) },
-                    // Для вже пропущеної серії пункт знімає пропуск
                     (() => {
                         const isSkipped = Boolean(findMongoEpisode(episodeMenuTarget.season, episodeMenuTarget.episode)?.skipped)
                         return {

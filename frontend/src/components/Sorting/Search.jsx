@@ -26,13 +26,11 @@ function Search({ inputText, onChangeInput }) {
             label="Search"
             value={inputText}
             onChange={handleChange}
-            // 40px — рівно як кнопка сортування поруч
             size="small"
             sx={{
                 width: "100%",
                 "& .Mui-focused .MuiIconButton-root": { color: "text.main" },
                 "& .MuiOutlinedInput-notchedOutline": { borderRadius: "30px" },
-                // Прибираємо синій колір автозаповнювача
                 "& .MuiInputBase-input": {
                     "&:-webkit-autofill": {
                         WebkitBoxShadow: `0 0 0 1000px ${theme.palette.bg.second} inset`,
@@ -49,9 +47,8 @@ function Search({ inputText, onChangeInput }) {
             slotProps={{
                 input: {
                     startAdornment: (
-                        // disabled лише щоб лупа не була клікабельною; колір MUI за
-                        // замовчуванням робить сірим — повертаємо колір обводки
-                        // size="small": звичайна кнопка (48px) розпирала б поле вище 40px
+                        // disabled only so the magnifier isn't clickable; MUI greys it, so restore the outline color.
+                        // size="small": a regular button (48px) would push the field above 40px.
                         <IconButton disabled size="small" sx={{ "&.Mui-disabled": { color: "text.main" } }}>
                             <SearchIcon fontSize="small" />
                         </IconButton>

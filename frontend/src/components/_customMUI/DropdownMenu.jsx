@@ -3,20 +3,13 @@ import { Box, Menu, MenuItem, Typography, Divider, InputAdornment, useTheme } fr
 import SearchIcon from '@mui/icons-material/Search';
 import TextFieldCustom from './TextFieldCustom';
 
-/**
- * Універсальний випадаючий список.
- *
- * items: масив об'єктів:
- *   { key, label, subLabel, icon, endAdornment, selected, disabled, onClick, closeOnClick }
- *
- * renderTrigger: ({ onClick, open }) => ReactNode — елемент, що відкриває меню.
- */
+// Generic dropdown. items: { key, label, subLabel, icon, endAdornment, selected, disabled, onClick, closeOnClick };
+// renderTrigger: ({ onClick, open }) => node.
 function DropdownMenu({
     renderTrigger,
     items = [],
     searchable = false,
     searchPlaceholder = 'Search...',
-    // (item, query) => bool. За замовчуванням фільтруємо за label/subLabel
     filterItem,
     width = 200,
     paperSx = {},
@@ -39,8 +32,8 @@ function DropdownMenu({
     const handleOpen = (event) => {
         if (stopPropagation) {
             event.stopPropagation();
-            // Кнопка може стояти всередині посилання (папка в сайдбарі): без preventDefault
-            // браузер пішов би за href, а не відкрив меню
+            // The trigger may sit inside a link (sidebar folder): without preventDefault the browser would
+            // follow the href instead of opening the menu.
             event.preventDefault();
         }
         setAnchorEl(event.currentTarget);
@@ -151,11 +144,10 @@ function DropdownMenu({
                                     py: 1,
                                     px: 2,
                                     gap: 1,
-                                    // Жовтий фон -> темний текст; вибране + наведення -> темніший жовтий
                                     '&.Mui-selected': {
                                         bgcolor: 'yellow.main',
                                         color: 'yellow.contrastText',
-                                        // Вибраний пункт лишається жовтим і під «залиплим» hover на телефоні (див. theme.js)
+                                        // Selected stays yellow even under sticky touch hover (see theme.js).
                                         '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText' },
                                         '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' } },
                                     },

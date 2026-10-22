@@ -6,10 +6,9 @@ function ContainerCustom({ paddingY = false, sx = {}, children }) {
     <Container
       sx={{
         maxWidth: { xl: "min(calc(100vw - 200px))" },
-        // Бічні відступи на телефоні вдвічі менші за стандартні (8px замість 16px), щоб контенту було більше місця.
-        // sm зазначено явно (24px = стандартний гутер Container): інакше базове правило перекрило б його й на великих екранах.
+        // Side padding on phones is half the default (8px). sm is explicit (24px = Container gutter), otherwise the
+        // base rule would override it on large screens.
         px: { xs: 1, sm: 3 },
-        // xs: 1 — як бічні відступи, тож на телефоні відступ зверху дорівнює відступу до країв екрана.
         py: paddingY ? { xs: 1, sm: "clamp(16px, calc(16px + 1.8vw), 40px)" } : "auto",
         ...sx,
       }}

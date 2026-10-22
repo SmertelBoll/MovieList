@@ -20,8 +20,8 @@ export const fetchRegister = createAsyncThunk("auth/fetchRegister", async (param
   }
 });
 
-// Токен є — отже, треба дочекатись відповіді /auth/me, перш ніж вирішувати «залогінений чи ні»:
-// до цього моменту data порожня, і сторінки на мить показували б «увійдіть». Без токена чекати нема чого.
+// A token exists, so wait for /auth/me before deciding "logged in or not": until then data is empty and pages
+// would flash "log in". Without a token there's nothing to wait for.
 const hasToken = () => {
   try {
     return Boolean(window.localStorage.getItem(process.env.REACT_APP_TOKEN_KEY));

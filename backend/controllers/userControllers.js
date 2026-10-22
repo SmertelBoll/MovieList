@@ -18,7 +18,7 @@ export const registerUser = async (req, res) => {
 
     const password = req.body.password;
 
-    const salt = await bcrypt.genSalt(parseInt(bcrypt_salt)); // шифрування
+    const salt = await bcrypt.genSalt(parseInt(bcrypt_salt));
     const hash = await bcrypt.hash(password, salt);
 
     const avatar = req.body.avatar;
@@ -34,9 +34,7 @@ export const registerUser = async (req, res) => {
 
     const user = await doc.save();
 
-    // Стартові папки за статусами перегляду.
-    // Помилку тут не піднімаємо вище: користувача вже створено, а email унікальний —
-    // якби ми впали, обліковий запис лишився б, але зареєструватись повторно було б неможливо.
+    // Don't fail here: the user already exists and email is unique, so failing would block re-registration.
     try {
       await FolderModel.insertMany(
         DEFAULT_FOLDERS.map((folder) => ({ ...folder, user: user._id }))
@@ -49,9 +47,9 @@ export const registerUser = async (req, res) => {
       {
         _id: user._id,
       },
-      jwt_key, // ключ шифрування
+      jwt_key,
       {
-        expiresIn: "30d", // скільки токен буде існувати
+        expiresIn: "30d",
       }
     );
 
@@ -85,13 +83,12 @@ export const loginUser = async (req, res) => {
       {
         _id: user._id,
       },
-      jwt_key, // ключ шифрування
+      jwt_key,
       {
-        expiresIn: "30d", // скільки токен буде існувати
+        expiresIn: "30d",
       }
     );
 
-    // повертаємо дані
     res.json({
       ...user._doc,
       token,
@@ -119,8 +116,7 @@ export const getMe = async (req, res) => {
   }
 };
 
-// Видаляє кастомний тип зі списку користувача і прибирає його з усіх
-// фільмів/серіалів користувача, де він був застосований
+// Removes a tag from the user's list and from all their items.
 export const deleteCustomType = async (req, res) => {
   try {
     const userId = req.userId;
@@ -131,11 +127,9 @@ export const deleteCustomType = async (req, res) => {
       return res.status(404).json({ title: "Settings error", message: "user not found" });
     }
 
-    // Прибираємо тип зі списку користувача
     user.typeCustom = (user.typeCustom || []).filter((t) => t !== type);
     await user.save();
 
-    // Прибираємо тег з усіх елементів користувача (в елемента може бути кілька тегів)
     await Promise.all([
       MovieModel.updateMany({ user: userId, customType: type }, { $pull: { customType: type } }),
       TvModel.updateMany({ user: userId, customType: type }, { $pull: { customType: type } }),
@@ -156,7 +150,6 @@ export const updateEmail = async (req, res) => {
     const { email, password } = req.body;
     const newEmail = (email || "").trim().toLowerCase();
 
-    // Базова валідація формату
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
       return res.status(400).json({ title: "Email error", message: "invalid email address" });
     }
@@ -166,18 +159,15 @@ export const updateEmail = async (req, res) => {
       return res.status(404).json({ title: "Email error", message: "user not found" });
     }
 
-    // Перевірка пароля
     const isValidPassword = await bcrypt.compare(password || "", user.passwordHash);
     if (!isValidPassword) {
       return res.status(400).json({ title: "Email error", message: "wrong password" });
     }
 
-    // Якщо пошта не змінилась
     if (newEmail === user.email) {
       return res.status(400).json({ title: "Email error", message: "this is already your email" });
     }
 
-    // Перевірка, що пошта не зайнята іншим користувачем
     const existing = await UserModel.findOne({ email: newEmail }).exec();
     if (existing) {
       return res.status(400).json({ title: "Email error", message: "this email is already in use" });
@@ -228,7 +218,7 @@ export const updatePassword = async (req, res) => {
   }
 };
 
-// Перейменовує тег у списку користувача і в усіх його фільмах/серіалах
+// Renames a tag in the user's list and in all their items.
 export const renameCustomType = async (req, res) => {
   try {
     const userId = req.userId;
@@ -255,11 +245,9 @@ export const renameCustomType = async (req, res) => {
       return res.status(400).json({ title: "Tag error", message: "tag with this name already exists" });
     }
 
-    // Замінюємо назву, зберігаючи порядок
     user.typeCustom = types.map((t) => (t === oldName ? newName : t));
     await user.save();
 
-    // Перейменовуємо тег у всіх елементах користувача (в одному елементі лише одне входження)
     const rename = { $set: { "customType.$[tag]": newName } };
     const options = { arrayFilters: [{ tag: oldName }] };
     await Promise.all([
@@ -290,7 +278,6 @@ export const updateProfile = async (req, res) => {
       user.fullName = fullName.trim();
     }
 
-    // Зміна/видалення аватарки: прибираємо стару з Cloudinary
     if (typeof avatar === "string") {
       const newPublicId = avatarPublicId || "";
       if (user.avatarPublicId && user.avatarPublicId !== newPublicId) {
@@ -315,19 +302,18 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// Допустимі формати дат. Тримати синхронно з DATE_FORMATS у frontend/src/utils/dateFormats.js
+// Keep in sync with DATE_FORMATS in frontend/src/utils/dateFormats.js
 const ALLOWED_DATE_FORMATS = ["MM/dd/yyyy", "dd.MM.yyyy", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "yyyy.MM.dd"];
 
 export const updateSettings = async (req, res) => {
   try {
     const { themeMode, language, typeCustom, ratingSystem, colorFolderIcons, dateFormat } = req.body;
 
-    // Кожен тег — не довше 100 символів
     if (Array.isArray(typeCustom) && typeCustom.some((t) => typeof t === "string" && t.length > 100)) {
       return res.status(400).json({ title: "Tag error", message: "tag name must be at most 100 characters" });
     }
 
-    // Система оцінок: або порожня (стандартна шкала), або 2..100 блоків { name, abbr }
+    // Rating system: empty (default scale) or 2..100 blocks.
     let normalizedRatingSystem = ratingSystem;
     if (Array.isArray(ratingSystem) && ratingSystem.length > 0) {
       if (ratingSystem.length < 2 || ratingSystem.length > 100) {
@@ -339,7 +325,6 @@ export const updateSettings = async (req, res) => {
       if (ratingSystem.some((b) => typeof b.abbr === "string" && b.abbr.length > 2)) {
         return res.status(400).json({ title: "Rating system error", message: "abbreviation must be at most 2 characters" });
       }
-      // Нормалізуємо до { name, abbr, color }
       normalizedRatingSystem = ratingSystem.map((b) => ({
         name: b.name.trim(),
         abbr: (b.abbr || "").trim(),
@@ -354,9 +339,8 @@ export const updateSettings = async (req, res) => {
         language,
         typeCustom,
         ratingSystem: normalizedRatingSystem,
-        // Лише булеве значення; інакше (не передано) поле не чіпаємо
+        // Only valid values are applied; anything else leaves the field untouched.
         colorFolderIcons: typeof colorFolderIcons === "boolean" ? colorFolderIcons : undefined,
-        // Лише зі списку допустимих; інакше (не передано / невідомий) поле не чіпаємо
         dateFormat: ALLOWED_DATE_FORMATS.includes(dateFormat) ? dateFormat : undefined,
       },
       { new: true }

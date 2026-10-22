@@ -4,22 +4,21 @@ const MovieSchema = new mongoose.Schema(
     {
         tmdbId: { type: Number, required: true },
         tmdbTitle: { type: String, required: true },
-        // Мова, якою було збережено tmdbTitle (короткий код: "en", "uk", ...).
-        // Старі документи її не мають — вважаємо їх англійськими.
+        // Language tmdbTitle was saved in ("en", "uk", ...). Older docs have none and count as English.
         language: { type: String, default: "en" },
         dateAdded: { type: Date },
         rating: { type: Number },
         comment: { type: String },
-        // Теги (кілька). Назва поля лишилась customType, але це масив рядків
+        // Tags: the field is still named customType but holds an array of strings.
         customType: { type: [String], default: [] },
         user: {
-            type: mongoose.Schema.Types.ObjectId, // бо це користучав
-            ref: "User", // з UserController
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
         },
     },
     {
-        timestamps: true, // Додає поля createdAt та updatedAt
+        timestamps: true,
     }
 );
 

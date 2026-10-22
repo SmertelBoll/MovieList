@@ -37,14 +37,14 @@ function ScrollToTopButton() {
                 sx={{
                     position: 'fixed',
                     bottom: {
-                        // Над закріпленою нижньою навігацією на телефоні (BOTTOM_NAV_HEIGHT у Footer.jsx) з запасом
+                        // Above the mobile bottom nav (BOTTOM_NAV_HEIGHT in Footer.jsx)
                         xs: 'calc(56px + 16px + env(safe-area-inset-bottom))',
                         sm: 'calc(40px + clamp(16px, calc(16px + 1.8vw), 40px))'
                     },
                     right: 20,
                     zIndex: 1000,
                     backgroundColor: theme.palette.yellow.main,
-                    // MUI на touch ставить Fab сірий фон під «залиплим» hover — тримаємо жовтий (вища специфічність)
+                    // MUI turns Fab grey under sticky touch hover; the higher specificity keeps it yellow.
                     '&.MuiFab-root': { backgroundColor: theme.palette.yellow.main },
                     color: theme.palette.text.dark,
                     '@media (hover: hover) and (pointer: fine)': { '&:hover': {

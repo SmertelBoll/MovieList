@@ -2,10 +2,9 @@ import { Box, Typography } from '@mui/material'
 import StretchedLink from '../StretchedLink'
 
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`; // базовий URL для отримання зображень
+const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`;
 
 function ActorCart({ person, role }) {
-    // Визначаємо, чи це актор чи член команди
     const isCrew = ['Director', 'Producer', 'Writer', 'Screenplay', 'Editor', 'Cinematography', 'Production Design', 'Costume Design', 'Makeup', 'Sound'].includes(role);
     const href = isCrew ? `/crew/${person.id}` : `/actor/${person.id}`;
 
@@ -26,7 +25,6 @@ function ActorCart({ person, role }) {
             } }
         }}
         >
-            {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
             <StretchedLink to={href} label={person.name} />
             <Box
                 component="img"

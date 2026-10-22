@@ -5,16 +5,9 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import DropdownMenu from '../_customMUI/DropdownMenu'
 
-/**
- * Кнопка сортування — спільна для всіх сторінок.
- *
- * categoriesSortBy: { [назва категорії]: { order: 'asc' | 'desc', ... } }
- *   order — напрямок за замовчуванням для цієї категорії. Решта полів
- *   об'єкта (напр. keys) потрібні сторінці, а не самій кнопці.
- *
- * Клік по новій категорії ставить її напрямок за замовчуванням,
- * повторний клік по вже обраній — перевертає напрямок.
- */
+// Sort button shared by all pages. categoriesSortBy: { [category]: { order: 'asc' | 'desc', ... } }, order = default
+// direction.
+// A new category sets its default direction; clicking the selected one flips it.
 function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, categoriesSortBy, width = 200 }) {
 
     const handleSelect = (categoryName) => {
@@ -35,7 +28,6 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                 key: categoryName,
                 label: categoryName,
                 selected: categoryName === nameSortBy,
-                // Стрілка лише в обраної категорії — вона ж показує напрямок
                 endAdornment: categoryName === nameSortBy ? <DirectionIcon sx={{ fontSize: 16 }} /> : null,
                 onClick: () => handleSelect(categoryName),
             }))}
@@ -61,7 +53,6 @@ function Sort({ nameSortBy, setNameSortBy, sortDirection, setSortDirection, cate
                     }}
                 >
                     <SortIcon fontSize="small" />
-                    {/* flexGrow тримає стрілку праворуч, коли кнопку розтягнуто на всю ширину */}
                     <Typography variant="body2" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
                         {nameSortBy}
                     </Typography>

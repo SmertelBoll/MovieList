@@ -1,22 +1,11 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 
-const PADDING = 4 // px: однаковий відступ повзунка з усіх боків
+const PADDING = 4
 
-// Тривалість ковзання повзунка, мс
 export const SLIDE_MS = 300
 
-/**
- * Перемикач-слайдер: кілька однакової ширини варіантів і жовтий повзунок, що ковзає під обраним.
- *
- * Для двох варіантів клік у БУДЬ-ЯКЕ місце перемикача обирає протилежний
- * (як перемикач-тумблер); для більшої кількості — клік по варіанту обирає його.
- *
- * options: [{ value, label }]; value — обраний value; onChange(value).
- * Усі варіанти однакової ширини, тож повзунок — це просто translateX на n × 100%.
- * Колір: жовтий фон → темний текст (правило сайту), решта — звичайний текст теми.
- */
-// compact — вужчі кнопки (для перемикача з іконками). option.label може бути й іконкою,
-// тоді варто задати option.ariaLabel.
+// Slider switch with a yellow thumb. Two options: a click anywhere flips to the other; more: a click picks the option.
+// compact = narrower; give icon labels an ariaLabel.
 function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
     const index = Math.max(0, options.findIndex((o) => o.value === value))
     const isToggle = options.length === 2
@@ -25,8 +14,8 @@ function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
     return (
         <Box
             role="tablist"
-            // Тумблер: клік куди завгодно (в тому числі по вже обраному боці) перемикає на інший.
-            // Клік по кнопці-варіанту сюди теж спливає, тож окремий обробник їм не потрібен.
+            // Toggle: a click anywhere (even on the selected side) flips to the other; clicks on option
+            // buttons bubble up to here.
             onClick={isToggle ? handleToggle : undefined}
             sx={{
                 cursor: 'pointer',
@@ -35,12 +24,11 @@ function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
                 gridTemplateColumns: `repeat(${options.length}, 1fr)`,
                 p: `${PADDING}px`,
                 borderRadius: 4,
-                // Доріжка помітно темніша за фон сторінки (bg.second) в обох темах — повзунок читається
+                // The track is noticeably darker than the page (bg.second) in both themes so the thumb reads.
                 bgcolor: 'bg.selected',
                 ...sx,
             }}
         >
-            {/* Повзунок: ширина одного варіанта, зсув — на індекс обраного */}
             <Box
                 aria-hidden
                 sx={{
@@ -52,8 +40,7 @@ function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
                     borderRadius: 3,
                     bgcolor: 'yellow.main',
                     transform: `translateX(${index * 100}%)`,
-                    // Плавне ковзання; will-change виносить повзунок на GPU, щоб навантаження
-                    // на сторінці (перезавантаження списку) його не гальмувало
+                    // will-change puts the thumb on the GPU so page load (list reload) doesn't stutter it.
                     transition: `transform ${SLIDE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
                     willChange: 'transform',
                 }}
@@ -67,26 +54,24 @@ function SegmentedSwitch({ options, value, onChange, sx, compact = false }) {
                         role="tab"
                         aria-selected={selected}
                         aria-label={option.ariaLabel}
-                        // Без хвилі від кліку: клік обробляє весь перемикач, а повзунок і так показує зміну
+                        // No ripple: the whole switch handles the click and the thumb already shows the
+                        // change.
                         disableRipple
                         onClick={isToggle ? undefined : () => onChange(option.value)}
                         sx={{
                             position: 'relative',
                             px: compact ? 1.5 : 3,
                             py: compact ? 0 : 1,
-                            // Іконка по центру кнопки, а висота — фіксована (compact), щоб не залежала від рядка тексту
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             ...(compact && { height: 32 }),
                             borderRadius: 3,
-                            // Над повзунком; колір міняється разом з ковзанням
                             color: selected ? 'yellow.contrastText' : 'text.main',
                             transition: `color ${SLIDE_MS}ms ease-in-out`,
                         }}
                     >
-                        {/* Текст — у Typography; іконка (не рядок) — як є: у Typography вона отримувала
-                            висоту рядка тексту й висіла нерівно */}
+                        {/* Text goes through Typography; an icon (not a string) stays as is: inside Typography it took the text line height and hung unevenly. */}
                         {typeof option.label === 'string'
                             ? <Typography variant="button" sx={{ color: 'inherit' }}>{option.label}</Typography>
                             : option.label}

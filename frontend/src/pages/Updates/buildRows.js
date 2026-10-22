@@ -1,32 +1,27 @@
-// Побудова рядків сторінки Updates із даних бекенда (що збережено) і метаданих TMDB (що існує).
-// Чисті функції без запитів — вони працюють і з кешу, і зі свіжих відповідей.
+// Builds the Updates rows from backend data (what's saved) and TMDB metadata (what exists).
+// Pure functions, no requests: they work from the cache and from fresh responses.
 
 import { FOLDER_STATUSES } from '../../utils/folderStatus'
 import { cleanCollectionName } from '../../utils/tmdb'
 
-// Колекція потрапляє в список, тільки якщо з неї щось дивилися.
-// watching тут є — саме він вводить франшизу в список.
+// A collection enters the list only if something from it was watched; watching counts: it's what introduces a
+// franchise.
 export const SEED_STATUSES = new Set([FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED])
 
-// Опрацьоване — не рахується як нове: переглянуте й кинуте.
-// watching і planned сюди НЕ входять: фільм ще не подивилися, тож він
-// лишається в лічильниках. Через це watching водночас і затравка, і "нове".
-// skipped теж опрацьоване (свідомо пропущена частина не «нова»), але на відміну від dropped
-// не ховає франшизу й не має власного режиму — hasDropped його не враховує.
+// Handled = not new: watched, dropped, skipped. watching/planned are not handled, so they stay in the counters
+// (watching is both seed and "new").
+// skipped, unlike dropped, doesn't hide the franchise (hasDropped ignores it).
 export const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.WATCHED,
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.SKIPPED,
 ])
 
-// Режими сторінки: звичайний («нові релізи») і по кинутих — та сама логіка, інший набір.
-// Якщо хоча б одна частина франшизи кинута (є в папці зі статусом dropped), увесь Timeline у звичайному режимі
-// не показується, у режимі dropped — навпаки, показані лише вони. Це правило для фільмів; серіали живуть за своєю логікою.
+// Modes: normal ("new releases") and dropped, same logic over a different set. If any part of a franchise is dropped,
+// its Timeline is hidden in normal mode and shown only in dropped mode (movies only).
 export const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped' }
 const hasDroppedPart = (parts) => parts.some((p) => p.hasDropped)
 export const isCollectionVisible = (view, parts) => (view === VIEWS.DROPPED ? hasDroppedPart(parts) : !hasDroppedPart(parts))
-
-// ---- Метадані TMDB у стислому вигляді (саме це кешується) ----
 
 export const slimTv = (data) => ({
     name: data.name,
@@ -43,17 +38,17 @@ export const slimTv = (data) => ({
         })),
 })
 
-// Вийшло вже чи ні. Без дати (ще не анонсовано) або з датою в майбутньому — не вийшло: у Timeline на сторінці фільму
-// такі частини з позначкою SOON, а на Updates їх не показуємо й не рахуємо як «нове».
-// Дати TMDB — «yyyy-MM-dd», тож порівняння рядків з сьогоднішньою датою працює без розбору.
+// Released = has a date that isn't in the future. Timeline shows other parts as SOON; Updates neither shows nor counts
+// them.
+// TMDB dates are yyyy-MM-dd, so string comparison works.
 const todayIso = () => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 export const isReleased = (date) => Boolean(date) && date <= todayIso()
 
-// Частини колекції в хронологічному порядку; без дати виходу (ще не анонсовані, TBA) — в кінець,
-// як і в Timeline на сторінці фільму. Порожній рядок за звичайним порівнянням був би першим.
+// Parts in chronological order; no release date (TBA) goes last, like the Timeline on the movie page. An
+// empty string would otherwise sort first.
 const byReleaseDate = (a, b) => {
     if (!a.releaseDate && !b.releaseDate) return 0
     if (!a.releaseDate) return 1
@@ -70,10 +65,8 @@ export const slimCollection = (data) => ({
         .sort(byReleaseDate),
 })
 
-// ---- Рядки ----
-
-// Остання активність рядка в мс — для сортування «Recently watched»: коли востаннє дивилися (за датою перегляду);
-// якщо дат перегляду немає — коли запис востаннє змінювали
+// Row activity in ms for the "Recently watched" sort: last watched (by watch date), or last modified if there
+// are no watch dates.
 const toMs = (value) => {
     const t = value ? Date.parse(value) : NaN
     return Number.isNaN(t) ? 0 : t
@@ -81,11 +74,9 @@ const toMs = (value) => {
 
 const latestDateOf = (items, dateOf) => items.reduce((max, item) => (dateOf(item) > max ? dateOf(item) : max), '')
 
-/** Серіал: entry — що збережено (бекенд), meta — що на TMDB. */
 export function buildTvRow(entry, meta) {
     const seasons = meta.seasons.filter((s) => isReleased(s.airDate)).map((s) => {
         const watchedEpisodes = entry.watched[String(s.seasonNumber)] || {}
-        // Сезон переглянутий, лише якщо переглянуті ВСІ серії
         const unwatchedCount = Math.max(0, s.episodeCount - Object.keys(watchedEpisodes).length)
         return { ...s, watchedEpisodes, unwatchedCount }
     })
@@ -105,7 +96,7 @@ export function buildTvRow(entry, meta) {
     }
 }
 
-// Підсумки серіалу — по сезонах, що показуються (спецвипуски відфільтровані), щоб «X з Y» були співмірні
+// Series totals over the shown seasons (specials are filtered out) so "X of Y" are comparable.
 function tvTotals(seasons) {
     return {
         unwatchedCount: seasons.reduce((sum, s) => sum + s.unwatchedCount, 0),
@@ -114,10 +105,8 @@ function tvTotals(seasons) {
     }
 }
 
-/**
- * Оновлення вже показаного серіалу свіжими метаданими TMDB. Що серії переглянуті, береться з рядка на екрані,
- * а не з відповіді, отриманої при завантаженні: за час фонового оновлення користувач міг щось позначити.
- */
+// Updates a shown series with fresh TMDB metadata. What's watched comes from the row on screen, not from the
+// response fetched at load: the user may have marked something during the refresh.
 export function mergeTvRow(existing, fresh) {
     const seasons = fresh.seasons.map((s) => {
         const shown = existing.seasons.find((x) => x.seasonNumber === s.seasonNumber)
@@ -127,7 +116,6 @@ export function mergeTvRow(existing, fresh) {
     return { ...existing, title: fresh.title, posterPath: fresh.posterPath, seasons, ...tvTotals(seasons) }
 }
 
-/** Колекція фільмів: meta — склад колекції на TMDB, savedByTmdbId — що з неї збережено (бекенд). */
 export function buildCollectionRow(meta, savedByTmdbId) {
     const parts = [...meta.parts].sort(byReleaseDate).map((part) => {
         const saved = savedByTmdbId.get(part.id)
@@ -136,19 +124,18 @@ export function buildCollectionRow(meta, savedByTmdbId) {
             title: part.title,
             posterPath: part.posterPath,
             releaseDate: part.releaseDate,
-            // Ще не вийшла: у рядку не показується й не рахується, але лишається в parts — її збережена копія
-            // в папці dropped, як і раніше, ховає франшизу
+            // Not released yet: not shown or counted in the row, but kept in parts: its saved copy in a
+            // dropped folder still hides the franchise.
             upcoming: !isReleased(part.releaseDate),
-            // null — не збережений; інакше статус папки
             status: saved?.status || null,
             hasDropped: Boolean(saved?.hasDropped),
             mongoId: saved?.mongoId || null,
             folderName: saved?.folderName || null,
-            // Дані збереженого документа — щоб редагування відкривалось заповненим
             saved: saved || null,
         }
     })
-    // Заплановані частини в активність не рахуються: їхня dateAdded — це дата додавання в папку, а не перегляду
+    // Planned parts don't count as activity: their dateAdded is when they were added to a folder, not
+    // watched.
     const lastActivity = Math.max(0, ...parts
         .filter((p) => p.status && p.status !== FOLDER_STATUSES.PLANNED)
         .map((p) => toMs(p.saved?.dateAdded) || toMs(p.saved?.updatedAt)))
@@ -156,14 +143,14 @@ export function buildCollectionRow(meta, savedByTmdbId) {
 }
 
 export function collectionTotals(parts) {
-    // Позаду лише переглянуте й кинуте. Те, що дивляться зараз (watching) або заплановане (planned),
-    // лишається в лічильнику — просто з іншою іконкою. Частини, що ще не вийшли, не рахуємо.
+    // Only watched/dropped lag behind. What's being watched (watching) or planned stays in the counter with a
+    // different icon. Unreleased parts aren't counted.
     const released = parts.filter((p) => !p.upcoming)
     const unwatched = released.filter((p) => !HANDLED_STATUSES.has(p.status))
     return { unwatchedCount: unwatched.length, releasedCount: released.length, latestDate: latestDateOf(unwatched, (p) => p.releaseDate) }
 }
 
-/** Оновлення показаної колекції: статуси частин беремо з екрана (див. mergeTvRow). */
+// Updates a shown collection: part statuses come from the screen (see mergeTvRow).
 export function mergeCollectionRow(existing, fresh) {
     const parts = fresh.parts.map((part) => existing.parts.find((p) => p.id === part.id) ? { ...part, ...pickState(existing.parts.find((p) => p.id === part.id)) } : part)
     return { ...existing, title: fresh.title, posterPath: fresh.posterPath, parts, ...collectionTotals(parts) }

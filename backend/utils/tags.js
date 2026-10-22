@@ -1,9 +1,8 @@
-// Теги фільму / серіалу (поле customType в моделях Movie і Tv) — масив рядків.
+// Tags of a movie/tv (the customType field) are an array of strings.
 
 const MAX_TAG_LENGTH = 100;
 
-// Масив з клієнта -> чистий масив унікальних тегів (без порожніх, надто довгих і дублікатів).
-// Не масив (undefined, null, рядок) — це порожній список.
+// Client array -> clean unique tags (no empty, too long or duplicates); a non-array means no tags.
 export const normalizeTags = (value) => {
   if (!Array.isArray(value)) return [];
   const clean = value

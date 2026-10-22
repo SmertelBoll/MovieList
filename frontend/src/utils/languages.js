@@ -1,11 +1,6 @@
-// Мови інтерфейсу та пошуку.
-//
-// `code`         — короткий код, який зберігається в налаштуваннях (redux/localStorage/профіль)
-// `tmdbLanguage` — локаль у форматі TMDB (ISO 639-1 + ISO 3166-1), яку приймає параметр `language`
-//
-// Значення tmdbLanguage звірені з ендпоінтом TMDB /configuration/primary_translations:
-// усі 22 локалі нижче є в його списку. Де TMDB пропонує кілька регіонів для однієї
-// мови (напр. pt-BR / pt-PT, ar-SA / ar-AE), обрано варіант із найбільшим покриттям перекладів.
+// UI/search languages. code is stored in settings; tmdbLanguage is the TMDB locale for the `language` param (checked
+// against /configuration/primary_translations).
+// Where TMDB has several regions for a language (pt-BR / pt-PT), the one with the most translations is used.
 export const LANGUAGES = [
     { code: 'en', name: 'English', nativeName: 'English', tmdbLanguage: 'en-US' },
     { code: 'uk', name: 'Ukrainian', nativeName: 'Українська', tmdbLanguage: 'uk-UA' },
@@ -39,8 +34,8 @@ const BY_CODE = LANGUAGES.reduce((acc, lang) => {
     return acc;
 }, {});
 
-// Короткий код -> локаль TMDB. Невідомий код відкочується на en-US,
-// щоб запит до TMDB не пішов з порожнім чи хибним параметром.
+// Short code -> TMDB locale. An unknown code falls back to en-US so the TMDB request never goes out with an
+// empty or wrong parameter.
 export const getTmdbLanguage = (code) => BY_CODE[code]?.tmdbLanguage || DEFAULT_TMDB_LANGUAGE;
 
 export const getLanguage = (code) => BY_CODE[code] || BY_CODE[DEFAULT_LANGUAGE];

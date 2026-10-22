@@ -16,8 +16,7 @@ export const getFoldersByUser = async (req, res) => {
       .select("name order image status folderElements -_id")
       .exec();
 
-    // Дістаємо customType усіх елементів користувача, щоб клієнт міг рахувати
-    // кількість за будь-яким фільтром (movie/tv + customType) без перезавантаження.
+    // Return customType of all items so the client can count by any filter without reloading.
     const [movies, tvs] = await Promise.all([
       MovieModel.find({ user: userId }).select("_id customType").exec(),
       TvModel.find({ user: userId }).select("_id customType").exec(),
@@ -59,8 +58,7 @@ export const createFolder = async (req, res) => {
     const name = req.body.name;
     const userId = req.userId;
 
-    // Усе на сайті адресується за назвою папки (/folders/:name, пошук findOne за name),
-    // тож у одного користувача назви мають бути унікальними — так само, як при перейменуванні
+    // Folders are addressed by name everywhere, so names must be unique per user.
     if (await FolderModel.exists({ name, user: userId })) {
       return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
     }
@@ -108,13 +106,10 @@ export const renameFolder = async (req, res) => {
       return res.status(400).json({ title: "Folders error", message: "the folder name must be unique" });
     }
 
-    // Оновити поле name
     currentFolder.name = newFolderName;
 
-    // Зберегти зміни
     await currentFolder.save();
 
-    // Відповідь з оновленою папкою
     res.json({
       success: true,
       results: currentFolder
@@ -131,7 +126,7 @@ export const updateFolderStatus = async (req, res) => {
   try {
     const folderName = req.params.name;
     const userId = req.userId;
-    // null дозволений — це «без статусу»
+    // null means a folder without a status
     const status = req.body.status ?? null;
 
     if (status !== null && !FOLDER_STATUS_VALUES.includes(status)) {
@@ -173,7 +168,6 @@ export const updateFolderImage = async (req, res) => {
       return res.status(404).json({ title: "Folder not found", message: "no folder found" });
     }
 
-    // Якщо була стара картинка і вона змінюється/видаляється — прибираємо її з Cloudinary
     const oldPublicId = currentFolder.imagePublicId;
     if (oldPublicId && oldPublicId !== imagePublicId) {
       await destroyImage(oldPublicId);
@@ -217,36 +211,33 @@ export const removeFolder = async (req, res) => {
       return res.status(404).json({ title: "Folder error", message: "folder not found", });
     }
 
-    // Прибираємо картинку папки з Cloudinary, якщо вона була
     await destroyImage(folder.imagePublicId);
 
     const foldersByUser = await FolderModel
       .find({ user: userId })
       .exec();
 
-    const orders = foldersByUser.map(folder => folder.order);                                 // Отримуємо масив значень order
-    const sortedOrders = [...orders].sort((a, b) => a - b);                                   // Сортуємо масив order
-    const newOrders = Array.from({ length: sortedOrders.length }, (_, index) => index);   // Створюємо новий масив без пропусків
-    const mapping = {};                                                                       // Створюємо мапу старих значень до нових
+    const orders = foldersByUser.map(folder => folder.order);
+    const sortedOrders = [...orders].sort((a, b) => a - b);
+    const newOrders = Array.from({ length: sortedOrders.length }, (_, index) => index);
+    const mapping = {};
     sortedOrders.forEach((value, index) => {
       mapping[value] = newOrders[index];
     });
 
-    // Оновлюємо order для кожного об'єкта в foldersByUser
     const updatedFolders = foldersByUser.map(folder => {
-      const folderObject = folder.toObject(); // Перетворюємо на звичайний об'єкт
+      const folderObject = folder.toObject();
       return {
         ...folderObject,
-        order: mapping[folderObject.order] // Оновлюємо значення order
+        order: mapping[folderObject.order]
       };
     });
 
-    // Зберігаємо оновлені папки у базі даних
     const updatePromises = updatedFolders.map(folder => {
       return FolderModel.updateOne({ _id: folder._id }, { order: folder.order });
     });
 
-    await Promise.all(updatePromises); // Чекаємо, поки всі оновлення завершаться
+    await Promise.all(updatePromises);
 
     res.json({
       success: true,
@@ -257,7 +248,6 @@ export const removeFolder = async (req, res) => {
   }
 };
 
-// Виділяємо логіку змінити черги у окрему функцію
 export const changeOrder = async (upOrDown, folderName, userId) => {
   try {
     const currentFolder = await FolderModel.findOne({ name: folderName, user: userId });
@@ -329,14 +319,12 @@ export const getFoldersByMovie = async (req, res) => {
     const tmdbId = req.params.tmdbId;
     const userId = req.userId;
 
-    // Шукаємо всі фільми у базі MongoDB для цього користувача (їх може бути багато, по одному на кожну папку)
     const movies = await MovieModel.find({
       tmdbId: tmdbId,
       user: userId
     });
 
     if (!movies || movies.length === 0) {
-      // Якщо фільма немає, то він і не доданий в жодну папку
       return res.json({
         success: true,
         results: []
@@ -345,7 +333,6 @@ export const getFoldersByMovie = async (req, res) => {
 
     const tmdbIds = movies.map(movie => movie._id);
 
-    // Шукаємо всі папки користувача, де в масиві folderElements є _id хоча б одного з цих фільмів
     const folders = await FolderModel.find({
       user: userId,
       "folderElements.itemId": { $in: tmdbIds }
@@ -400,24 +387,19 @@ export const getItemsFromFolder = async (req, res) => {
     const folderName = req.params.name;
     const currentUserId = req.userId;
     const filter = req.query.query || "";
-    // Розбиваємо sort_by на sortBy і sortDirection
     const sortParam = req.query.sort_by || "";
     const [sortBy, sortDirection = "desc"] = sortParam.split(".");
 
-    // Фільтр за типом (movie/tv). Може містити обидва значення через кому
     const types = (req.query.type || "").split(",").filter(Boolean);
 
-    // Фільтр за кастомними типами користувача (один або кілька через кому)
     const customTypes = (req.query.customType || "").split(",").filter(Boolean);
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
-    // Конвертуємо currentUserId в ObjectId
     const userId = new mongoose.Types.ObjectId(currentUserId);
 
-    // Базовий pipeline з об'єднанням обох колекцій
     const pipeline = [
       { $match: { name: folderName, user: userId } },
       { $unwind: { path: "$folderElements", preserveNullAndEmptyArrays: false } },
@@ -468,14 +450,13 @@ export const getItemsFromFolder = async (req, res) => {
       { $replaceRoot: { newRoot: "$item" } }
     ];
 
-    // Фільтрація за типом (тільки movie або тільки tv)
     if (types.length > 0) {
       pipeline.push({
         $match: { media_type: { $in: types } }
       });
     }
 
-    // Фільтрація за кастомними типами (об'єднання). "__none__" = без тегів (порожній customType)
+    // "__none__" matches items without tags
     if (customTypes.length > 0) {
       const NO_TAG = "__none__";
       const realTags = customTypes.filter(t => t !== NO_TAG);
@@ -483,7 +464,7 @@ export const getItemsFromFolder = async (req, res) => {
 
       const orConditions = [];
       if (realTags.length > 0) orConditions.push({ customType: { $in: realTags } });
-      // $in [null] збігається і з відсутнім полем, "" — з порожнім рядком
+      // $in [null] matches a missing field, "" an empty string
       if (includeNoTag) orConditions.push({ customType: { $size: 0 } });
 
       if (orConditions.length > 0) {
@@ -491,7 +472,6 @@ export const getItemsFromFolder = async (req, res) => {
       }
     }
 
-    // Додаємо фільтрацію
     if (filter) {
       pipeline.push({
         $match: {
@@ -500,7 +480,6 @@ export const getItemsFromFolder = async (req, res) => {
       });
     }
 
-    // Додаємо сортування
     if (sortBy) {
       const sortOrder = sortDirection === 'asc' ? 1 : -1;
       pipeline.push({
@@ -508,7 +487,6 @@ export const getItemsFromFolder = async (req, res) => {
       });
     }
 
-    // Додаємо пагінацію
     pipeline.push({
       $facet: {
         items: [
@@ -523,7 +501,6 @@ export const getItemsFromFolder = async (req, res) => {
 
     const result = await FolderModel.aggregate(pipeline).exec();
 
-    // Отримуємо результати
     const items = result[0]?.items || [];
     const totalCount = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
@@ -547,11 +524,8 @@ export const getItemsFromFolder = async (req, res) => {
   }
 };
 
-// Індекс усіх збережених елементів користувача: в яких папках лежить кожен фільм/серіал.
-// Ключ — "movie:<tmdbId>" / "tv:<tmdbId>", значення — копії (кожна копія лежить в одній папці).
-// Це легкий довідник для кнопок «додати/редагувати» на всіх сторінках: за ним видно,
-// чи збережено елемент, скільки в нього папок і який статус. Повні дані копії — окремо
-// через /movie/mongo/:id та /tv/mongo/:id.
+// Index of all saved items: which folders hold each movie/tv. Key is "movie:<tmdbId>" / "tv:<tmdbId>", value
+// is its copies (one per folder).
 export const getSavedIndex = async (req, res) => {
   try {
     const userId = req.userId;

@@ -1,11 +1,7 @@
-// Кеш відповідей TMDB для сторінки Updates (localStorage, на цьому пристрої).
-//
-// Кешуємо ЛИШЕ дані TMDB: склад сезонів серіалу, зв'язок «фільм -> колекція», склад колекції. Те, що змінює користувач
-// (що позначено переглянутим, папки, оцінки), сюди не потрапляє — воно щоразу приходить із бекенда свіжим.
-//
-// Запис: { t: час отримання, d: дані }. Він віддається одразу, навіть якщо прострочений; чи пора оновлювати,
-// вирішує isFresh(). Завершені серіали (Ended / Canceled) змінюються рідко — їх тримаємо довго, а ті, що виходять,
-// недовго, щоб нова серія з'явилась у списку.
+// TMDB response cache for the Updates page (localStorage, per device). Caches ONLY TMDB data; user data always comes
+// fresh from the backend.
+// Entries are returned even if expired; isFresh() decides on refresh. Ended/Canceled series are kept long, airing ones
+// briefly.
 
 const STORAGE_KEY = "MovieList-tmdb-cache-v1";
 const HOUR = 3600 * 1000;
@@ -14,7 +10,7 @@ const DAY = 24 * HOUR;
 const TTL = {
   tvEnded: 30 * DAY,
   tvAiring: 6 * HOUR,
-  movie: 30 * DAY, // до якої колекції належить фільм — не змінюється
+  movie: 30 * DAY,
   collection: 12 * HOUR,
 };
 
@@ -37,13 +33,13 @@ function scheduleSave() {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     } catch {
-      // Сховище переповнене або недоступне (приватний режим): кеш просто не збережеться на диск,
-      // у пам'яті він працює до перезавантаження сторінки
+      // Storage full or unavailable (private mode): the cache just isn't persisted, it still works in memory
+      // until reload
     }
   }, 500);
 }
 
-// kind: "tv" | "movie" | "collection"; lang — код мови TMDB або "all" для даних, які від мови не залежать
+// kind: "tv" | "movie" | "collection"; lang: TMDB language code, or "all" for language-independent data
 export function cacheGet(kind, lang, id) {
   return load()[lang]?.[kind]?.[id] || null;
 }

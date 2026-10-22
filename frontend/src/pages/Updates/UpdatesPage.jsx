@@ -14,7 +14,6 @@ import { fetchSavedDoc } from '../../utils/savedItems'
 import { getTags } from '../../utils/tags'
 import { NO_TAG, setViewMode } from '../../redux/slices/ConfigSlice'
 import Sort from '../../components/Sorting/Sort'
-// SLIDE_MS — тривалість анімації повзунка; дані перезавантажуємо вже після неї
 import SegmentedSwitch, { SLIDE_MS } from '../../components/SegmentedSwitch'
 import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpisodeDialog'
@@ -28,8 +27,8 @@ import {
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const TMDB = process.env.REACT_APP_URL_TMDB
 
-// TMDB не має пакетного ендпоінта, тож на кожен фільм/серіал іде свій запит.
-// Обмежуємо паралельність, щоб не впертися в ліміт і не забити мережу.
+// TMDB has no batch endpoint, so every movie/series is its own request; concurrency is capped to stay under
+// the rate limit.
 const CONCURRENCY = 10
 
 async function mapLimit(items, limit, fn) {
@@ -45,17 +44,16 @@ async function mapLimit(items, limit, fn) {
     return results
 }
 
-// order — напрямок за замовчуванням: desc дає той самий порядок, що й раніше
-// (спершу найбільше нового / найсвіжіші релізи), Title — за зростанням (A–Z).
+// order = default direction: desc gives the same order as before (most new / latest releases first), Title
+// ascending (A-Z).
 const SORT_OPTIONS = {
-    // Перший у списку й за замовчуванням: спершу те, що дивилися нещодавно
     'Recently watched': { order: 'desc' },
     'New episodes': { order: 'desc' },
     'Release date': { order: 'desc' },
     'Title': { order: 'asc' },
 }
 
-// Компаратори завжди за зростанням — напрямок перевертає сортування нижче
+// Comparators always ascend; the direction flips below.
 const SORT_COMPARATORS = {
     'Recently watched': (a, b) => (a.lastActivity || 0) - (b.lastActivity || 0),
     'New episodes': (a, b) => a.unwatchedCount - b.unwatchedCount,
@@ -68,12 +66,11 @@ function UpdatesPage() {
     const isAuth = useSelector(selectIsAuth)
     const { language, typeTMDB, customTypes, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
-    // Де лежить кожна копія (індекс збережених): потрібен, щоб після правки порахувати статус частини
+    // Where each copy lives (saved index): needed to compute a part's status after an edit
     const savedIndex = useSelector((state) => state.saved.byKey)
 
-    // switchView — що показує перемикач (міняється миттєво, повзунок їде одразу).
-    // view — режим, за яким завантажено й показано дані: наздоганяє перемикач із затримкою
-    // на час анімації, щоб важке перезавантаження списку не гальмувало слайд.
+    // switchView is what the switch shows (instant); view is the mode the data is loaded for, trailing by the animation
+    // time so the reload doesn't stall the slide.
     const [switchView, setSwitchView] = useState(VIEWS.ACTIVE)
     const [view, setView] = useState(VIEWS.ACTIVE)
     useEffect(() => {
@@ -86,13 +83,10 @@ function UpdatesPage() {
     const [nameSortBy, setNameSortBy] = useState('Recently watched')
     const [sortDirection, setSortDirection] = useState(SORT_OPTIONS['Recently watched'].order)
 
-    // Папки потрібні діалогу збереження (він показує сайдбар з вибором папки)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
-    // Діалог фільму (додати / редагувати)
     const [movieDialog, setMovieDialog] = useState(null) // { mode, item, folder }
-    // Діалог серії
     const [episodeDialog, setEpisodeDialog] = useState(null) // { row, seasonNumber, episode, initial }
 
     const tmdbGet = useCallback(async (path, params = {}) => {
@@ -111,7 +105,6 @@ function UpdatesPage() {
         }
     }, [isGetFolders, isAuth])
 
-    // Фонове оновлення даних TMDB: { done, total } поки йде, інакше null
     const [refresh, setRefresh] = useState(null)
 
     useEffect(() => {
@@ -123,23 +116,24 @@ function UpdatesPage() {
         setRefresh(null)
 
         const load = async () => {
-            // 1) Збережене користувачем (що позначено, папки, оцінки) беремо з бекенда щоразу — воно ніколи не кешується.
+            // 1) User-saved data (watched, folders, ratings) always comes fresh from the backend and is never
+            // cached.
             const { data } = await instance.get('/updates', { params: { view } })
             const { movies, tv } = data.results
             if (cancelled) return
 
-            // tmdbId -> збережений документ (для редагування та іконки статусу)
             const savedByTmdbId = new Map(movies.map((m) => [m.tmdbId, m]))
 
-            // Затравка — лише watching/watched. Якщо з франшизи нічого не дивилися (усе в planned) або її кинули (dropped),
-            // колекція не зʼявляється. У режимі dropped затравка — фільм, що лежить у кинутій папці
+            // Seed: only watching/watched. A franchise with nothing watched (all planned) or dropped doesn't
+            // appear. In dropped mode the seed is a movie in a dropped folder.
             const seeds = movies.filter((m) => (view === VIEWS.DROPPED ? m.hasDropped : SEED_STATUSES.has(m.status)))
 
-            // 2) Метадані TMDB: що є в кеші (хай і застаріле) — малюємо одразу, решту (немає / прострочено) оновимо у фоні.
+            // 2) TMDB metadata: draw from the cache at once (even stale), refresh missing/expired entries in
+            // the background.
             const isShown = (row) => row.unwatchedCount > 0 && (row.kind !== 'collection' || isCollectionVisible(view, row.parts))
             const rowsByKey = new Map()
             const tasks = []
-            const scheduledCollections = new Set() // колекція одна на кілька переглянутих частин
+            const scheduledCollections = new Set() // one collection can serve several watched parts
 
             for (const entry of tv) {
                 const cached = cacheGet('tv', tmdbLanguage, entry.tmdbId)
@@ -151,7 +145,7 @@ function UpdatesPage() {
             }
 
             for (const seed of seeds) {
-                // До якої колекції належить фільм від мови не залежить — ключ «all»
+                // A movie's collection doesn't depend on language: key "all"
                 const movieMeta = cacheGet('movie', 'all', seed.tmdbId)
                 if (!movieMeta || !isFresh('movie', movieMeta)) tasks.push({ type: 'seed', seed })
                 const collectionId = movieMeta?.d.collectionId
@@ -165,7 +159,6 @@ function UpdatesPage() {
                 if (!isFresh('collection', cachedCollection)) tasks.push({ type: 'collection', id: collectionId })
             }
 
-            // Перший показ: список зʼявляється одразу, а не після всіх запитів до TMDB
             const hadCache = rowsByKey.size > 0
             setRows([...rowsByKey.values()])
             setLoadVersion((v) => v + 1)
@@ -173,8 +166,8 @@ function UpdatesPage() {
             setIsLoading(false)
             if (!tasks.length) return
 
-            // 3) Фонове оновлення. Свіжі рядки накопичуються й зливаються в стан порціями, щоб не перемальовувати сторінку
-            // після кожного запиту. Наявні рядки оновлюються на місці (порядок не чіпаємо), нові йдуть у кінець.
+            // 3) Background refresh: rows are batched into state, existing ones update in place (order untouched), new
+            // ones go last.
             const total = tasks.length
             let done = 0
             const fresh = []
@@ -193,8 +186,8 @@ function UpdatesPage() {
                     }
                     return next
                 })
-                // Перший візит без кешу: рядки приходять по одному, тож впорядковуємо кожну порцію.
-                // З кешем порядок не чіпаємо — інакше список стрибав би просто від завершення оновлення.
+                // First visit without a cache: rows arrive one by one, so sort each batch. With a cache the
+                // order is left alone, otherwise the list would jump just because the refresh finished.
                 if (!hadCache) setLoadVersion((v) => v + 1)
             }
             const emit = (row) => {
@@ -227,7 +220,7 @@ function UpdatesPage() {
                         await fetchCollection(task.id)
                     }
                 } catch (err) {
-                    // Лишаємо те, що є в кеші: збій одного запиту не повинен ламати сторінку
+                    // Keep what's in the cache: one failed request mustn't break the page
                     console.warn(err)
                 } finally {
                     done += 1
@@ -251,9 +244,8 @@ function UpdatesPage() {
         }
     }, [isAuth, tmdbGet, view, tmdbLanguage])
 
-    // Порядок рядків фіксується лише тоді, коли список завантажено або користувач змінив сортування чи фільтр.
-    // Локальні правки (позначили серію — лічильник змінився) порядок не чіпають: інакше рядок «стрибав» би
-    // по сторінці просто від того, що в ньому стало менше нового.
+    // Row order is fixed only on load or when the user changes sort/filter; local edits leave it alone so a row doesn't
+    // jump.
     const rowsRef = useRef(rows)
     rowsRef.current = rows
     const [loadVersion, setLoadVersion] = useState(0)
@@ -263,12 +255,12 @@ function UpdatesPage() {
             .sort((a, b) => sortDirection === 'asc' ? compare(a, b) : -compare(a, b))
             .map((row) => row.key)
         return new Map(keys.map((key, index) => [key, index]))
-        // typeTMDB / customTypes — теж «клік по фільтру»: вони не впливають на порядок, але тоді список упорядковується заново
+        // typeTMDB / customTypes count as a "filter click" too: they don't affect the order, but they re-sort
+        // the list
     }, [loadVersion, nameSortBy, sortDirection, typeTMDB, customTypes]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Фільтри з шапки застосовуються до вже завантажених даних — без нових запитів
     const sortedRows = useMemo(() => {
-        // Порожній список тегів = фільтра немає. NO_TAG — елементи без тегу.
+        // Empty tag list = no filter. NO_TAG = items without a tag.
         const matchesTag = (tag) => customTypes.length === 0
             || customTypes.includes(tag)
             || (customTypes.includes(NO_TAG) && !tag)
@@ -276,8 +268,8 @@ function UpdatesPage() {
         const list = rows.filter((row) => {
             if (row.kind === 'collection') {
                 if (!typeTMDB.includes('movie')) return false
-                // Колекція підходить, якщо хоча б один збережений фільм має потрібний тег
-                // У фільму може бути кілька тегів: достатньо збігу хоча б одного; без тегів — як «без тегу»
+                // A collection matches if any saved movie has the tag; a movie can have several tags, one
+                // match is enough; no tags counts as "no tag".
                 return row.parts.some((p) => {
                     if (!p.status) return false
                     const tags = getTags(p.saved?.customType)
@@ -288,22 +280,18 @@ function UpdatesPage() {
             return (row.customTypes.length ? row.customTypes : ['']).some((tag) => matchesTag(tag))
         })
 
-        // Порядок — зі збереженого sortOrder; рядки, яких там ще немає, йдуть в кінець
         const position = (row) => sortOrder.get(row.key) ?? Number.MAX_SAFE_INTEGER
         return list.sort((a, b) => position(a) - position(b))
     }, [rows, sortOrder, typeTMDB, customTypes])
 
-    // --- ЛОКАЛЬНЕ ОНОВЛЕННЯ ---
-    // Перезавантажувати весь список після кожної дії надто дорого: це десятки
-    // запитів до TMDB і спінер на пів екрана. Тому правимо стан на місці.
+    // Reloading the whole list after every action is too expensive (dozens of TMDB requests, a spinner over
+    // half the screen), so state is patched in place.
 
-    // Рядок не прибираємо зі списку одразу, навіть якщо в ньому не лишилось нового (остання частина переглянута або
-    // колекція вже не підходить режиму): різке зникнення збиває з пантелику. З лічильником 0 він лишається,
-    // а при наступному відкритті сторінки список збирається заново за звичайними правилами й рядка вже не буде.
+    // A row isn't removed immediately even with nothing new left: abrupt disappearance is confusing. It stays with
+    // counter 0 until the next load.
     const patchMoviePart = useCallback((tmdbId, patch) => {
         setRows((prev) => prev.map((row) => {
             if (row.kind !== 'collection' || !row.parts.some((p) => p.id === tmdbId)) return row
-            // patch — обʼєкт або функція від поточної частини (коли нове значення залежить від старого)
             const parts = row.parts.map((p) => (
                 p.id === tmdbId ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p
             ))
@@ -312,7 +300,7 @@ function UpdatesPage() {
                 ...row,
                 parts,
                 releasedCount,
-                // Будь-яка правка — свіжа активність: при наступному кліку на сортування рядок підніметься нагору
+                // Any edit counts as fresh activity: on the next sort click the row moves to the top
                 lastActivity: Date.now(),
                 unwatchedCount,
                 latestDate,
@@ -320,9 +308,8 @@ function UpdatesPage() {
         }))
     }, [])
 
-    // entries: { [номерСерії]: дані }. Одна серія — окремий випадок масового
-    // позначення, тож обидва сценарії йдуть через один хелпер і один рендер.
-    // removed — номери серій (рядками), які прибрали з бази: серія знову непереглянута
+    // entries: { [episodeNumber]: data }; one episode is a special case of bulk marking. removed = episode numbers
+    // (strings) taken out of the DB.
     const patchEpisodes = useCallback((rowKey, seasonNumber, entries, removed = []) => {
         setRows((prev) => prev.map((row) => {
             if (row.key !== rowKey) return row
@@ -337,7 +324,6 @@ function UpdatesPage() {
                 }
             })
             const unwatchedCount = seasons.reduce((sum, s) => sum + s.unwatchedCount, 0)
-            // Серіал без нових серій лишається в списку до наступного відкриття сторінки (див. patchMoviePart)
             return {
                 ...row,
                 seasons,
@@ -350,20 +336,18 @@ function UpdatesPage() {
         }))
     }, [])
 
-    // --- ФІЛЬМ: плюсик (додати) і галочка (редагувати) ---
     const handleMoviePlus = useCallback((part) => {
         setMovieDialog({
             mode: 'add',
             item: { id: part.id, title: part.title, media_type: 'movie', tmdbType: 'movie' },
-            // Папку користувач обирає сам — нічого не підставляємо наперед
             folder: false,
         })
     }, [])
 
-    // copy — копія фільму, обрана кнопкою (одна папка — вона сама, кілька — вибір у вікні)
     const handleMovieCheck = useCallback(async (part, copy) => {
         try {
-            // Повні дані копії: без них форма відкрилась би порожньою і збереження затерло б оцінку й коментар
+            // Full copy data: without it the form would open empty and saving would wipe the rating and
+            // comment.
             const doc = await fetchSavedDoc('movie', copy.mongoId)
             setMovieDialog({
                 mode: 'edit',
@@ -378,8 +362,8 @@ function UpdatesPage() {
                     dateAdded: doc.dateAdded || null,
                     customType: getTags(doc.customType),
                 },
-                // Беремо повний обʼєкт папки зі списку: сайдбар підсвічує вибране
-                // за order, тож самої назви замало
+                // Take the full folder object from the list: the sidebar highlights by order, so the name
+                // alone isn't enough.
                 folder: folders.find((f) => f.name === copy.folderName) || false,
             })
         } catch (err) {
@@ -391,8 +375,8 @@ function UpdatesPage() {
     const handleMovieSaved = useCallback((updated) => {
         setMovieDialog((dialog) => {
             if (!dialog) return null
-            // Копій може бути кілька: статус частини — найсильніший серед усіх. Змінена копія
-            // тепер в обраній папці, решта лишаються як були
+            // There may be several copies: the part's status is the strongest among them; the edited copy is
+            // now in the chosen folder, the rest stay as they were.
             const editedId = updated?._id || dialog.item._id
             const others = (savedIndex[`movie:${dialog.item.id}`] || []).filter((c) => c.mongoId !== editedId)
             patchMoviePart(dialog.item.id, () => ({
@@ -411,7 +395,7 @@ function UpdatesPage() {
         })
     }, [patchMoviePart, savedIndex])
 
-    // Фільм видалено з діалогу редагування: частина лишається в списку «нових», статус — за копіями, що залишились
+    // Deleted from the edit dialog: the part stays in the "new" list, status from the remaining copies.
     const handleMovieDeleted = useCallback(() => {
         if (!movieDialog) return
         const others = (savedIndex[`movie:${movieDialog.item.id}`] || []).filter((c) => c.mongoId !== movieDialog.item._id)
@@ -424,7 +408,6 @@ function UpdatesPage() {
         }))
     }, [movieDialog, savedIndex, patchMoviePart])
 
-    // --- СЕРІЯ: позначити переглянутою або відредагувати ---
     const handleEpisodeMark = useCallback(async (row, seasonNumber, episodeNumber) => {
         const data = { dateAdded: toDateOnlyISO(new Date()), watchedCount: 1, rating: null, comment: '' }
         try {
@@ -433,16 +416,15 @@ function UpdatesPage() {
         } catch (err) { console.warn(err); alertError(err) }
     }, [patchEpisodes])
 
-    // Позначити переглянутими всі непереглянуті серії сезону одним запитом.
-    // Дія масова й скасувати її можна лише вручну по серії — тому відкриваємо діалог, де обирається
-    // дата перегляду (за замовчуванням сьогодні) і підтверджується дія. Стан: { row, seasonNumber, episodeNumbers }.
+    // Mark all unwatched episodes of a season in one request. Bulk and only reversible per episode, so a dialog asks
+    // for the watch date first.
+    // State: { row, seasonNumber, episodeNumbers }.
     const [markDialog, setMarkDialog] = useState(null)
     const handleSeasonMarkAll = useCallback((row, seasonNumber, episodeNumbers) => {
         if (!episodeNumbers.length) return
         setMarkDialog({ row, seasonNumber, episodeNumbers })
     }, [])
 
-    // Підтвердження в діалозі: позначаємо серії з обраною датою (null — без дати)
     const handleConfirmMarkAll = useCallback(async (dateAdded) => {
         if (!markDialog) return
         const { row, seasonNumber, episodeNumbers } = markDialog
@@ -477,7 +459,6 @@ function UpdatesPage() {
         } catch (err) { console.warn(err); alertError(err) }
     }, [episodeDialog, patchEpisodes])
 
-    // Видалити серію з бази (кнопка Delete в діалозі редагування): вона знову стає непереглянутою
     const handleEpisodeDelete = useCallback(async () => {
         if (!episodeDialog) return
         const { row, seasonNumber, episodeNumber } = episodeDialog
@@ -498,8 +479,8 @@ function UpdatesPage() {
         )
     }
 
-    // Спінер лише на першому завантаженні. При перемиканні режиму шапка (разом з перемикачем)
-    // лишається на місці — інакше повзунок не встиг би проїхати: компонент зникав би.
+    // Spinner only on the first load. When switching mode the header (with the switch) stays, otherwise the
+    // thumb wouldn't finish sliding: the component would vanish.
     if (isLoading && rows.length === 0 && !hasLoadedOnce) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -509,18 +490,15 @@ function UpdatesPage() {
     }
 
     const totalNew = sortedRows.reduce((sum, row) => sum + row.unwatchedCount, 0)
-    // Рядки, де нового вже не лишилось (щойно все позначили), ще на екрані, але в підсумок не входять
     const titlesWithNew = sortedRows.filter((row) => row.unwatchedCount > 0).length
-    // Ще чекаємо: або вантажиться відповідь бекенда, або порожній список, який наповнюється з TMDB (перший візит без кешу) —
-    // без цього на мить показалось би «все переглянуто»
+    // Still waiting: the backend response is loading, or an empty list is being filled from TMDB (first visit
+    // without a cache); otherwise "all watched" would flash.
     const isWaiting = isLoading || (refresh !== null && sortedRows.length === 0)
     const isDroppedView = view === VIEWS.DROPPED
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
-            {/* Шапка */}
-            {/* Три колонки: заголовок | перемикач по центру | сортування. Крайні колонки рівні (1fr),
-                тож перемикач завжди рівно посередині і не рухається, хоч би який був підсумок. */}
+            {/* Three columns: title | switch centered | sort. Side columns are equal (1fr), so the switch is always centered whatever the summary says. */}
             <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', md: '1fr auto 1fr' },
@@ -541,7 +519,6 @@ function UpdatesPage() {
                     </Typography>
                 </Box>
 
-                {/* Перемикач режиму: звичайні нові релізи / те саме по кинутих */}
                 <SegmentedSwitch
                     value={switchView}
                     onChange={setSwitchView}
@@ -552,8 +529,7 @@ function UpdatesPage() {
                     ]}
                 />
 
-                {/* Сортування лишається в розмітці завжди (просто невидиме), щоб перемикач не стрибав,
-                    коли воно зникає на час завантаження чи при порожньому списку */}
+                {/* Sort stays in the layout (just invisible) so the switch doesn't jump when it disappears during loading or on an empty list. */}
                 <Box sx={{
                     justifySelf: { xs: 'stretch', md: 'end' },
                     display: 'flex', alignItems: 'center', gap: 2,
@@ -569,7 +545,6 @@ function UpdatesPage() {
                         />
                     </Box>
 
-                    {/* Вигляд частин колекції: картки або компактні рядки — той самий перемикач і налаштування, що в General */}
                     <SegmentedSwitch
                         compact
                         value={viewMode}
@@ -582,7 +557,6 @@ function UpdatesPage() {
                 </Box>
             </Box>
 
-            {/* Список */}
             {isWaiting ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <CircularProgress color="primary" />
@@ -617,7 +591,6 @@ function UpdatesPage() {
                 </Box>
             )}
 
-            {/* Діалог фільму — той самий, що на сторінці фільму й у списках */}
             <ItemSaveDialog
                 isOpenDialogAdd={movieDialog?.mode === 'add'}
                 isOpenDialogEdit={movieDialog?.mode === 'edit'}
@@ -632,7 +605,6 @@ function UpdatesPage() {
                 setIsGetFolders={setIsGetFolders}
             />
 
-            {/* Діалог дати для «Watch all» (весь сезон) — той самий, що на сторінці серіалу */}
             <MarkWatchedDialog
                 open={Boolean(markDialog)}
                 title={markDialog ? `${markDialog.row.title} · Season ${markDialog.seasonNumber}` : ''}
@@ -643,7 +615,6 @@ function UpdatesPage() {
                 onConfirm={handleConfirmMarkAll}
             />
 
-            {/* Діалог серії — той самий, що на сторінці серіалу */}
             <SeasonEpisodeDialog
                 open={Boolean(episodeDialog)}
                 mode="episode"

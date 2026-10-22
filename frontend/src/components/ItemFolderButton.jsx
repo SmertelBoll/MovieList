@@ -9,8 +9,8 @@ import useFolderPicker from '../hooks/useFolderPicker'
 import DropdownMenu from './_customMUI/DropdownMenu'
 import FolderListTooltip from './FolderListTooltip'
 
-// Вигляд кнопки. corner — у куті постера картки, hero — у шапці сторінки фільму/серіалу.
-// Правило сайту: кнопки на постері завжди справа зверху.
+// Button look: corner = on a card poster, hero = on the movie/tv page header. Buttons on posters are always
+// top right.
 const hoverSx = {
     '@media (hover: hover) and (pointer: fine)': { '&:hover': {
         opacity: 1,
@@ -18,8 +18,8 @@ const hoverSx = {
         '& svg': { color: 'text.dark' },
     } },
 }
-// MUI на touch (:hover «залипає» після дотику) ставить IconButton прозорий фон зі специфічністю 0,2,0 — вища за звичайний sx.
-// Тому власний фон дублюємо під селектором «&.MuiIconButton-root» (та сама специфічність, але стоїть пізніше).
+// On touch MUI sets a transparent IconButton background (specificity 0,2,0) under sticky :hover,
+// so the own background is repeated under &.MuiIconButton-root.
 const TONES = {
     corner: {
         plate: { position: 'absolute', right: 5, top: 5, backgroundColor: 'text.main', '&.MuiIconButton-root': { backgroundColor: 'text.main' }, opacity: 0.8, zIndex: 1, borderRadius: 2, ...hoverSx },
@@ -31,24 +31,9 @@ const TONES = {
     },
 }
 
-/**
- * Єдина кнопка «додати в папку / редагувати збережене» для фільму чи серіалу.
- * Знає, в яких папках лежить елемент, з індексу збережених (redux `saved`).
- *
- *  - Не збережений: плюс → onAdd().
- *  - Збережений, variant="menu": меню Add / Edit / Delete.
- *  - Збережений, variant="direct": значок статусу, клік → одразу редагування.
- *
- * Якщо елемент лежить у кількох папках, перед Edit / Delete (чи кліком у direct)
- * з'являється вікно вибору папки. Одна папка — діалог відкривається одразу.
- *
- * isCopy — кнопка стоїть на конкретній копії (сторінка папки, /user/movie/:id):
- * меню є завжди, а Edit / Delete стосуються саме цієї копії (onEdit(null) / onDelete(null)),
- * вибору папки немає. Інакше onEdit / onDelete отримують обрану копію
- * { mongoId, folderName, status, image }.
- *
- * Підказка при наведенні перелічує всі папки елемента по блоках статусу.
- */
+// Add-to-folder / edit-saved button for a movie or tv (folders come from the saved index). Not saved: plus -> onAdd().
+// Saved: variant "menu" = Add/Edit/Delete menu, "direct" = edit right away. Several folders: a folder picker comes
+// first.
 function ItemFolderButton({
     mediaType,
     tmdbId,
@@ -74,8 +59,8 @@ function ItemFolderButton({
 
     const stop = (e) => { if (stopPropagation) e.stopPropagation() }
 
-    // Копія, з якою працюємо: на копії — вона сама (null), інакше обрана користувачем.
-    // undefined — користувач закрив вікно вибору, дію скасовано.
+    // The copy to act on: itself on a copy page (null), otherwise the one the user picked. undefined = picker
+    // dismissed, action cancelled.
     const resolveCopy = async (action) => {
         if (isCopy) return null
         const copy = await pickFolder({ copies, title: `${action} in which folder?`, subtitle: itemTitle, filterText: itemTitle })

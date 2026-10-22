@@ -221,7 +221,7 @@ function LoginForm() {
               login: test@gmail.com
             </DialogContentText>
             <DialogContentText variant="p" sx={{ color: "text.second" }}>
-              password: test123
+              password: 123456
             </DialogContentText>
             {/* <DialogTitle variant="p" sx={{ color: "text.main" }}>
               admin user

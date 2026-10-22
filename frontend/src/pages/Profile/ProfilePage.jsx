@@ -22,7 +22,6 @@ import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 
-// Перетворюємо файл у base64 для завантаження на /upload
 const fileToBase = (file) =>
     new Promise((resolve) => {
         const reader = new FileReader()
@@ -32,9 +31,8 @@ const fileToBase = (file) =>
 
 function ProfilePage() {
     const theme = useTheme()
-    // Введення тексту — власний діалог замість swal2-інпута
     const [promptText, textPromptDialog] = useTextPrompt()
-    // Конструктор рівнів оцінювання не влазить у вузьке вікно діалогу
+    // The rating-levels builder doesn't fit a narrow dialog
     const isFullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'))
     const dispatch = useDispatch()
     const isAuth = useSelector(selectIsAuth)
@@ -44,7 +42,7 @@ function ProfilePage() {
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
     )
-    // Варіант зі стандартною висотою — для полів із плаваючим label (інакше label з'їжджає)
+    // Standard-height variant for floating-label fields (otherwise the label sinks).
     const LabeledInputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
         [theme.palette.bg.second, theme.palette.text.main]
@@ -59,9 +57,8 @@ function ProfilePage() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
     const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
-    // Власна система оцінок
     const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
-    const [ratingBlocks, setRatingBlocks] = useState([]) // [{ id, name }] — від найвищого до найнижчого
+    const [ratingBlocks, setRatingBlocks] = useState([])
     const [savingRating, setSavingRating] = useState(false)
     const ratingSensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -77,16 +74,16 @@ function ProfilePage() {
     const userTypes = user?.typeCustom || []
     const userRatingSystem = user?.ratingSystem || []
 
-    // Фарбування іконок папок за статусом — вимкнено за замовчуванням. Міняємо одразу (оптимістично),
-    // при помилці повертаємо як було.
+    // Coloring folder icons by status is off by default. Applied immediately (optimistic), rolled back on
+    // error.
     const colorFolderIcons = Boolean(user?.colorFolderIcons)
 
-    // Формат дат на всьому сайті. Приклад із днем > 12, щоб формати dd/MM і MM/dd було видно одразу
+    // Site-wide date format. The sample has a day > 12 so dd/MM and MM/dd differ at a glance.
     const dateFormat = useSelector((state) => state.config.dateFormat)
     const sampleDate = new Date(2026, 9, 25)
     const handleChangeDateFormat = (value) => {
         dispatch(changeDateFormat(value))
-        // authData теж оновлюємо, щоб App не вважав це зміною з іншого пристрою
+        // authData is updated too so App doesn't treat this as a change from another device.
         dispatch(updateUserData({ dateFormat: value }))
     }
     const handleToggleColorFolderIcons = async (checked) => {
@@ -102,10 +99,10 @@ function ProfilePage() {
     const uidRef = useRef(0)
     const nextUid = () => `b_${uidRef.current++}`
 
-    // Значення оцінки для блока: top (індекс 0) = 100, далі рівними кроками вниз
+    // Rating value of a block: top (index 0) = 100, then equal steps down.
     const blockValue = (index, total) => Math.round(((total - index) * 100) / total)
 
-    // Локальний порядок типів для drag-and-drop (синхронізується з даними користувача)
+    // Local order of types for drag-and-drop (synced with user data).
     const [orderedTypes, setOrderedTypes] = useState(userTypes)
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -115,12 +112,10 @@ function ProfilePage() {
         setOrderedTypes(user?.typeCustom || [])
     }, [user?.typeCustom])
 
-    // Підставляємо поточне ім'я, коли дані користувача завантажились
     useEffect(() => {
         setFullName(user?.fullName || '')
     }, [user?.fullName])
 
-    // Підставляємо поточну пошту
     useEffect(() => {
         setNewEmail(user?.email || '')
     }, [user?.email])
@@ -315,7 +310,6 @@ function ProfilePage() {
         }
     }
 
-    // Зміна порядку перетягуванням
     const handleDragEnd = (event) => {
         const { active, over } = event
         if (!over || active.id === over.id) return
@@ -325,8 +319,8 @@ function ProfilePage() {
         if (oldIndex === -1 || newIndex === -1) return
 
         const reordered = arrayMove(orderedTypes, oldIndex, newIndex)
-        setOrderedTypes(reordered)   // оптимістично оновлюємо UI
-        saveTypes(reordered)         // зберігаємо новий порядок
+        setOrderedTypes(reordered)
+        saveTypes(reordered)
     }
 
     // -- RATING SYSTEM -- //
@@ -336,7 +330,7 @@ function ProfilePage() {
                 const obj = typeof lvl === 'string' ? { name: lvl, abbr: '', color: '' } : lvl
                 return { id: nextUid(), name: obj.name || '', abbr: obj.abbr || '', color: obj.color || '' }
             })
-            : [{ id: nextUid(), name: '', abbr: '', color: '' }, { id: nextUid(), name: '', abbr: '', color: '' }] // мінімум 2 блоки
+            : [{ id: nextUid(), name: '', abbr: '', color: '' }, { id: nextUid(), name: '', abbr: '', color: '' }]
         setRatingBlocks(blocks)
         setRatingDialogOpen(true)
     }
@@ -479,7 +473,8 @@ function ProfilePage() {
                             bottom: 0,
                             right: 0,
                             bgcolor: 'yellow.main',
-                            // MUI на touch скидає фон IconButton у прозорий під «залиплим» hover — тримаємо свій
+                            // MUI resets an IconButton background to transparent under sticky touch hover;
+                            // keep our own.
                             '&.MuiIconButton-root': { bgcolor: 'yellow.main' },
                             color: 'text.dark',
                             '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.dark' } },
@@ -566,7 +561,6 @@ function ProfilePage() {
                     sx={{ alignItems: 'flex-start', m: 0, gap: 1 }}
                 />
 
-                {/* Формат дат — для всіх сторінок і полів вибору дати */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                     <Box>
                         <Typography variant="body1" sx={{ color: 'text.main' }}>
@@ -617,7 +611,6 @@ function ProfilePage() {
                     </Typography>
                 </Box>
 
-                {/* Existing types — перетягуванням можна змінювати порядок */}
                 {orderedTypes.length > 0 ? (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={orderedTypes} strategy={verticalListSortingStrategy}>
@@ -731,9 +724,7 @@ function ProfilePage() {
                 </Box>
 
                 {/* Email */}
-                {/* На телефоні кнопка завжди під значенням. Через flexWrap вона
-                    переносилась лише коли текст довгий — довга пошта переносила,
-                    короткі крапки пароля лишали кнопку збоку. */}
+                {/* On phones the button always goes under the value. With flexWrap it wrapped only for long text (a long email wrapped, short password dots left the button beside it). */}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', sm: 'row' },
@@ -748,17 +739,13 @@ function ProfilePage() {
                             {user?.email}
                         </Typography>
                     </Box>
-                    {/* MainButton має вшите alignSelf: 'center' — перебиваємо, інакше
-                        кнопка стоятиме по центру, а не під значенням зліва */}
+                    {/* MainButton has a built-in alignSelf: 'center': override, otherwise the button would be centered instead of left under the value. */}
                     <MainButton onClick={handleOpenEmailDialog} sx={{ m: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
                         Change email
                     </MainButton>
                 </Box>
 
                 {/* Password */}
-                {/* На телефоні кнопка завжди під значенням. Через flexWrap вона
-                    переносилась лише коли текст довгий — довга пошта переносила,
-                    короткі крапки пароля лишали кнопку збоку. */}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', sm: 'row' },
@@ -927,7 +914,6 @@ function ProfilePage() {
                 </DialogActions>
             </Dialog>
 
-            {/* Діалог введення тексту (перейменування тегу) */}
             {textPromptDialog}
         </Box>
     )

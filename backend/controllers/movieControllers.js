@@ -29,7 +29,6 @@ export const addMovieToFolder = async (req, res) => {
     const doc = new MovieModel({
       tmdbId,
       tmdbTitle,
-      // Мова, якою користувач бачив назву в момент збереження
       language,
       dateAdded,
       rating,
@@ -73,10 +72,9 @@ export const updateMovieByMongoId = async (req, res) => {
       customType
     } = req.body;
 
-    // Оновлюємо дані
     let updatedItem = await MovieModel.findOneAndUpdate(
       { _id: mongoId, user: userId },
-      // Не передали — теги не чіпаємо; передали (в тому числі []) — замінюємо
+      // Tags: omitted = unchanged, [] = clear.
       { rating, comment, dateAdded, customType: customType === undefined ? undefined : normalizeTags(customType) },
       { new: true }
     );
@@ -85,7 +83,6 @@ export const updateMovieByMongoId = async (req, res) => {
       return res.status(404).json({ title: "Update error", message: "item not found" });
     }
 
-    // Якщо папка змінилася, тоді переносимо
     if (folderName) {
       const currentFolder = await FolderModel.findOne({
         user: userId,
@@ -94,16 +91,13 @@ export const updateMovieByMongoId = async (req, res) => {
 
 
       if (currentFolder && currentFolder.name !== folderName) {
-        // Знаходимо тип елемента в папці
         const folderElement = currentFolder.folderElements.find(el => el.itemId.toString() === mongoId);
 
-        // Видаляємо зі старої папки
         await FolderModel.updateOne(
           { _id: currentFolder._id },
           { $pull: { folderElements: { itemId: mongoId } } }
         );
 
-        // Додаємо в нову папку
         await FolderModel.findOneAndUpdate(
           { name: folderName, user: userId },
           { $push: { folderElements: { itemId: mongoId, itemModel: folderElement.itemModel } } }
@@ -130,7 +124,6 @@ export const removeMovieFromFolder = async (req, res) => {
       return res.status(400).json({ title: "Delete error", message: "insufficient data" });
     }
 
-    // Шукаємо папку і видаляємо посилання на елемент
     const folder = await FolderModel.findOneAndUpdate(
       { name: folderName, user: userId },
       { $pull: { folderElements: { itemId: mongoId } } },
@@ -141,7 +134,6 @@ export const removeMovieFromFolder = async (req, res) => {
       return res.status(404).json({ title: "Delete error", message: "folder not found" });
     }
 
-    // Видаляємо документ з відповідної колекції
     const deleteItemResult = await MovieModel.findOneAndDelete({ _id: mongoId, user: userId });
 
     res.json({
@@ -164,7 +156,6 @@ export const getMovieByMongoId = async (req, res) => {
       return res.status(404).json({ title: "Not found", message: "Item not found in your database" });
     }
 
-    // Знаходимо папку, у якій збережено цей фільм
     const folder = await FolderModel.findOne({
       user: userId,
       "folderElements.itemId": mongoId

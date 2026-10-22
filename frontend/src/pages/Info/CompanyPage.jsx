@@ -13,7 +13,7 @@ import {
 } from './heroStyles'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;         // базовий URL для отримання зображень
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function CompanyPage() {
@@ -23,21 +23,17 @@ function CompanyPage() {
     const tmdbLanguage = getTmdbLanguage(language);
 
 
-    // Дані про компанію
     const [company, setCompany] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [totalItems, setTotalItems] = useState(null)
 
-    // Дані про папки користувача
-    const [folders, setFolders] = useState([])                  // Папки
-    const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+    const [folders, setFolders] = useState([])
+    const [isGetFolders, setIsGetFolders] = useState(true)
 
 
-    // Загрузка даних про компанію
     useEffect(() => {
         setIsLoading(true)
 
-        // Спочатку отримуємо основну інформацію про компанію
         instance
             .get(`${process.env.REACT_APP_URL_TMDB}/company/${id}`, {
                 params: {
@@ -48,7 +44,6 @@ function CompanyPage() {
             .then((res) => {
                 setCompany(res.data)
 
-                // Тепер отримуємо першу сторінку фільмів компанії
                 const endpoint = `${process.env.REACT_APP_URL_TMDB}/discover`
 
                 let params = {
@@ -78,7 +73,6 @@ function CompanyPage() {
             })
     }, [id, typeTMDB, tmdbLanguage])
 
-    // Завантаження папок користувача
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -111,8 +105,6 @@ function CompanyPage() {
                     {/* Hero Section */}
                     <Box sx={{
                         ...heroSectionSx,
-                        // Саме backgroundImage, а не background: скорочений запис скинув би
-                        // backgroundSize/Position із heroSectionSx і фон з'їхав би в кут
                         backgroundImage: (theme) => [
                             `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
                             company.logo_path && `url(${IMAGE_BASE_URL_ORIGINAL}${company.logo_path})`,
@@ -230,16 +222,13 @@ function CompanyPage() {
 
                     {/* Items Section */}
                     <GeneralItemList
-                        // Бокова панель
                         folders={folders}
                         setFolders={setFolders}
                         setIsGetFolders={setIsGetFolders}
-                        // Робота з базами даних
                         dbType="tmdb"
                         urlParams={{ with_companies: id }}
                         isPreperedData={false}
                         preperedData={false}
-                        // Інформація сторінки
                         pageType="company"
                         pageTitle="Filmography"
                         isSearch={false}

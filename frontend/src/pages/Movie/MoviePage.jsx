@@ -20,12 +20,12 @@ import { fetchSavedDoc } from '../../utils/savedItems'
 import { formatDateOnly } from '../../utils/dates'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`; // базовий URL для отримання зображень
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;         // базовий URL для отримання зображень
-const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;         // горизонтальний кадр для вузьких екранів
+const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
+const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
+const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
-// Заголовок секції: на вузьких екранах h5 (1.5rem) завеликий
+// Section title: h5 (1.5rem) is too big on narrow screens
 const sectionTitleSx = { mb: 2, color: "text.main" }
 
 function MoviePage({ isSaved = false }) {
@@ -36,36 +36,33 @@ function MoviePage({ isSaved = false }) {
     const [movie, setMovie] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Папка, у якій збережено цей фільм (тільки для збереженого фільму)
     const [currentFolderName, setCurrentFolderName] = useState(null)
 
-    // Стани для діалогу
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false)
     const [isOpenDialogEdit, setIsOpenDialogEdit] = useState(false)
     const [isDeleteItem, setIsDeleteItem] = useState(false)
     const [selectedFolder, setSelectedFolder] = useState(false)
-    // Елемент діалогу, коли це не фільм сторінки: частина Timeline або обрана копія. null — фільм сторінки
+    // Dialog item when it isn't the page's movie: a Timeline part or the chosen copy; null = the page's movie
     const [dialogItem, setDialogItem] = useState(null)
     const [folders, setFolders] = useState([])
     const [isGetFolders, setIsGetFolders] = useState(true)
 
-    const [itemFolders, setItemFolders] = useState([]) // Папки, де є цей фільм
-    // Копії з індексу збережених: за ними чіп папки вирішує, куди вести
+    const [itemFolders, setItemFolders] = useState([])
+    // Copies from the saved index: the folder chip uses them to decide where to link.
     const savedCopies = useSelector(selectSavedCopies('movie', movie?.tmdbId))
 
-    // Куди веде чіп папки: одна копія в папці — її сторінка, кілька (дублікати) — папка з пошуком за назвою
+    // Folder chip target: one copy in the folder -> its page; several (duplicates) -> the folder filtered by
+    // title.
     const savedFolderPath = (folderName) => {
         const inFolder = savedCopies.filter((c) => c.folderName === folderName)
         return inFolder.length === 1
             ? `/user/movie/${inFolder[0].mongoId}`
             : `/folders/${encodeURIComponent(folderName)}?filter=${encodeURIComponent(movie.title)}`
     }
-    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true) // Завантаження папок, де є цей фільм
+    const [isLoadingItemFolders, setIsLoadingItemFolders] = useState(true)
 
-    // Колекція TMDB (франшиза) — усі частини цього фільму
     const [collection, setCollection] = useState(null)
 
-    // На вузьких екранах опис згортаємо і розкриваємо кліком
     const theme = useTheme()
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
     const overviewRef = useRef(null)
@@ -74,7 +71,6 @@ function MoviePage({ isSaved = false }) {
 
     const navigate = useNavigate()
 
-    // Завантаження даних фільму з TMDB (за потреби — спочатку дані зі збереженого документа mongo)
     useEffect(() => {
         setIsLoading(true)
 
@@ -124,7 +120,6 @@ function MoviePage({ isSaved = false }) {
         }
     }, [id, isSaved, tmdbLanguage])
 
-    // Завантаження папок користувача
     useEffect(() => {
         if (isGetFolders && isAuth) {
             instance
@@ -140,7 +135,6 @@ function MoviePage({ isSaved = false }) {
         }
     }, [isGetFolders, isAuth])
 
-    // Завантаження папок, де є цей фільм
     useEffect(() => {
         const tmdbId = movie?.tmdbId
         if (isAuth && tmdbId) {
@@ -161,8 +155,8 @@ function MoviePage({ isSaved = false }) {
         }
     }, [movie?.tmdbId, isAuth, isGetFolders])
 
-    // Завантаження колекції: belongs_to_collection приходить разом з /movie/{id},
-    // але самі частини лежать в окремому ендпоінті /collection/{id}
+    // belongs_to_collection comes with /movie/{id}, but the parts live in a separate /collection/{id}
+    // endpoint.
     useEffect(() => {
         const collectionId = movie?.belongs_to_collection?.id
         if (!collectionId) {
@@ -182,17 +176,17 @@ function MoviePage({ isSaved = false }) {
                 if (!cancelled) setCollection(res.data)
             })
             .catch((err) => {
-                // Колекція — необов'язковий блок, тому не показуємо алерт користувачу
+                // The collection block is optional, so no alert on failure.
                 console.warn(err)
                 if (!cancelled) setCollection(null)
             })
 
         return () => { cancelled = true }
-        // tmdbLanguage — інакше при зміні мови назви частин лишились би старими:
-        // id колекції не змінюється, тож без цієї залежності запит не повторився б
+        // tmdbLanguage dependency: the collection id doesn't change, so without it part titles would stay in
+        // the old language.
     }, [movie?.belongs_to_collection?.id, tmdbLanguage])
 
-    // Частини колекції в хронологічному порядку; без дати виходу — в кінець
+    // Parts in chronological order; no release date -> last
     const timelineParts = useMemo(() => {
         if (!collection?.parts) return []
         return [...collection.parts].sort((a, b) => {
@@ -205,8 +199,8 @@ function MoviePage({ isSaved = false }) {
         })
     }, [collection])
 
-    // Чи справді опис не влазить у згорнутий вигляд — інакше кнопка "Show more" бреше.
-    // У розгорнутому стані не переобчислюємо: там scrollHeight завжди дорівнює clientHeight.
+    // Whether the overview really overflows the collapsed view, otherwise "Show more" lies. Not recomputed
+    // when expanded: scrollHeight always equals clientHeight there.
     useEffect(() => {
         if (!isSmall) {
             setOverviewOverflows(false)
@@ -218,15 +212,13 @@ function MoviePage({ isSaved = false }) {
         setOverviewOverflows(el.scrollHeight > el.clientHeight + 1)
     }, [movie?.overview, isSmall, overviewExpanded])
 
-    // Скидаємо стан при переході на інший фільм
     useEffect(() => {
         setOverviewExpanded(false)
     }, [movie?.tmdbId])
 
-    // Суфікс у назві колекції локалізований, тож чистимо спільним хелпером
+    // The collection name suffix is localized, so clean it with the shared helper.
     const franchiseName = cleanCollectionName(collection?.name)
 
-    // Функції для роботи з діалогом
     const handleOpenDialogAdd = () => {
         setSelectedFolder(false)
         setIsOpenDialogAdd(true)
@@ -247,11 +239,11 @@ function MoviePage({ isSaved = false }) {
         setDialogItem(null)
     }
 
-    // Об'єкт папки зі списку папок сторінки (сайдбар діалогу підсвічує вибране за order)
+    // Folder object from the page's folder list (the dialog sidebar highlights by order).
     const folderOfCopy = (copy) => folders.find((f) => f.name === copy.folderName) || { name: copy.folderName, status: copy.status }
 
-    // Редагування / видалення копії, обраної кнопкою на сторінці фільму з TMDB
-    // (на сторінці копії кнопка викликає звичайні handleOpenDialogEdit / handleDeleteItem)
+    // Edit/delete of the copy chosen via the button on the TMDB movie page (on a copy page the button calls
+    // the regular handleOpenDialogEdit / handleDeleteItem).
     const handleEditCopy = async (copy) => {
         if (!copy) return handleOpenDialogEdit()
         try {
@@ -271,8 +263,8 @@ function MoviePage({ isSaved = false }) {
         setIsDeleteItem(true)
     }
 
-    // Timeline: додати частину франшизи / редагувати збережену. Діалог той самий, що й для фільму сторінки,
-    // тільки з іншим елементом.
+    // Timeline: add a franchise part / edit a saved one. Same dialog as for the page's movie, just a
+    // different item.
     const partItem = (part) => ({ id: part.id, title: part.title, media_type: 'movie' })
     const handleTimelineAdd = (part) => {
         setDialogItem(partItem(part))
@@ -291,7 +283,7 @@ function MoviePage({ isSaved = false }) {
         }
     }
 
-    // Редагування коментаря й оцінки прямо на сторінці. Решту полів шлемо як є, щоб нічого не затерти.
+    // In-place comment/rating edit. Other fields are sent as is so nothing is wiped.
     const saveFields = async (changes) => {
         try {
             const res = await instance.patch(`/movie/${movie._id}`, {
@@ -312,14 +304,13 @@ function MoviePage({ isSaved = false }) {
     const handleSaveReview = (comment) => saveFields({ comment })
     const handleSaveRatingDate = ({ rating, dateAdded }) => saveFields({ rating, dateAdded })
 
-    // Оновлюємо дані одразу на фронті після збереження (без перезавантаження сторінки)
     const handleItemSaved = (updated) => {
-        // Збережено інший елемент (частина Timeline, чужа копія) — дані сторінки не чіпаємо
+        // Another item was saved (a Timeline part, someone else's copy): leave the page data alone.
         if (isSaved && !dialogItem) {
             setMovie(prev => ({ ...prev, ...updated }))
             if (updated.folderName) setCurrentFolderName(updated.folderName)
         }
-        setIsGetFolders(true) // оновити блок "Saved in" без спіннера сторінки
+        setIsGetFolders(true)
     }
 
 
@@ -341,10 +332,8 @@ function MoviePage({ isSaved = false }) {
         )
     }
 
-    // Постер вертикальний, backdrop горизонтальний. Картка і фон завжди беруть різні
-    // зображення, щоб на жодній ширині не дублювалось одне й те саме:
-    //   телефон  — картка backdrop (горизонтальна), фон постер (вертикальний)
-    //   десктоп  — картка постер (вертикальна),     фон backdrop (горизонтальний)
+    // Poster is portrait, backdrop landscape; card and background take different images: phone card = backdrop,
+    // background = poster; desktop the reverse.
     const posterUrl = movie.poster_path ? `${IMAGE_BASE_URL_W500}${movie.poster_path}` : null
     const backdropUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_W780}${movie.backdrop_path}` : null
     const backdropFullUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${movie.backdrop_path}` : null
@@ -359,7 +348,6 @@ function MoviePage({ isSaved = false }) {
             {/* Hero Section */}
             <Box sx={{
                 position: "relative",
-                // На мобільному висоту диктує вміст, на десктопі — фіксовані 400px
                 minHeight: { xs: "auto", sm: 400 },
                 borderRadius: 2,
                 overflow: "hidden",
@@ -373,7 +361,6 @@ function MoviePage({ isSaved = false }) {
                 alignItems: "center",
                 justifyContent: "center"
             }}>
-                {/* Кнопка дій для авторизованих користувачів. На /user/movie/:id сторінка — конкретна копія */}
                 {isAuth && (
                     <ItemFolderButton
                         tone="hero"
@@ -388,8 +375,7 @@ function MoviePage({ isSaved = false }) {
                 )}
                 <Box sx={{
                     display: "flex",
-                    // Вертикально на телефоні, горизонтально від sm — інакше на 360px
-                    // постер з'їдає майже всю ширину і тексту не лишається місця
+                    // Column on phones, row from sm: at 360px the poster would eat almost all the width.
                     flexDirection: { xs: "column", sm: "row" },
                     gap: { xs: 2, sm: 3 },
                     alignItems: "center",
@@ -403,8 +389,8 @@ function MoviePage({ isSaved = false }) {
                         <Card
                             sx={{
                                 position: "relative",
-                                // На телефоні — широкий кадр 16:9 на всю ширину:
-                                // вертикальний постер з'їдав забагато висоти
+                                // Phones: wide 16:9 frame full width; the vertical poster took too much
+                                // height.
                                 width: { xs: "100%", sm: 170, md: 200 },
                                 height: { xs: "auto", sm: 255, md: 300 },
                                 flexShrink: 0,
@@ -420,7 +406,6 @@ function MoviePage({ isSaved = false }) {
                                 })
                             }}
                         >
-                            {/* Справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік */}
                             {isSaved && <StretchedLink to={`/movie/${movie.tmdbId}`} label="Open the movie page" />}
                             <CardMedia
                                 component="img"
@@ -488,7 +473,6 @@ function MoviePage({ isSaved = false }) {
                             ))}
                         </Box>
 
-                        {/* Overview — на вузькому екрані згорнутий до 4 рядків, розкривається кліком */}
                         <Box sx={{ width: "100%" }}>
                             <Typography
                                 ref={overviewRef}
@@ -496,7 +480,6 @@ function MoviePage({ isSaved = false }) {
                                 onClick={overviewOverflows ? () => setOverviewExpanded((v) => !v) : undefined}
                                 sx={{
                                     opacity: 0.9,
-                                    // Довгий абзац читається погано по центру — завжди зліва
                                     textAlign: "left",
                                     ...(overviewOverflows && { cursor: "pointer" }),
                                     ...(isSmall && !overviewExpanded && {
@@ -592,21 +575,16 @@ function MoviePage({ isSaved = false }) {
                 </Box>
             </Box>
 
-            {/* User review (тільки для збереженого фільму) */}
             {isSaved && (
                 <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 3 } }}>
-                    {/* Коментар (займає всю решту місця) */}
                     <EditableValue
                         type="text"
                         value={movie.comment}
                         onSave={handleSaveReview}
-                        // На телефоні (колонка) коментар після оцінки
                         sx={{ order: { xs: 2, sm: 1 }, flex: 1, minWidth: 0, borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}
                     />
 
-                    {/* Оцінка та дати (під розмір вмісту) */}
                     <Box bgcolor="bg.second" sx={{ order: { xs: 1, sm: 2 }, flex: "0 0 auto", borderRadius: 2, p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 1 }}>
-                        {/* Оцінка й дата перегляду — один блок: дотик відкриває редактор для обох (EditableValue, type="ratingDate") */}
                         <EditableValue
                             type="ratingDate"
                             value={{ rating: movie.rating, dateAdded: movie.dateAdded }}
@@ -616,7 +594,6 @@ function MoviePage({ isSaved = false }) {
                 </Box>
             )}
 
-            {/* Timeline Section — частини франшизи (тільки якщо їх більше однієї) */}
             {timelineParts.length > 1 && (
                 <Box>
                     <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: 2, flexWrap: "wrap" }}>
@@ -712,7 +689,6 @@ function MoviePage({ isSaved = false }) {
                 </Box>
             )}
 
-            {/* Діалог додавання / редагування / видалення */}
             <ItemSaveDialog
                 isOpenDialogAdd={isOpenDialogAdd}
                 isOpenDialogEdit={isOpenDialogEdit}
@@ -722,7 +698,7 @@ function MoviePage({ isSaved = false }) {
                 setSelectedFolder={setSelectedFolder}
                 selectedItem={dialogItem || movie}
                 onSaved={handleItemSaved}
-                // Після видалення копії, на якій відкрита сторінка, повертаємось назад
+                // After deleting the copy the page is open on, go back.
                 onAfterDelete={() => { if (isSaved && !dialogItem) navigate(-1) }}
                 // sidebar props
                 folders={folders}

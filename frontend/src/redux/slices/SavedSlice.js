@@ -1,10 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "../../axios";
 
-// Індекс збережених елементів: де лежить кожен фільм/серіал.
+// Saved-items index: where each movie/tv lives (one copy per folder, so several copies = several folders). Full copy
+// data is fetched by mongoId when needed.
 // byKey: { "movie:<tmdbId>": [{ mongoId, folderName, status, image }], "tv:<tmdbId>": [...] }
-// Кожна копія лежить в одній папці, тож кілька копій = кілька папок.
-// Повні дані копії (оцінка, коментар...) тут не тримаємо — їх тягнемо за mongoId, коли треба.
 
 export const savedKey = (mediaType, tmdbId) => `${mediaType}:${tmdbId}`;
 
@@ -29,11 +28,11 @@ const savedSlice = createSlice({
       state.byKey = action.payload;
       state.isLoaded = true;
     });
-    // Помилку не показуємо: індекс допоміжний, без нього кнопки просто працюють як для незбереженого
+    // No error shown: the index is auxiliary, without it the buttons just behave as for an unsaved item.
   },
 });
 
-// Один і той самий порожній масив — щоб useSelector не перерендерював компоненти без причини
+// One shared empty array so useSelector doesn't re-render components for no reason.
 const EMPTY = [];
 export const selectSavedCopies = (mediaType, tmdbId) => (state) =>
   state.saved.byKey[savedKey(mediaType, tmdbId)] || EMPTY;

@@ -17,25 +17,20 @@ import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeF
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode, deleteTvSeason } from "./controllers/tvControllers.js";
 
-// підключаємось до бази даних
 const mongoConnection = process.env.MONGO_CONNECTION;
 mongoose
   .connect(mongoConnection)
-  // перевіряємо підключення
   .then(() => {
     console.log("DB ok");
   })
-  // якщо помилка
   .catch((err) => {
     console.log("DB error", err);
   });
 
-// Створюємо програму
 const app = express();
 
 const storage = multer.diskStorage({
   destination: (req, file, callBack) => {
-    // помилки, куди загружати
     callBack(null, "uploads");
   },
   filename: (req, file, callBack) => {
@@ -44,14 +39,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Настройки
-// app.use(express.json()); // дозволяє читати json
 app.use(express.json({ limit: "50mb" }));
-app.use(compression()); // gzip: відповідь /updates без нього — сотні КБ, що на мобільній мережі відчутно
+app.use(compression()); // gzip: /updates is hundreds of KB, noticeable on mobile.
 app.use(cors());
-app.use("/uploads", express.static("uploads")); // щоб діставати статичні файли з папки (в гугл наприклад)
+app.use("/uploads", express.static("uploads"));
 
-// Запроси
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
@@ -66,8 +58,8 @@ app.patch("/auth/password", checkAuth, updatePassword);
 app.patch("/auth/types/:type", checkAuth, renameCustomType);
 app.delete("/auth/types/:type", checkAuth, deleteCustomType);
 
-// Фронтенд шле картинку як base64 у JSON ({ image: "data:..." }), тому multer не потрібен.
-// Без checkAuth, бо завантаження аватара відбувається ще до реєстрації/логіну.
+// The frontend sends images as base64 JSON, so multer isn't needed.
+// No checkAuth: avatar upload happens before registration/login.
 app.post("/upload", uploadFile);
 
 app.get("/movie/mongo/:mongoId", checkAuth, getMovieByMongoId)
@@ -92,7 +84,6 @@ app.get("/folders/movie/:tmdbId", checkAuth, getFoldersByMovie)
 app.get("/folders/tv/:tmdbId", checkAuth, getFoldersByTV)
 
 app.get("/updates", checkAuth, getUpdates);
-// Індекс усіх збережених фільмів/серіалів: де кожен лежить (кнопки, підказки, вибір папки)
 app.get("/items/saved", checkAuth, getSavedIndex);
 
 app.get("/folders", checkAuth, getFoldersByUser);
@@ -106,7 +97,6 @@ app.delete("/folders/:name", checkAuth, removeFolder);
 
 
 
-// на якому хості запускаємо, функція що робити якщо помилка
 app.listen(4444, (err) => {
   if (err) {
     console.log("server error");

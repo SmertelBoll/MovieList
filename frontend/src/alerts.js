@@ -2,9 +2,8 @@ import Swal from "sweetalert2";
 import "./styles/swal.css";
 import palette from "./theme/palette";
 
-// swal2 рендериться поза деревом React, тож useTheme тут недоступний.
-// Читаємо режим із того самого ключа localStorage, що й ConfigSlice,
-// і беремо кольори з тієї ж палітри — щоб вікна не лишалися світлими в темній темі.
+// swal2 renders outside React, so no useTheme: read the mode from the same localStorage key as ConfigSlice, colors from
+// the same palette.
 const getColors = () => {
   const mode = window.localStorage.getItem("MovieList-mode") || "light";
   const p = palette(mode);
@@ -43,9 +42,7 @@ export const alertSuccess = (title) => {
   });
 };
 
-// Введення тексту навмисно НЕ через swal2 — для цього є useTextPrompt
-// (components/_customMUI/useTextPrompt.jsx). Тут лишаються тільки повідомлення
-// та підтвердження.
+// Text input intentionally isn't swal2 (see useTextPrompt); only messages and confirmations stay here.
 
 export const alertConfirm = (title, funcIfTrue) => {
   const { confirmButtonColor, cancelButtonColor } = getColors();

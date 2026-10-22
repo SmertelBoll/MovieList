@@ -29,7 +29,6 @@ export const addTvToFolder = async (req, res) => {
     const doc = new TvModel({
       tmdbId,
       tmdbTitle,
-      // Мова, якою користувач бачив назву в момент збереження
       language,
       dateAdded,
       rating,
@@ -73,10 +72,9 @@ export const updateTvByMongoId = async (req, res) => {
       customType
     } = req.body;
 
-    // Оновлюємо дані
     let updatedItem = await TvModel.findOneAndUpdate(
       { _id: mongoId, user: userId },
-      // Не передали — теги не чіпаємо; передали (в тому числі []) — замінюємо
+      // Tags: omitted = unchanged, [] = clear.
       { rating, comment, dateAdded, customType: customType === undefined ? undefined : normalizeTags(customType) },
       { new: true }
     );
@@ -85,7 +83,6 @@ export const updateTvByMongoId = async (req, res) => {
       return res.status(404).json({ title: "Update error", message: "item not found" });
     }
 
-    // Якщо папка змінилася, тоді переносимо
     if (folderName) {
       const currentFolder = await FolderModel.findOne({
         user: userId,
@@ -94,16 +91,13 @@ export const updateTvByMongoId = async (req, res) => {
 
 
       if (currentFolder && currentFolder.name !== folderName) {
-        // Знаходимо тип елемента в папці
         const folderElement = currentFolder.folderElements.find(el => el.itemId.toString() === mongoId);
 
-        // Видаляємо зі старої папки
         await FolderModel.updateOne(
           { _id: currentFolder._id },
           { $pull: { folderElements: { itemId: mongoId } } }
         );
 
-        // Додаємо в нову папку
         await FolderModel.findOneAndUpdate(
           { name: folderName, user: userId },
           { $push: { folderElements: { itemId: mongoId, itemModel: folderElement.itemModel } } }
@@ -132,7 +126,6 @@ export const removeTvFromFolder = async (req, res) => {
       return res.status(400).json({ title: "Delete error", message: "insufficient data" });
     }
 
-    // Шукаємо папку і видаляємо посилання на елемент
     const folder = await FolderModel.findOneAndUpdate(
       { name: folderName, user: userId },
       { $pull: { folderElements: { itemId: mongoId } } },
@@ -143,7 +136,6 @@ export const removeTvFromFolder = async (req, res) => {
       return res.status(404).json({ title: "Delete error", message: "folder not found" });
     }
 
-    // Видаляємо документ з відповідної колекції
     const deleteItemResult = await TvModel.findOneAndDelete({ _id: mongoId, user: userId });
 
     res.json({
@@ -155,7 +147,6 @@ export const removeTvFromFolder = async (req, res) => {
   }
 };
 
-// Оцінка / коментар / дата перегляду для сезону
 export const updateTvSeason = async (req, res) => {
   try {
     const userId = req.userId;
@@ -190,7 +181,6 @@ export const updateTvSeason = async (req, res) => {
   }
 };
 
-// Оцінка / коментар / дата перегляду / кількість переглядів для серії
 export const updateTvEpisode = async (req, res) => {
   try {
     const userId = req.userId;
@@ -221,7 +211,7 @@ export const updateTvEpisode = async (req, res) => {
     episodeDoc.comment = comment;
     episodeDoc.dateAdded = dateAdded;
     episodeDoc.watchedCount = watchedCount;
-    // Не передали — не чіпаємо (швидке «переглянуто» не повинно скидати пропуск)
+    // Omitted = unchanged (a quick "watched" must not reset the skipped flag).
     if (typeof skipped === "boolean") episodeDoc.skipped = skipped;
 
     await tv.save();
@@ -236,7 +226,6 @@ export const updateTvEpisode = async (req, res) => {
   }
 };
 
-// Повністю видалити серію (об'єкт серії) із сезону
 export const deleteTvEpisode = async (req, res) => {
   try {
     const userId = req.userId;
@@ -266,7 +255,7 @@ export const deleteTvEpisode = async (req, res) => {
   }
 };
 
-// Видалити сезон з бази разом з усіма його серіями (оцінка, коментар, дата сезону й дані по серіях)
+// Deletes the season together with its episodes.
 export const deleteTvSeason = async (req, res) => {
   try {
     const userId = req.userId;
@@ -291,8 +280,8 @@ export const deleteTvSeason = async (req, res) => {
   }
 };
 
-// Позначити всі (передані) серії сезону як переглянуті (watchedCount = 1),
-// не чіпаючи серії, які вже мають перегляди / оцінку
+// Marks the given episodes watched (watchedCount = 1); episodes that already have views or a rating are
+// untouched.
 export const markSeasonEpisodesWatched = async (req, res) => {
   try {
     const userId = req.userId;
@@ -311,7 +300,7 @@ export const markSeasonEpisodesWatched = async (req, res) => {
       seasonDoc = tv.seasons[tv.seasons.length - 1];
     }
 
-    // Дата перегляду для позначених серій: передали (null = без дати) — беремо її, не передали — сьогодні
+    // dateAdded: null = no date, omitted = today.
     const parsed = dateAdded ? new Date(dateAdded) : null;
     const hasDate = Object.prototype.hasOwnProperty.call(req.body, "dateAdded");
     const watchDate = hasDate ? (parsed && !Number.isNaN(parsed.getTime()) ? parsed : null) : new Date();
@@ -322,7 +311,7 @@ export const markSeasonEpisodesWatched = async (req, res) => {
       if (!episodeDoc) {
         seasonDoc.episodes.push({ episode: epNum, watchedCount: 1, dateAdded: watchDate });
       } else if (!episodeDoc.skipped && !(episodeDoc.watchedCount > 0)) {
-        // Пропущені серії не чіпаємо: «переглянуто все» не скасовує пропуск
+        // Skipped episodes stay skipped when marking everything watched.
         episodeDoc.watchedCount = 1;
         if (!episodeDoc.dateAdded) episodeDoc.dateAdded = watchDate;
       }
@@ -351,7 +340,6 @@ export const getTvByMongoId = async (req, res) => {
       return res.status(404).json({ title: "Not found", message: "Item not found in your database" });
     }
 
-    // Знаходимо папку, у якій збережено цей серіал
     const folder = await FolderModel.findOne({
       user: userId,
       "folderElements.itemId": mongoId

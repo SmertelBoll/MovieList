@@ -21,30 +21,29 @@ const IMG_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`
 const IMG_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 const poster = (path) => (path ? IMG_W185 + path : IMG_DEFAULT)
-// TMDB віддає дати вже як yyyy-mm-dd, а dateAdded — ISO-рядок
+// TMDB dates are already yyyy-mm-dd, while dateAdded is an ISO string
 const asDate = (value) => formatDateOnly(value) || '—'
 
-/** Один рядок списку: колекція фільмів або серіал. Клік розкриває деталі. */
+// One list row: a movie collection or a series. A click expands details.
 function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
-    // viewMode — спільний із General: картки або компактні рядки
     const { language, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
 
-    // Постер у рядку відкриває серіал, а для колекції — її ПЕРШУ частину (за датою виходу).
-    // Що саме відкриється (TMDB / збережена / вибір папки) вирішує SavedItemOpener.
-    // Частини, що ще не вийшли (SOON у Timeline), на Updates не показуємо
+    // The row poster opens the series, or for a collection its FIRST part (by release date).
+    // SavedItemOpener decides what opens (TMDB / saved / folder picker).
+    // Parts not released yet (SOON in Timeline) aren't shown on Updates
     const visibleParts = row.kind === 'collection' ? row.parts.filter((p) => !p.upcoming) : []
     const targetPart = row.kind === 'collection' ? visibleParts[0] || row.parts[0] : null
 
     const [open, setOpen] = useState(false)
-    // Множина, а не одне значення: сезони розкриваються незалежно один від одного
+    // A set, not one value: seasons expand independently.
     const [openSeasons, setOpenSeasons] = useState(() => new Set())
     const [episodesBySeason, setEpisodesBySeason] = useState({})
     const [loadingSeason, setLoadingSeason] = useState(null)
 
     const canEditEpisodes = row.kind === 'tv' && Boolean(row.mongoId)
 
-    // Серії тягнемо лише коли сезон реально розкрили; вже підвантажені не качаємо вдруге
+    // Episodes are fetched only when a season is actually expanded; loaded ones aren't fetched twice.
     const loadSeasonEpisodes = async (seasonNumber) => {
         if (episodesBySeason[seasonNumber]) return
         try {
@@ -72,10 +71,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         if (!wasOpen) await loadSeasonEpisodes(seasonNumber)
     }
 
-    // Кожного разу, коли серіал розкривають, відкриваємо один сезон — той, де є найменша
-    // непереглянута серія (найнижчий номер сезону з непереглянутими). Пропущені серії не рахуються
-    // непереглянутими. Сезони, які були відкриті раніше, при цьому згортаємо: стан щоразу «свіжий»,
-    // і він враховує серії, відмічені з минулого разу.
+    // Expanding a series opens the season with the lowest-numbered unwatched episode (skipped don't count); other
+    // seasons collapse so the state is fresh.
     const handleRowToggle = () => {
         const willOpen = !open
         setOpen(willOpen)
@@ -89,9 +86,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         }
     }
 
-    // Номери непереглянутих серій сезону.
-    // Якщо серії вже підвантажені — беремо їхні справжні номери (вони не завжди
-    // йдуть підряд від 1); якщо сезон ще не розкривали — рахуємо 1..episodeCount.
+    // Numbers of a season's unwatched episodes: the real numbers if episodes are loaded (not always 1..N),
+    // otherwise 1..episodeCount.
     const unwatchedNumbers = (season) => {
         const loaded = episodesBySeason[season.seasonNumber]
         const all = loaded
@@ -108,9 +104,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
 
     return (
-        // Card — щоб фон збігався з картками фільмів (background.paper)
+        // Card, so the background matches the movie cards (background.paper)
         <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            {/* Рядок */}
             <Box
                 onClick={handleRowToggle}
                 sx={{
@@ -122,8 +117,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                         color: 'yellow.contrastText',
                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
                         '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                        // Лічильник теж жовтий, тож на жовтому рядку зливався б.
-                        // Темніший жовтий — той самий прийом, що для "вибране + наведення"
+                        // The counter is yellow too and would blend into a yellow row: darker yellow, same
+                        // trick as selected + hover.
                         '& .MuiChip-root': {
                             bgcolor: 'yellow.contrastText',
                             color: 'yellow.main',
@@ -131,7 +126,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     } },
                 }}
             >
-                {/* Клік по постеру відкриває фільм/серіал за єдиною логікою (див. SavedItemOpener) */}
                 <SavedItemOpener
                     mediaType={row.kind === 'tv' ? 'tv' : 'movie'}
                     tmdbId={row.kind === 'tv' ? row.id : targetPart?.id}
@@ -160,7 +154,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     size="small"
                     label={row.unwatchedCount}
                     sx={{
-                        // Нового не лишилось — лічильник приглушений (рядок зникне при наступному відкритті сторінки)
+                        // Nothing new left: muted counter (the row disappears on the next visit)
                         bgcolor: isCaughtUp ? 'action.selected' : 'yellow.main',
                         color: isCaughtUp ? 'text.secondary' : 'yellow.contrastText',
                         fontWeight: 700,
@@ -180,7 +174,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
             <Collapse in={open} unmountOnExit>
                 <Box sx={{ px: { xs: 1, sm: 2 }, pb: 2, pt: 1 }}>
                     {row.kind === 'collection' ? (
-                        // --- Частини колекції: компактні рядки (режим «list», як у General) або картки ---
                         viewMode === 'list' ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                 {visibleParts.map((part) => (
@@ -188,10 +181,10 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                         key={part.id}
                                         sx={{
                                             position: 'relative',
-                                            // Переглянуте / кинуте / пропущене — сірий увесь рядок (у картках сіріє постер)
+                                            // Watched / dropped / skipped: the whole row goes grey (on cards
+                                            // only the poster does)
                                             ...(isDimmedStatus(part.status) && DIMMED_POSTER_SX),
                                             display: 'flex', alignItems: 'center', gap: 2,
-                                            // Праворуч місце під кнопку (як у ItemRow)
                                             pl: 1, pr: 7.5, py: 0.5,
                                             borderRadius: 2,
                                             border: '1px solid', borderColor: 'divider',
@@ -229,7 +222,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                             tmdbId={part.id}
                                             itemTitle={part.title}
                                             stopPropagation
-                                            // Кнопка по центру висоти рядка, а не в куті
                                             sx={{ top: '50%', right: 12, transform: 'translateY(-50%)' }}
                                             onAdd={() => onMoviePlus(part)}
                                             onEdit={(copy) => onMovieCheck(part, copy)}
@@ -248,7 +240,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                     key={part.id}
                                     sx={{
                                         display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0,
-                                        // Підйом при наведенні — як у карток фільмів у списках
                                         transition: 'transform 0.2s ease-in-out',
                                         '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
@@ -263,7 +254,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                             transition: 'box-shadow 0.2s ease-in-out',
                                         }}
                                     >
-                                        {/* Та сама логіка, що й у постера рядка: TMDB / збережена / вибір папки */}
                                         <SavedItemOpener mediaType="movie" tmdbId={part.id} title={part.title} sx={{ display: 'block' }}>
                                             <Box
                                                 component="img"
@@ -272,15 +262,11 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 loading="lazy"
                                                 sx={{
                                                     width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block',
-                                                    // Приглушуємо тільки переглянуте й кинуте —
-                                                    // те, що дивляться зараз, лишається яскравим
                                                     ...(isDimmedStatus(part.status) && DIMMED_POSTER_SX),
                                                 }}
                                             />
                                         </SavedItemOpener>
 
-                                        {/* Плюс (додати) або значок статусу (редагувати). Підказка — усі папки фільму;
-                                            кілька папок — перед редагуванням з'являється вибір папки */}
                                         <ItemFolderButton
                                             variant="direct"
                                             mediaType="movie"
@@ -306,7 +292,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                         </Box>
                         )
                     ) : (
-                        // --- Сезони серіалу ---
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             {!canEditEpisodes && (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -342,8 +327,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 ? <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
                                                 : <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
 
-                                            {/* На телефоні лічильник іде окремим рядком під назвою:
-                                                в один рядок з кнопкою "Watch all" він ламав назву сезону */}
+                                            {/* On phones the counter goes on its own line under the title: next to the Watch all button it broke the season name. */}
                                             <Box sx={{
                                                 flexGrow: 1, minWidth: 0, display: 'flex',
                                                 flexDirection: { xs: 'column', sm: 'row' },
@@ -360,11 +344,11 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 </Typography>
                                             </Box>
 
-                                            {/* Позначити весь сезон одним кліком */}
                                             {canEditEpisodes && season.unwatchedCount > 0 && (
                                                 <Box
                                                     onClick={(e) => {
-                                                        // Інакше клік ще й розгорне/згорне сезон
+                                                        // Otherwise the click would also expand/collapse the
+                                                        // season
                                                         e.stopPropagation()
                                                         onSeasonMarkAll(season.seasonNumber, unwatchedNumbers(season))
                                                     }}
@@ -401,7 +385,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 {(episodesBySeason[season.seasonNumber] || []).map((episode) => {
                                                     const saved = season.watchedEpisodes[String(episode.episode_number)]
                                                     const watched = Boolean(saved)
-                                                    // Клік по переглянутій серії відкриває редагування
                                                     const clickable = watched && canEditEpisodes
                                                     return (
                                                         <Box
@@ -423,7 +406,6 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                 }),
                                                             }}
                                                         >
-                                                            {/* Пропущена серія — хрестик, переглянута — галочка */}
                                                             {saved?.skipped
                                                                 ? <CancelIcon fontSize="small" sx={{ color: 'status.skipped' }} />
                                                                 : watched
@@ -435,9 +417,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                             </Typography>
 
                                                             {watched ? (
-                                                                // Дата перегляду, а не виходу
                                                                 <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                                                                    {/* Без дати перегляду — текст, а не прочерк */}
                                                                     {saved.skipped ? 'Skipped' : (formatDateOnly(saved.dateAdded) || 'No date')}
                                                                 </Typography>
                                                             ) : canEditEpisodes ? (

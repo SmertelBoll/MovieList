@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Box, Divider, Popover } from '@mui/material'
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 
-// Насичена, але світла палітра: яскравість кожного кольору тримається вище 0.6,
-// тож getContrastText завжди дає темний текст (читабельно на сітці оцінок)
+// Saturated but light palette: every color's brightness stays above 0.6, so getContrastText always gives dark
+// text (readable on the rating grid).
 const PALETTE = [
     '#ff7b6b', '#ff7eb0', '#c58af0', '#8fa0f5', '#6db8f5', '#4fd1e3',
     '#43ceb9', '#7ed48a', '#c3e34f', '#ffd240', '#ffb040', '#ff9166',
@@ -18,7 +18,6 @@ function ColorSwatchPicker({ color, onChange }) {
 
     return (
         <>
-            {/* Поточний колір / "?" — клік відкриває пікер */}
             <Box
                 onClick={(e) => setAnchorEl(e.currentTarget)}
                 title="Pick color"
@@ -74,7 +73,7 @@ function ColorSwatchPicker({ color, onChange }) {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1.5,
-                        // Стилі для react-colorful (бібліотека жорстко задає 200x200)
+                        // Styles for react-colorful (the library hard-codes 200x200)
                         '& .react-colorful': { width: '100%', height: 168 },
                         '& .react-colorful__saturation': {
                             borderRadius: '10px',
@@ -86,10 +85,8 @@ function ColorSwatchPicker({ color, onChange }) {
                         '& .react-colorful__hue .react-colorful__pointer': { width: 16, height: 16 },
                     }}
                 >
-                    {/* Градієнтний пікер (плавне перетягування мишкою) */}
                     <HexColorPicker color={current} onChange={onChange} />
 
-                    {/* Поле для коду кольору */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box
                             sx={{
@@ -131,7 +128,6 @@ function ColorSwatchPicker({ color, onChange }) {
 
                     <Divider sx={{ mx: -1.75 }} />
 
-                    {/* Швидкі кольори */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.75 }}>
                         {PALETTE.map((c) => (
                             <Box

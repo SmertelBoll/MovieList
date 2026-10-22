@@ -38,9 +38,8 @@ function App() {
   const authData = useSelector((state) => state.auth.data);
   const isChecking = useSelector((state) => state.auth.isChecking);
 
-  // Підтягуємо тему та мову з профілю користувача (сервер — джерело істини після входу)
-  // Робимо це один раз на користувача, а не при кожній зміні authData: інакше будь-яке оновлення
-  // профілю (напр. галочка в налаштуваннях) повертало б тему й мову до старих значень із authData.
+  // Sync theme and language from the profile once per user (the server is the source of truth after login),
+  // not on every authData change: any profile update would otherwise reset them to stale values.
   const syncedUserId = useRef(null);
   useEffect(() => {
     if (!authData) { syncedUserId.current = null; return; }
@@ -50,8 +49,8 @@ function App() {
     if (authData.language) dispatch(setLanguage(authData.language));
   }, [authData, dispatch]);
 
-  // Індекс збережених елементів: де лежить кожен фільм/серіал. Завантажуємо після входу
-  // і оновлюємо після кожної зміни папок/елементів (axios шле подію).
+  // Saved-items index: where each movie/tv lives. Loaded after login, refreshed on every folder/item change
+  // (axios fires an event).
   const isAuth = Boolean(authData);
   useEffect(() => {
     if (!isAuth) {
@@ -60,7 +59,7 @@ function App() {
     }
     dispatch(fetchSaved());
 
-    // Кілька запитів поспіль (напр. перенос + оновлення) збираємо в одне оновлення
+    // Batch several requests in a row (e.g. move + update) into one refresh.
     let timer = null;
     const onChanged = () => {
       clearTimeout(timer);
@@ -75,9 +74,8 @@ function App() {
 
   const { mode, dateFormat } = useSelector((state) => state.config);
 
-  // Формат дат: сервер — джерело істини після входу. Якщо він відрізняється від локально збереженого
-  // (інший пристрій), застосовуємо його й перемонтовуємо сторінки — вони вже могли показати дати
-  // у старому форматі. Зміна формату з профілю сюди не потрапляє: там authData оновлюється разом зі store.
+  // Date format: the server wins after login; if it differs (another device), apply it and remount pages.
+  // A change from the profile doesn't reach here: authData is updated together with the store.
   const [remountKey, setRemountKey] = useState(0);
   useEffect(() => {
     const serverFormat = authData?.dateFormat;
@@ -94,12 +92,11 @@ function App() {
         <Header
           mode={mode}
         />
-        {/* Відступ = реальна висота фіксованої шапки (її публікує Header).
-            80px — лише запасне значення до першого виміру. */}
+        {/* Offset = real height of the fixed header (published by Header); 80px is a fallback until measured. */}
         <main style={{ flex: "1 1 auto", backgroundColor: theme.palette.bg.main, paddingTop: "var(--header-height, 80px)" }}>
           <ContainerCustom paddingY bgcolor="bg.main">
             {isChecking ? (
-              // Чекаємо відповідь про вхід, щоб сторінки не блимали «увійдіть» при оновленні
+              // Wait for the auth check so pages don't flash "log in" on reload.
               <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
                 <CircularProgress color="primary" />
               </Box>

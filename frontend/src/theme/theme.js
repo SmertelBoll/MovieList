@@ -13,20 +13,15 @@ export const getTheme = (mode) =>
       ...createTheme({}).shadows.map((shadow, i) => (i === 0 ? "4px 4px 24px rgba(0, 0, 0, 0.25)" : shadow)),
     ],
     breakpoints,
-    // Наскільки картка піднімається при наведенні. Одне значення на весь сайт —
-    // до цього по коду було розкидано -2px, -3px і -4px. Береться зі шкали
-    // відступів, тож без хардкоду: spacing(1) = 8px.
+    // How far a card lifts on hover: one value for the whole site (it used to be scattered -2px/-3px/-4px).
+    // From the spacing scale: spacing(1) = 8px.
     hoverLift: `translateY(-${spacing(1)})`,
     zIndex: {
-      modal: 1000, // Знижуємо для Dialog
+      modal: 1000,
     },
     components: {
-      // Загальне правило сайту: жовтий фон -> темний текст та іконки.
-      // Вибране + наведення -> темніший жовтий (щоб було видно різницю).
-      // Іконки MUI успадковують color, тож стрілки й галочки темніють самі.
-      // Чекбокс за замовчуванням фарбується в primary (жовтий) — на світлому
-      // тлі форми його не видно. Ведемо від text.main: темний у світлій темі,
-      // світлий у темній, тож контраст є завжди.
+      // Site-wide rule: yellow background -> dark text and icons; selected + hover -> darker yellow.
+      // Checkbox defaults to primary (yellow), invisible on light forms: drive it from text.main.
       MuiCheckbox: {
         styleOverrides: {
           root: ({ theme }) => ({
@@ -37,8 +32,8 @@ export const getTheme = (mode) =>
           }),
         },
       },
-      // Календар вибору дати. Без цього він малюється дефолтними стилями MUI:
-      // світла підкладка в темній темі й жовтий акцент зі світлим текстом.
+      // Date picker calendar. Without this it uses MUI defaults: a light backdrop in dark theme and a yellow
+      // accent with light text.
       MuiPickersPopper: {
         styleOverrides: {
           paper: ({ theme }) => ({
@@ -50,11 +45,10 @@ export const getTheme = (mode) =>
           }),
         },
       },
-      // Кнопки Cancel / OK у вікні вибору дати (на телефоні календар відкривається модально).
-      // За замовчуванням вони кольору primary — жовтий текст на білому не читається.
-      // Текст — звичайний колір теми, а на наведенні/фокусі — жовтий фон з темним текстом (правило сайту).
-      // Панель дій — це DialogActions із класом MuiPickersLayout-actionBar, а не слот теми, тому
-      // стилізуємо її вкладеним селектором із root (ключ actionBar у styleOverrides не існує).
+      // Date picker Cancel / OK default to primary: yellow text on white is unreadable. Theme text color; yellow
+      // background + dark text on hover/focus.
+      // The action bar is a DialogActions (class MuiPickersLayout-actionBar), not a theme slot: styled via a nested
+      // selector from root.
       MuiPickersLayout: {
         styleOverrides: {
           root: ({ theme }) => ({
@@ -64,7 +58,7 @@ export const getTheme = (mode) =>
                 backgroundColor: theme.palette.yellow.main,
                 color: theme.palette.yellow.contrastText,
               },
-              // hover лише на пристроях з курсором — на телефоні він «залипає» після дотику
+              // Hover only on devices with a cursor: it sticks after a touch on phones
               "@media (hover: hover) and (pointer: fine)": {
                 "&:hover": {
                   backgroundColor: theme.palette.yellow.main,
@@ -138,9 +132,8 @@ export const getTheme = (mode) =>
             "&.Mui-selected": {
               backgroundColor: theme.palette.yellow.main,
               color: theme.palette.yellow.contrastText,
-              // На touch-пристрої після дотику елемент лишається :hover, і MUI для «.Mui-selected:hover» ставить
-              // блідий фон (@media (hover: none)) зі специфічністю вищою за звичайне «.Mui-selected» —
-              // вибраний пункт ставав блідим. Тут той самий селектор, але з жовтим.
+              // After a touch the item stays :hover and MUI's ".Mui-selected:hover" (@media (hover: none)) paints it
+              // pale with higher specificity; same selector here, in yellow.
               "&:hover": {
                 backgroundColor: theme.palette.yellow.main,
                 color: theme.palette.yellow.contrastText,
@@ -161,8 +154,8 @@ export const getTheme = (mode) =>
       },
       MuiTypography: {
         defaultProps: {
-          // Кастомні варіанти без цієї мапи рендеряться як <span> —
-          // заголовки втратили б і семантику, і блокову поведінку
+          // Custom variants without this map render as <span>: headings would lose both semantics and block
+          // behavior.
           variantMapping: {
             heroTitle: "h1",
             sectionTitle: "h2",

@@ -10,14 +10,11 @@ import { getItemHref } from '../../utils/itemLinks'
 const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`
 
-// Однакові колонки в усіх рядках, щоб дата й оцінка стояли рівно одна під одною:
-// постер | назва + підпис | дата | оцінка. Праворуч лишається місце під кнопку.
+// Same columns in every row so date and rating line up: poster | title + subtitle | date | rating. Room on
+// the right for the button.
 const COLUMNS = { xs: '36px minmax(0, 1fr)', md: '36px minmax(0, 1fr) 100px 96px' }
 
-/**
- * Компактний рядок елемента — альтернатива картці (ItemCart) для режиму «таблиця».
- * Ті самі пропси й поведінка, що в ItemCart: посилання на весь рядок, кнопка додати/редагувати.
- */
+// Compact row: the list-view alternative to ItemCart, same props and behavior.
 function ItemRow({
     item,
     dbType,
@@ -47,7 +44,6 @@ function ItemRow({
         ? (item.rating == null ? '-' : formatRatingLabel(item.rating, ratingSystem))
         : `${Math.round((item.vote_average || 0) * 10) / 10}/10`
 
-    // Підпис під назвою: посада (команда), опис (TMDB) або коментар (мої)
     const subtitle = isJob ? `Job: ${item.job}` : isDescription ? item.overview : isComment ? item.comment : ''
 
     return (
@@ -56,9 +52,7 @@ function ItemRow({
                 position: 'relative',
                 borderRadius: 2,
                 cursor: 'pointer',
-                // Праворуч місце під кнопку додати/редагувати
                 pl: 1,
-                // Кнопка: 40 px + відступ 12 px справа = 52 px; ще трохи повітря
                 pr: isAuth ? 7.5 : 1,
                 py: 0.5,
                 display: 'grid',
@@ -71,9 +65,10 @@ function ItemRow({
         >
             {href && <StretchedLink to={href} label={title} />}
 
-            {/* Кнопка стоїть у власному шарі поверх рядка. Без цього обгортка меню (звичайний <Box>)
-                ставала б ще одним елементом сітки й зсувала всі колонки. Шар не перехоплює кліки
-                (pointer-events: none) — лише сама кнопка, решта лишається посиланням на рядок. */}
+            {/*
+               The button lives in its own overlay layer: its menu wrapper would otherwise become another grid item and shift all columns.
+               pointer-events: none on the layer, so only the button takes clicks; the rest stays a row link.
+            */}
             {isAuth && (
                 <Box sx={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
                     <ItemFolderButton
@@ -82,7 +77,6 @@ function ItemRow({
                         itemTitle={title}
                         isCopy={isFolderPage}
                         stopPropagation
-                        // Кнопка по центру висоти рядка, а не в куті
                         sx={{ top: '50%', right: 12, transform: 'translateY(-50%)', pointerEvents: 'auto' }}
                         onAdd={() => onAddItem(item)}
                         onEdit={(copy) => onEditItem(item, copy)}
@@ -91,7 +85,6 @@ function ItemRow({
                 </Box>
             )}
 
-            {/* Постер */}
             <Box
                 component="img"
                 alt={title}
@@ -100,7 +93,6 @@ function ItemRow({
                 sx={{ width: 36, height: 54, objectFit: 'cover', borderRadius: 0.5, display: 'block' }}
             />
 
-            {/* Назва, підпис і (на вузьких екранах) стисла мета */}
             <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                 <Typography
                     variant="body1"
@@ -110,7 +102,6 @@ function ItemRow({
                         color: 'text.main',
                         overflowWrap: 'anywhere',
                         display: '-webkit-box',
-                        // Один рядок на десктопі (рядок тоншає), два — на телефоні, де тексту менше місця
                         WebkitLineClamp: { xs: 2, md: 1 },
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
@@ -123,18 +114,15 @@ function ItemRow({
                         {subtitle}
                     </Typography>
                 )}
-                {/* На телефоні колонок немає — дата й оцінка йдуть одним рядком під назвою */}
                 <Typography variant="caption" sx={{ display: { xs: 'block', md: 'none' }, color: 'text.secondary' }}>
                     {[isDate && dateText, isRating && ratingText].filter(Boolean).join(' · ')}
                 </Typography>
             </Box>
 
-            {/* Дата */}
             <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' }, color: 'text.secondary' }}>
                 {isDate ? dateText : ''}
             </Typography>
 
-            {/* Оцінка (і кількість голосів на каталозі TMDB) */}
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                 {isRating && (
                     <>

@@ -1,16 +1,14 @@
 import { CONTRAST_DARK, CONTRAST_LIGHT } from '../theme/palette';
 
-// Логіка власної системи оцінок користувача.
-// Рівні зберігаються як [{ name, abbr }] від найвищого (індекс 0) до найнижчого.
-// Значення рівня: value(i) = round((N - i) * 100 / N), тож верх = 100.
+// Custom rating system logic. Levels are stored as [{ name, abbr }] from highest (index 0) to lowest;
+// value(i) = round((N - i) * 100 / N), so the top = 100.
 
-// Приводимо рівень до { name, abbr, color } (підтримуємо і старий формат — простий рядок)
+// Normalize a level to { name, abbr, color } (the old format, a plain string, is still supported)
 const normalizeLevel = (lvl) =>
     typeof lvl === 'string'
         ? { name: lvl, abbr: '', color: '' }
         : { name: lvl?.name || '', abbr: lvl?.abbr || '', color: lvl?.color || '' };
 
-// Контрастний колір тексту (чорний/білий) для заданого фону hex
 export const getContrastText = (hex) => {
     if (!hex || hex.length < 7) return CONTRAST_DARK;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -22,7 +20,6 @@ export const getContrastText = (hex) => {
 
 export const hasRatingSystem = (ratingSystem) => Array.isArray(ratingSystem) && ratingSystem.length >= 2;
 
-// Рівні з обчисленим значенням
 export const getRatingLevels = (ratingSystem) => {
     if (!hasRatingSystem(ratingSystem)) return [];
     const n = ratingSystem.length;
@@ -32,27 +29,24 @@ export const getRatingLevels = (ratingSystem) => {
     });
 };
 
-// Знаходимо рівень, що відповідає конкретній оцінці (0-100)
 export const findRatingLevel = (rating, ratingSystem) => {
     if (rating == null) return null;
     return getRatingLevels(ratingSystem).find((l) => l.value === rating) || null;
 };
 
-// Колір рівня, що відповідає оцінці (null — якщо немає збігу або колір не заданий)
 export const getRatingLevelColor = (rating, ratingSystem) => {
     const lvl = findRatingLevel(rating, ratingSystem);
     return lvl && lvl.color ? lvl.color : null;
 };
 
-// 2-літерне скорочення для сітки TV: задане abbr або перші 2 букви назви рівня.
-// null — якщо оцінка не збігається з жодним рівнем (тоді показуємо число).
+// 2-letter abbreviation for the TV grid: the set abbr or the first 2 letters of the level name. null if no
+// level matches (the number is shown then).
 export const getRatingAbbr = (rating, ratingSystem) => {
     const lvl = findRatingLevel(rating, ratingSystem);
     if (!lvl) return null;
     return lvl.abbr || lvl.name.slice(0, 2).toUpperCase();
 };
 
-// Текст для картки: назва рівня, якщо збігається, інакше "rating/100" (null — якщо оцінки немає)
 export const formatRatingLabel = (rating, ratingSystem) => {
     if (rating == null) return null;
     const lvl = findRatingLevel(rating, ratingSystem);

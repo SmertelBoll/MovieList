@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import axios from "../../axios";
 import { DEFAULT_DATE_FORMAT, isDateFormat } from "../../utils/dateFormats";
 
-// Спеціальне значення фільтра — "без тегів" (елементи з порожнім customType)
+// Special filter value: "no tags" (items with an empty customType)
 export const NO_TAG = "__none__";
 
 const savedMode = window.localStorage.getItem("MovieList-mode");
@@ -12,16 +12,12 @@ const savedCustomTypes = window.localStorage.getItem("MovieList-customTypes");
 const savedDateFormat = window.localStorage.getItem("MovieList-dateFormat");
 const savedViewMode = window.localStorage.getItem("MovieList-viewMode");
 
-
 const initialState = {
     mode: savedMode ? savedMode : "light",
     language: savedLanguage ? savedLanguage : "en",
     typeTMDB: savedTypeTMDB ? JSON.parse(savedTypeTMDB) : ["movie", "tv"],
-    // Кілька кастомних типів одночасно (об'єднання)
     customTypes: savedCustomTypes ? JSON.parse(savedCustomTypes) : [],
-    // Як показувати списки фільмів: "cards" (картки) або "list" (компактні рядки)
     viewMode: savedViewMode === "list" ? "list" : "cards",
-    // Формат дат на всьому сайті (вибирається в профілі)
     dateFormat: isDateFormat(savedDateFormat) ? savedDateFormat : DEFAULT_DATE_FORMAT,
 };
 
@@ -62,11 +58,9 @@ const configSlice = createSlice({
 
 export const { setMode, setLanguage, setTypeTMDB, setCustomTypes, toggleMode, setDateFormat, setViewMode } = configSlice.actions;
 
-// -- THUNKS: зберігають вибір локально і (якщо користувач залогінений) у профілі на сервері --
-
-// Зберігає налаштування на сервері, не блокуючи UI у разі помилки
+// Saves settings to the server without blocking the UI on failure
 const persistSettings = async (payload, getState) => {
-    if (!getState().auth.data) return; // не залогінений — лише локально
+    if (!getState().auth.data) return;
     try {
         await axios.patch("/auth/settings", payload);
     } catch (err) {

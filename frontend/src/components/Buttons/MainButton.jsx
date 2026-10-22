@@ -1,14 +1,8 @@
 import { Button, Typography } from "@mui/material";
 import React from "react";
 
-/**
- * Основна (жовта) кнопка сайту.
- *
- * Текст завжди темний — жовтий світлий у будь-якій темі.
- * Заблокований стан: приглушений жовтий із темнішим текстом. MUI за
- * замовчуванням підставив би сірий action.disabled, який у темній темі
- * зливався з жовтим тлом і робив підпис нечитабельним.
- */
+// Main (yellow) button. Text is always dark. Disabled: muted yellow with darker text (MUI's grey
+// action.disabled blended into yellow in dark theme).
 function MainButton(props) {
   const { children, sx, sxTypography, ...rest } = props;
   return (
@@ -18,7 +12,7 @@ function MainButton(props) {
         backgroundColor: "yellow.main",
         color: "yellow.contrastText",
         borderRadius: 4,
-        // 48px падінгу з боків завеликі для вузьких екранів — кнопка вилазила за межі
+        // 48px side padding was too wide on narrow screens
         px: { xs: 3, sm: 5 },
         alignSelf: "center",
 

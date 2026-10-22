@@ -41,7 +41,6 @@ function RegistrationForm() {
     }));
   };
 
-  // Обробка завантаженого аватару
   const handleFileInputChange = (event) => {
     const file = event.target.files[0];
     event.target.value = null;

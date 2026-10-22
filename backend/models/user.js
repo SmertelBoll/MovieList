@@ -3,13 +3,13 @@ import mongoose from "mongoose";
 const UserSchema = new mongoose.Schema(
   {
     fullName: {
-      type: String, // тип поля
-      required: true, // поле обов'язкове
+      type: String,
+      required: true,
     },
     email: {
       type: String,
       required: true,
-      unique: true, // повинно бути унікальним
+      unique: true,
     },
     passwordHash: {
       type: String,
@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
     },
     avatarPublicId: {
-      type: String, // public_id у Cloudinary — щоб видаляти стару аватарку
+      type: String,
       default: "",
     },
     themeMode: {
@@ -34,12 +34,11 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "en",
     },
-    // Формат дат на сайті (рядок date-fns). Список допустимих — у userControllers.js
+    // Site-wide date format (date-fns string); the allowed list is in userControllers.js.
     dateFormat: {
       type: String,
       default: "yyyy-MM-dd",
     },
-    // Фарбувати іконки папок у бічній панелі за статусом (налаштування в профілі)
     colorFolderIcons: {
       type: Boolean,
       default: false,
@@ -48,15 +47,14 @@ const UserSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    // Власна система оцінок: блоки { name, abbr } від найвищого (індекс 0) до найнижчого.
-    // Порожній масив = стандартна 100-бальна шкала.
+    // Custom rating system: { name, abbr } blocks from highest (index 0) to lowest. Empty = default 100-point
+    // scale.
     ratingSystem: {
       type: Array,
       default: [],
     }
   },
   {
-    // при створенні чи оновленні зберігаємо час
     timestamps: true,
   }
 );

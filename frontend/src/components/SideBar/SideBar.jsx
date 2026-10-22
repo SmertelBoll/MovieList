@@ -19,8 +19,8 @@ function SideBar({
     setFolders,
     setIsGetFolders,
     handleClickToFolder,
-    // Якщо задано — кнопка папки стає справжнім посиланням (колесо миші / Ctrl+клік),
-    // а handleClickToFolder не потрібен. Без нього кнопка лише вибирає папку (діалог збереження).
+    // If set, the folder button is a real link (middle click / Ctrl+click) and handleClickToFolder isn't needed;
+    // otherwise it only selects the folder.
     getFolderHref,
     selectedFolder,
     sx
@@ -28,21 +28,19 @@ function SideBar({
     const isAuth = useSelector(selectIsAuth);
 
 
-    const [isInputNewFolder, setIsInputNewFolder] = useState(false)     // чи активовано поле інпуту для створення нової папки (T/F)
-    const [curFolderToRename, setCurFolderToRename] = useState(false);  // obj папки, якій міняємо назву
-    const [curFolderName, setCurFolderName] = useState(false)           // значення в інпуті для папки, якій міняємо назву
+    const [isInputNewFolder, setIsInputNewFolder] = useState(false)
+    const [curFolderToRename, setCurFolderToRename] = useState(false);
+    const [curFolderName, setCurFolderName] = useState(false)
 
-    // Завантаження картинки папки
     const fileInputRef = useRef(null)
     const folderForImageRef = useRef(null)
     const [uploadingFolder, setUploadingFolder] = useState(null)
 
     //-- ADD -- //
-    // Додаємо нову папку
     const handleAddFolder = () => {
         if (!curFolderToRename) {
             const timestamp = Date.now();
-            const newFolderName = `${timestamp}`; // Назва нової папки
+            const newFolderName = `${timestamp}`;
 
             instance
                 .post(`/folders`, { name: newFolderName })
@@ -60,20 +58,17 @@ function SideBar({
     }
 
     //-- RENAME -- //
-    // Натиснуто кнопку rename в панелі вибору дій. Перетворюємо папку на input
     const handleClickRename = (folder) => {
         setIsInputNewFolder(false)
         setCurFolderToRename(folder)
         setCurFolderName(folder.name)
     }
 
-    // Відслідковує input при зміні назви папки
     const handleInputChange = (event) => {
         const { _, value } = event.target;
         setCurFolderName(value);
     };
 
-    // Міняє назву папки у базі даних, оновлюємо state
     const handleUpdateFolderName = (folder, newFolderName) => {
         instance
             .patch(`/folders/${folder.name}`, { name: newFolderName })
@@ -92,7 +87,6 @@ function SideBar({
     };
 
     //-- DELETE -- //
-    // Натиснуто кнопку delete в панелі вибору дій. Запитуємо чи користувач впевнений
     const handleClickDelete = (folder, pressure = false) => {
         if (pressure) {
             deleteFolder(folder)
@@ -100,7 +94,6 @@ function SideBar({
             alertConfirm("Are you sure?", () => deleteFolder(folder));
         }
     };
-    // Видалення папки
     const deleteFolder = (folder) => {
         instance
             .delete(`/folders/${folder.name}`)
@@ -120,7 +113,6 @@ function SideBar({
     }
 
     //-- IMAGE -- //
-    // Перетворюємо файл у base64, щоб відправити на /upload
     const fileToBase = (file) =>
         new Promise((resolve) => {
             const reader = new FileReader()
@@ -175,7 +167,6 @@ function SideBar({
     }
 
     //-- CHANGE ORDER -- //
-    // Перемістити вверх по черзі
     const handleIncrementOrder = (folder) => {
         instance
             .patch(`/folders/orderIncrement/${folder.name}`)
@@ -187,7 +178,6 @@ function SideBar({
                 alertError(err);
             });
     }
-    // Перемістити вниз по черзі
     const handleDecrementOrder = (folder) => {
         instance
             .patch(`/folders/orderDecrement/${folder.name}`)
@@ -209,7 +199,6 @@ function SideBar({
             borderRadius: 2,
             ...sx
         }}>
-            {/* Прихований input для вибору картинки папки */}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -258,16 +247,15 @@ function SideBar({
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        // Кольорова іконка статусу на жовтому фоні (наведення / вибрана папка)
-                                        // стає темною, як і текст — світлі кольори статусів там не читались би
+                                        // On yellow (hover / selected folder) the colored status icon turns
+                                        // dark like the text; light status colors wouldn't be readable there.
                                         '@media (hover: hover) and (pointer: fine)': { "&:hover .folder-status-icon": { color: "inherit" } },
                                         ...(selectedFolder && selectedFolder.name === folder.name && {
                                             "& .folder-status-icon": { color: "inherit" },
                                         }),
                                     }}
-                                    // Вибране на сайті завжди жовте з темним текстом, а не сіре. active обробляє SecondaryButton.
-                                    // Порівнюємо за назвою (вона унікальна): при редагуванні сторінка передає лише { name },
-                                    // без order, і порівняння за order не підсвічувало б поточну папку.
+                                    // Selected is always yellow with dark text (active is handled by SecondaryButton).
+                                    // Compared by name: while editing the page passes only { name }, without order.
                                     active={Boolean(selectedFolder && selectedFolder.name === folder.name)}
                                 >
                                     <Typography
@@ -278,7 +266,7 @@ function SideBar({
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
-                                            flexGrow: 1, // текст займе всю доступну ширину
+                                            flexGrow: 1,
                                         }}
                                     >
                                         {folder.name}

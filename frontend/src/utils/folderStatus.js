@@ -1,5 +1,5 @@
-// Статуси папок. Значення мають збігатися з FOLDER_STATUSES у backend/models/folder.js —
-// саме їх приймає PATCH /folders/status/:name.
+// Folder statuses. Values must match FOLDER_STATUSES in backend/models/folder.js: PATCH /folders/status/:name
+// accepts them.
 
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -15,9 +15,8 @@ export const FOLDER_STATUSES = {
     SKIPPED: 'skipped',
 };
 
-// Значок статусу в куті постера (сторінка New releases, Timeline).
-// Годинник у двох станах: заповнений — дивиться зараз, контурний — заплановано.
-// Той самий символ, але візуально розрізнювані.
+// Status badge in a poster corner (New releases, Timeline). A clock in two states: filled = watching,
+// outlined = planned (same symbol, visually distinct).
 export const STATUS_CORNER_ICON = {
     [FOLDER_STATUSES.WATCHED]: CheckIcon,
     [FOLDER_STATUSES.WATCHING]: AccessTimeFilledIcon,
@@ -26,7 +25,6 @@ export const STATUS_CORNER_ICON = {
     [FOLDER_STATUSES.PLANNED]: AccessTimeIcon,
 };
 
-// Порядок тут визначає порядок пунктів у меню
 export const FOLDER_STATUS_OPTIONS = [
     { value: FOLDER_STATUSES.PLANNED, label: 'Planned' },
     { value: FOLDER_STATUSES.WATCHING, label: 'Watching' },
@@ -35,7 +33,6 @@ export const FOLDER_STATUS_OPTIONS = [
     { value: FOLDER_STATUSES.SKIPPED, label: 'Skipped' },
 ];
 
-// Підпис для папки без статусу (створеної вручну)
 export const NO_STATUS_LABEL = 'No status';
 
 const BY_VALUE = FOLDER_STATUS_OPTIONS.reduce((acc, option) => {
@@ -45,8 +42,6 @@ const BY_VALUE = FOLDER_STATUS_OPTIONS.reduce((acc, option) => {
 
 export const getStatusLabel = (status) => BY_VALUE[status]?.label || NO_STATUS_LABEL;
 
-// Значення кольорів лежать у theme/palette.js (група `status`) —
-// тут лише посилання на токени теми.
 const STATUS_COLOR_TOKENS = {
     [FOLDER_STATUSES.PLANNED]: 'status.planned',
     [FOLDER_STATUSES.WATCHING]: 'status.watching',
@@ -55,10 +50,8 @@ const STATUS_COLOR_TOKENS = {
     [FOLDER_STATUSES.SKIPPED]: 'status.skipped',
 };
 
-// Токен кольору теми для статусу; null — якщо статусу немає
 export const getStatusColorToken = (status) => STATUS_COLOR_TOKENS[status] || null;
 
-// sx для Chip зі статусом. Без статусу — нейтральний контурний вигляд.
 export const getStatusChipSx = (status) => {
     const token = STATUS_COLOR_TOKENS[status];
     if (!token) {
@@ -77,9 +70,8 @@ export const getStatusChipSx = (status) => {
     };
 };
 
-// Приглушуємо постер лише того, що вже позаду: переглянуте, кинуте й пропущене.
-// Те, що дивляться зараз або заплановане, лишається яскравим.
-// Однаково на сторінці New releases і в Timeline.
+// Dim the poster only of what's already behind: watched, dropped and skipped. What's being watched or planned
+// stays bright. Same on New releases and in Timeline.
 export const DIMMED_POSTER_SX = {
     filter: 'grayscale(0.6)',
     opacity: 0.65,
@@ -87,7 +79,6 @@ export const DIMMED_POSTER_SX = {
 export const isDimmedStatus = (status) =>
     status === FOLDER_STATUSES.WATCHED || status === FOLDER_STATUSES.DROPPED || status === FOLDER_STATUSES.SKIPPED;
 
-// Порядок блоків у підказці зі списком папок; null — папки без статусу
 export const STATUS_DISPLAY_ORDER = [
     FOLDER_STATUSES.WATCHED,
     FOLDER_STATUSES.WATCHING,
@@ -97,8 +88,8 @@ export const STATUS_DISPLAY_ORDER = [
     null,
 ];
 
-// Найсильніший статус серед списку — той самий порядок, що betterStatus на бекенді
-// (models/folder.js): кинуте > дивлюсь > заплановано > переглянуто > пропущено. Без статусів — null.
+// Strongest status in a list: same order as betterStatus on the backend (models/folder.js): dropped >
+// watching > planned > watched > skipped. No statuses -> null.
 const STATUS_PRIORITY = [
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.WATCHING,

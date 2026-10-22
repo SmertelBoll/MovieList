@@ -1,14 +1,10 @@
-// Спільна розкладка «героя» для сторінок Info (Actor / Crew / Company / Genre).
-// Усі чотири були скопійовані одна з одної: height 400px і жорсткий рядок
-// «фіксоване зображення + текст», що ламалось на вузьких екранах.
-// Тримаємо стилі в одному місці, щоб наступна правка була одна, а не чотири.
+// Shared hero layout for the Info pages (Actor / Crew / Company / Genre): one place instead of four copies
+// that broke on narrow screens.
 
-// Зовнішній блок. Фон кожна сторінка додає свій — але ТІЛЬКИ через backgroundImage.
-// Скорочений `background` скидає backgroundSize/backgroundPosition нижче до
-// початкових значень (auto / 0% 0%), і зображення прилипає до лівого верхнього кута.
+// Outer block. Pages add their background only via backgroundImage: the background shorthand would reset
+// backgroundSize/Position below and pin the image to the top-left.
 export const heroSectionSx = {
     position: "relative",
-    // На телефоні висоту диктує вміст, на десктопі — звичні 400px
     minHeight: { xs: "auto", sm: 400 },
     borderRadius: 2,
     overflow: "hidden",
@@ -19,7 +15,6 @@ export const heroSectionSx = {
     justifyContent: "center",
 };
 
-// Внутрішній контейнер: вертикально на телефоні, горизонтально від sm
 export const heroInnerSx = {
     display: "flex",
     flexDirection: { xs: "column", sm: "row" },
@@ -31,7 +26,6 @@ export const heroInnerSx = {
     p: { xs: 2, sm: 3 },
 };
 
-// Портретне фото людини (було 200×300)
 export const heroPortraitSx = {
     width: { xs: 150, sm: 170, md: 200 },
     height: { xs: 225, sm: 255, md: 300 },
@@ -40,9 +34,7 @@ export const heroPortraitSx = {
     borderRadius: 2,
 };
 
-// Горизонтальна плитка — лого чи банер (було 300×200).
-// На телефоні тягнеться на всю ширину; висота всюди фіксована, щоб дочірні
-// елементи з height: '100%' мали від чого рахуватись.
+// Fixed height everywhere so children with height: '100%' have something to resolve against.
 export const heroLandscapeSx = {
     width: { xs: "100%", sm: 240, md: 300 },
     height: { xs: 170, sm: 160, md: 200 },
@@ -51,7 +43,6 @@ export const heroLandscapeSx = {
     borderRadius: 2,
 };
 
-// Зображення всередині картки
 export const heroMediaSx = {
     width: "100%",
     height: "100%",
@@ -59,7 +50,6 @@ export const heroMediaSx = {
     display: "block",
 };
 
-// Текстова колонка поруч із зображенням
 export const heroInfoSx = {
     flex: 1,
     minWidth: 0,
@@ -71,16 +61,13 @@ export const heroInfoSx = {
     alignItems: { xs: "center", sm: "stretch" },
 };
 
-// Назва сторінки. Розміри живуть у варіанті типографіки `heroTitle`,
-// тут лишається тільки поведінка переносу довгих назв.
+// Sizes live in the heroTitle typography variant; only long-title wrapping stays here.
 export const heroTitleSx = {
     overflowWrap: "anywhere",
 };
 
-// Рядки під назвою — розміри у варіанті `heroSubtitle`
 export const heroSubtitleSx = {};
 
-// Блок із цифрами під текстом
 export const heroStatsSx = {
     mt: { xs: 2, sm: 3 },
     display: "flex",

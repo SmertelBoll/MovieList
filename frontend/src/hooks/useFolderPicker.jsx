@@ -6,27 +6,10 @@ import FolderIcon from '@mui/icons-material/Folder'
 import MainButton from '../components/Buttons/MainButton'
 import { getStatusChipSx, getStatusLabel } from '../utils/folderStatus'
 
-// Розмір значка папки: менший, ніж на сторінці Folders (11rem), щоб у вікно влазило багато папок
 const ICON_SIZE = { xs: '4rem', sm: '5rem' }
 
-/**
- * Вибір однієї з папок, де лежить фільм/серіал (копії елемента).
- * Плитки як на сторінці Folders: картинка або значок папки, назва, статус.
- *
- * Повертає [pick, dialog]:
- *   pick({ copies, title, subtitle }) -> Promise<copy | null>  (null — скасовано)
- *   dialog — вузол, який треба відрендерити в компоненті
- *
- * Якщо копій менше двох, вибирати нічого — проміс одразу повертає єдину копію
- * (або null), тож місця виклику не мусять це перевіряти.
- *
- * Плитка — одна на папку, навіть якщо фільм лежить у ній кілька разів. Клік:
- *   - одна копія в папці → вона й повертається (дія продовжується з нею);
- *   - кілька копій в одній папці → обрати між ними тут не можна, тому переходимо
- *     в цю папку з пошуком за назвою (options.filterText), проміс повертає null.
- *
- * copies: [{ mongoId, folderName, status, image }]
- */
+// Picks one of the folders holding a movie/tv (its copies). Returns [pick, dialog]: pick({ copies, title, subtitle })
+// -> Promise<copy | null>.
 function useFolderPicker() {
     const theme = useTheme()
     const navigate = useNavigate()
@@ -45,7 +28,6 @@ function useFolderPicker() {
         setConfig(null)
     }
 
-    // Копії, згруповані за папкою, у порядку першої появи
     const folderTiles = useMemo(() => {
         const byFolder = new Map()
         for (const copy of config?.copies || []) {
@@ -71,14 +53,12 @@ function useFolderPicker() {
             open={Boolean(config)}
             onClose={() => settle(null)}
             fullWidth
-            // Той самий розмір, що в діалогу збереження (ItemSaveDialog)
             maxWidth="md"
             fullScreen={isFullScreen}
             disableEnforceFocus
-            // Діалог відкривається з картки — клік не повинен «проходити» крізь нього
+            // The dialog opens from a card: the click must not pass through it.
             onClick={(e) => e.stopPropagation()}
         >
-            {/* Заголовок — той самий варіант тексту, що «Save movie to ...» у діалозі збереження */}
             <DialogTitle sx={{ bgcolor: 'bg.second', color: 'text.main', pb: 0 }}>
                 <Typography variant="p" component="div" sx={{ textAlign: 'left' }}>
                     {config?.title || 'Choose a folder'}
@@ -119,7 +99,6 @@ function useFolderPicker() {
                                 cursor: 'pointer',
                                 color: 'text.main',
                                 transition: 'background-color 0.15s, transform 0.15s',
-                                // Як на сторінці Folders: на жовтому весь вміст темніє
                                 '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                     transform: (t) => t.hoverLift,
                                     bgcolor: 'yellow.main',

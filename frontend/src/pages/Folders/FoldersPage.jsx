@@ -21,7 +21,6 @@ function FoldersPage() {
     const [curFolderToRename, setCurFolderToRename] = useState(null)
     const [curFolderName, setCurFolderName] = useState('')
 
-    // Завантаження картинки папки
     const fileInputRef = useRef(null)
     const folderForImageRef = useRef(null)
     const [uploadingFolder, setUploadingFolder] = useState(null)
@@ -45,14 +44,14 @@ function FoldersPage() {
         }
     }, [isAuth])
 
-    // Рахуємо кількість на клієнті за активними фільтрами (movie/tv + customType),
-    // тож зміна фільтра не перезавантажує сторінку.
+    // Counts are computed on the client for the active filters (movie/tv + customType), so changing a filter
+    // doesn't reload the page.
     const getCount = (folder) => {
         const elements = folder.elements || []
         return elements.filter(el => {
             if (!typeTMDB.includes(el.media_type)) return false
             if (customTypes.length === 0) return true
-            // елемент має кілька тегів: підходить, якщо збігся хоч один; "No tag" — коли тегів немає
+            // An item has several tags: it matches if any one matches; "No tag" when it has none.
             const tags = el.customTypes || []
             return tags.some((tag) => customTypes.includes(tag)) ||
                 (customTypes.includes(NO_TAG) && tags.length === 0)
@@ -79,7 +78,6 @@ function FoldersPage() {
     }
 
     // -- IMAGE --
-    // Перетворюємо файл у base64, щоб відправити на /upload
     const fileToBase = (file) =>
         new Promise((resolve) => {
             const reader = new FileReader()
@@ -89,7 +87,6 @@ function FoldersPage() {
 
     const handleClickAddImage = (folder) => {
         folderForImageRef.current = folder
-        // даємо вибрати той самий файл повторно
         if (fileInputRef.current) fileInputRef.current.value = ''
         fileInputRef.current?.click()
     }
@@ -102,12 +99,9 @@ function FoldersPage() {
         try {
             setUploadingFolder(folder.name)
             const base64 = await fileToBase(file)
-            // 1) завантажуємо картинку в Cloudinary
             const { data } = await instance.post('/upload', { image: base64 })
             const url = data.url
-            // 2) зберігаємо URL та public_id у папці (publicId потрібен для видалення з Cloudinary)
             await instance.patch(`/folders/image/${folder.name}`, { image: url, imagePublicId: data.publicId })
-            // 3) оновлюємо локально
             setFolders(prev => prev.map(f => f.name === folder.name ? { ...f, image: url } : f))
         } catch (err) {
             console.warn(err)
@@ -142,7 +136,6 @@ function FoldersPage() {
         else alertConfirm('Are you sure?', doDelete)
     }
 
-    // -- ORDER: оновлюємо локально, без рефетчу (без моргання) --
     const handleChangeStatus = (folder, status) => {
         instance
             .patch(`/folders/status/${folder.name}`, { status })
@@ -199,9 +192,8 @@ function FoldersPage() {
         )
     }
 
-    // Без фільтрів (обидва типи й жодного тегу) показуємо всі папки, навіть порожні.
-    // Є фільтр — лише папки, де після нього лишився хоч один елемент. Папку, яку зараз
-    // перейменовують, не ховаємо, щоб поле вводу не зникло.
+    // No filters (both types, no tags): show all folders, even empty. With a filter: only folders with a
+    // remaining item. A folder being renamed is never hidden, so its input doesn't vanish.
     const hasFilters = customTypes.length > 0 || typeTMDB.length < 2
     const sorted = [...folders]
         .filter((folder) => !hasFilters || getCount(folder) > 0 || curFolderToRename?.order === folder.order)
@@ -209,7 +201,6 @@ function FoldersPage() {
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
-            {/* Прихований input для вибору картинки папки */}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -231,8 +222,8 @@ function FoldersPage() {
             ) : (
                 <Box sx={{
                     display: 'grid',
-                    // На телефоні рівно дві колонки: auto-fill з мінімумом 200px
-                    // згортався б в одну, бо стільки місця там просто немає
+                    // Exactly two columns on phones: auto-fill with a 200px minimum would collapse to one,
+                    // there isn't that much room.
                     gridTemplateColumns: {
                         xs: 'repeat(2, 1fr)',
                         sm: 'repeat(auto-fill, minmax(200px, 1fr))'
@@ -250,7 +241,8 @@ function FoldersPage() {
                                 sx={{
                                     position: 'relative',
                                     height: '100%',
-                                    // Інакше вміст не дає колонці стиснутись і сітка їде вбік
+                                    // Otherwise the content stops the column from shrinking and the grid
+                                    // overflows sideways.
                                     minWidth: 0,
                                     borderRadius: 2,
                                     transition: 'background-color 0.15s, transform 0.15s',
@@ -258,8 +250,8 @@ function FoldersPage() {
                                         '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
                                             bgcolor: 'yellow.main',
-                                            // На жовтому весь вміст картки темніє:
-                                            // і підписи, і іконка папки, і лічильник
+                                            // On yellow the whole card content turns dark: labels, folder
+                                            // icon and counter.
                                             color: 'yellow.contrastText',
                                             '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                             '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
@@ -267,10 +259,8 @@ function FoldersPage() {
                                     }),
                                 }}
                             >
-                                {/* Справжнє посилання на всю картку: працюють колесо миші та Ctrl/Cmd+клік */}
                                 {!isRenaming && <StretchedLink to={`/folders/${encodeURIComponent(folder.name)}`} label={folder.name} />}
 
-                                {/* Картка */}
                                 <Box
                                     sx={{
                                         height: '100%',
@@ -282,7 +272,6 @@ function FoldersPage() {
                                         p: 1,
                                     }}
                                 >
-                                    {/* Картинка папки або стандартна іконка */}
                                     {uploadingFolder === folder.name ? (
                                         <Box sx={{ height: { xs: '7rem', sm: '11rem' }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <CircularProgress color="primary" />
@@ -293,7 +282,7 @@ function FoldersPage() {
                                             src={folder.image}
                                             alt={folder.name}
                                             sx={{
-                                                // 11rem (176px) не влазить у колонку ~124px на телефоні
+                                                // 11rem (176px) doesn't fit a ~124px column on phones
                                                 height: { xs: '7rem', sm: '11rem' },
                                                 width: { xs: '7rem', sm: '11rem' },
                                                 maxWidth: '100%',
@@ -305,7 +294,6 @@ function FoldersPage() {
                                         <FolderIcon sx={{ fontSize: { xs: '7rem', sm: '11rem' }, color: 'text.main' }} />
                                     )}
 
-                                    {/* Назва або input для перейменування */}
                                     {isRenaming ? (
                                         <RenameFolderInput
                                             curFolderName={curFolderName}
@@ -326,7 +314,6 @@ function FoldersPage() {
                                             >
                                                 {folder.name}
                                             </Typography>
-                                            {/* Тут статус тільки показуємо — міняється через меню ⋮ */}
                                             <Chip
                                                 size="small"
                                                 label={getStatusLabel(folder.status)}
@@ -339,10 +326,10 @@ function FoldersPage() {
                                     )}
                                 </Box>
 
-                                {/* Кнопка ⋮ */}
                                 <Box
                                     onClick={(e) => e.stopPropagation()}
-                                    // Іконка ⋮ успадковує колір; без явного він лишався чорним і зникав у темній темі
+                                    // The ⋮ icon inherits its color; without an explicit one it stayed black
+                                    // and vanished in dark theme.
                                     sx={{ position: 'absolute', top: 4, right: 4, zIndex: 1, color: 'text.main' }}
                                 >
                                     <UpdateFolder

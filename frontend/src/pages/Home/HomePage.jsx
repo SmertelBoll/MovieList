@@ -14,26 +14,23 @@ function HomePage() {
   const { typeTMDB } = useSelector((state) => state.config);
 
 
-  const [folders, setFolders] = useState([])                  // Папки
-  const [isGetFolders, setIsGetFolders] = useState(true)      // після видалення папки, у нас міняються order, тому треба новий запрос
+  const [folders, setFolders] = useState([])
+  const [isGetFolders, setIsGetFolders] = useState(true) // Deleting a folder changes order values, so the list needs refetching.
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarHeight, setSidebarHeight] = useState(0);
   const sidebarRef = React.useRef(null);
 
-  // Колонка сайдбару — 280px. Нижче md на неї немає місця поруч зі списком,
-  // тому там вона не рендериться взагалі: папки доступні через бургер-меню.
+  // The sidebar column is 280px; below md there's no room beside the list, so it isn't rendered at all:
+  // folders are in the burger menu.
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Логіка для показу/приховування SideBar при прокручуванні
   useEffect(() => {
-    // У компактному режимі колонки немає — ховати нема чого
     if (isCompact) return;
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Приховуємо SideBar коли прокручуємо вниз більше ніж на висоту SideBar
       if (currentScrollY > sidebarHeight + 300) {
         setShowSidebar(false);
       } else {
@@ -48,17 +45,15 @@ function HomePage() {
     };
   }, [sidebarHeight, isCompact]);
 
-  // Вимірюємо висоту SideBar після рендеру
   useEffect(() => {
     if (sidebarRef.current) {
       const height = sidebarRef.current.offsetHeight;
       setSidebarHeight(height);
     }
-  }, [folders, isCompact]); // Перераховуємо висоту коли змінюються папки
+  }, [folders, isCompact]);
 
 
   //-- GET -- //
-  // Отримати назви папок
   useEffect(() => {
     if (isGetFolders && isAuth) {
       instance
@@ -76,20 +71,16 @@ function HomePage() {
   }, [isGetFolders, isAuth]);
 
 
-  // Кешуємо GeneralItemList, щоб він не ререндерився кожен раз, 
-  // коли ми просто гортаємо сторінку і showSidebar змінюється
+  // Memoized so GeneralItemList doesn't re-render while scrolling toggles showSidebar.
   const generalItemList = useMemo(() => (
     <GeneralItemList
-      // Бокова панель
       folders={folders}
       setFolders={setFolders}
       setIsGetFolders={setIsGetFolders}
-      // Робота з базами даних
       dbType="tmdb"
       urlParams={false}
       isPreperedData={false}
       preperedData={false}
-      // Інформація сторінки
       pageType="home"
       pageTitle="Here can be your advertisement"
       isSearch={true}
@@ -98,11 +89,9 @@ function HomePage() {
   ), [folders, isAuth]);
 
   return (
-    // Без gap на контейнері: він створював проміжок навіть біля згорнутої
-    // колонки нульової ширини і зсував контент із центру.
-    // Проміжок живе на самій колонці й зникає разом з нею.
+    // No gap on the container: it left a gap even beside the collapsed zero-width column and pushed content
+    // off-center. The gap lives on the column and disappears with it.
     <Box sx={{ display: "flex", width: "100%" }}>
-      {/* Колонка сайдбару — тільки від md і тільки для залогінених */}
       {!isCompact && isAuth && (
         <Box
           ref={sidebarRef}
@@ -121,7 +110,6 @@ function HomePage() {
             folders={folders}
             setFolders={setFolders}
             setIsGetFolders={setIsGetFolders}
-            // Папка в сайдбарі — справжнє посилання: працюють колесо миші та Ctrl/Cmd+клік
             getFolderHref={(folder) => `/folders/${encodeURIComponent(folder.name)}`}
             selectedFolder={false}
           />
@@ -131,7 +119,7 @@ function HomePage() {
       <Box sx={{
         flexBasis: !isCompact && isAuth && showSidebar ? "70%" : "100%",
         flexGrow: 1,
-        // Без цього флекс-дитина не дає списку стискатись і сторінка їде вбік
+        // Without this a flex child won't let the list shrink and the page overflows sideways.
         minWidth: 0,
         transition: "flex-basis 0.7s ease-in-out"
       }}>

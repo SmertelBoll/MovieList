@@ -8,12 +8,8 @@ import TextFieldCustom from '../_customMUI/TextFieldCustom'
 import MainButton from '../Buttons/MainButton'
 import { toDateOnlyISO } from '../../utils/dates'
 
-/**
- * Діалог масового «переглянуто» (весь сезон): запитує дату перегляду, яку отримають усі позначені серії.
- * За замовчуванням — сьогодні; поле можна очистити, тоді серії позначаються без дати.
- *
- * onConfirm(dateAdded) — dateAdded: ISO-рядок календарного дня або null (без дати).
- */
+// Bulk "watched" dialog (whole season): asks the watch date for all marked episodes (default today, can be cleared).
+// onConfirm(dateAdded)
 function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
     const theme = useTheme()
     const dateFormat = useSelector((state) => state.config.dateFormat)
@@ -23,7 +19,6 @@ function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
     )
 
     const [date, setDate] = useState(new Date())
-    // Щоразу при відкритті починаємо із сьогоднішньої дати
     useEffect(() => {
         if (open) setDate(new Date())
     }, [open])
@@ -49,7 +44,6 @@ function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
                         slots={{ textField: InputBox }}
                         slotProps={{
                             textField: { fullWidth: true, sx: { mb: 0 } },
-                            // Хрестик очищення — серії можна позначити без дати
                             field: { clearable: true },
                         }}
                     />
