@@ -1,5 +1,5 @@
 import { Box, CircularProgress, debounce, Grid2, Tooltip, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setViewMode, setCustomTypes } from '../../redux/slices/ConfigSlice'
 import { getTmdbLanguage } from '../../utils/languages'
@@ -111,7 +111,10 @@ function GeneralItemList({
     const [isLoadedItems, setIsLoadedItems] = useState(true);
     const [items, setItems] = useState([])
     const [displayedItems, setDisplayedItems] = useState(0)
+    // page counts "Give more" clicks; the server page is tracked apart because a request returns more than one
+    // display step (20-40 from TMDB, 24 from mongo).
     const [page, setPage] = useState(0)
+    const loadedPage = useRef(0)
     const [totalPages, setTotalPages] = useState(1)
 
     const [isOpenDialogAdd, setIsOpenDialogAdd] = useState(false);
@@ -208,6 +211,7 @@ function GeneralItemList({
         setDisplayedItems(0)
         setTotalPages(1)
         setPage(0)
+        loadedPage.current = 0
         // tmdbLanguage resets the list too: titles and descriptions must be refetched.
     }, [searchValue, nameSortBy, sortDirection, typeTMDB, customTypesKey, tmdbLanguage])
 
@@ -230,11 +234,15 @@ function GeneralItemList({
             return
         }
 
-        if (page !== 1 && items.length - displayedItems >= LIMIT_ITEMS) {
+        // Show from the buffer while it has a full step, or its remainder once the server has nothing more.
+        const buffered = items.length - displayedItems
+        if (page !== 1 && buffered > 0 && (buffered >= LIMIT_ITEMS || loadedPage.current >= totalPages)) {
             setDisplayedItems(prev => prev + LIMIT_ITEMS)
             setIsLoadedItems(true)
             return
         }
+
+        const serverPage = loadedPage.current + 1
 
         if (dbType === "tmdb") {
             const endpoint = `${process.env.REACT_APP_URL_TMDB}/${searchValue.trim() === "" ? "discover" : "search"}`
@@ -242,7 +250,7 @@ function GeneralItemList({
             let params = {
                 api_key: API_KEY,
                 language: tmdbLanguage,
-                page: page,
+                page: serverPage,
                 ...urlParams
             };
 
@@ -268,6 +276,7 @@ function GeneralItemList({
                     let combinedResults = responses.flatMap(r => r.results);
                     combinedResults = sortItems(combinedResults, nameSortBy, sortDirection);
 
+                    loadedPage.current = serverPage
                     setItems(prev => [...prev, ...combinedResults])
                     setTotalPages(Math.max(...responses.map(r => r.totalPages || 1)))
                     setDisplayedItems(prev => prev + LIMIT_ITEMS)
@@ -284,7 +293,7 @@ function GeneralItemList({
             const endpoint = props.customEndpoint || process.env.REACT_APP_URL_MONGO
 
             let params = {
-                page: page,
+                page: serverPage,
                 sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"]["movie"]}.${sortDirection}`,
                 limit: 24,
                 type: typeTMDB.join(","),
@@ -312,6 +321,7 @@ function GeneralItemList({
                         })
                     );
 
+                    loadedPage.current = serverPage
                     setItems(prev => [...prev, ...resultsWithTmdb]);
                     setTotalPages(res.data.pagination.totalPages)
                     setDisplayedItems(prev => prev + LIMIT_ITEMS)
@@ -542,7 +552,7 @@ function GeneralItemList({
                         ? <Box width="100%" textAlign="center">
                             <CircularProgress color="text.main" />
                         </Box>
-                        : (totalPages > page || displayedItems < items.length) && items.length > 0
+                        : (totalPages > loadedPage.current || displayedItems < items.length) && items.length > 0
                             ? <Box display="flex" justifyContent="center" >
                                 <MainButton onClick={() => setPage(prev => prev + 1)}>Give more</MainButton>
                             </Box>
