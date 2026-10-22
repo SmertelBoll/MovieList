@@ -1,7 +1,7 @@
 import { Box, CircularProgress, debounce, Grid2, Tooltip, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { setViewMode } from '../../redux/slices/ConfigSlice'
+import { setViewMode, setCustomTypes } from '../../redux/slices/ConfigSlice'
 import { getTmdbLanguage } from '../../utils/languages'
 import Search from '../Sorting/Search'
 import ItemCart from './ItemCart';
@@ -11,7 +11,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import instance from '../../axios';
 import { alertError } from '../../alerts';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import MainButton from '../Buttons/MainButton';
 import ItemSaveDialog from '../ItemSaveDialog/ItemSaveDialog';
 import Sort from '../Sorting/Sort';
@@ -92,9 +92,23 @@ function GeneralItemList({
     const customTypesKey = effectiveCustomTypes.join(",");
     const location = useLocation();
     const navigate = useNavigate();
+    const navigationType = useNavigationType();
 
-    // Читаємо параметр з URL лише при першому рендері
-    const initialFilter = new URLSearchParams(location.search).get('filter') || "";
+    // Пошук, сортування й теги зберігаємо в sessionStorage за адресою сторінки. Відновлюємо лише при поверненні
+    // назад (POP: кнопка «назад», navigate(-1), оновлення сторінки) — щоб перехід у фільм і назад не збивав фільтр,
+    // а вхід у папку посиланням чи з бокової панелі починався з чистого списку.
+    const listStateKey = `MovieList-list:${location.pathname}`;
+    const [restored] = useState(() => {
+        if (navigationType !== 'POP') return null;
+        try {
+            return JSON.parse(window.sessionStorage.getItem(listStateKey));
+        } catch {
+            return null;
+        }
+    });
+
+    // Параметр filter з URL важливіший за збережений пошук
+    const initialFilter = new URLSearchParams(location.search).get('filter') || restored?.search || "";
 
     // об'єкти для search (input)
     const [inputText, setInputText] = useState(initialFilter);     // відповідає за відображення тексту в input
@@ -115,8 +129,12 @@ function GeneralItemList({
     const [selectedItem, setSelectedItem] = useState({});        // який фільм (obj) обраний у ItemsDialog
 
     // робота з сортуванням
-    const [nameSortBy, setNameSortBy] = useState(Object.keys(CATEGORIES_SORT_BY[dbType])[0]);
-    const [sortDirection, setSortDirection] = useState('desc');
+    const [nameSortBy, setNameSortBy] = useState(
+        restored?.sortBy in CATEGORIES_SORT_BY[dbType] ? restored.sortBy : Object.keys(CATEGORIES_SORT_BY[dbType])[0]
+    );
+    const [sortDirection, setSortDirection] = useState(
+        restored?.sortBy in CATEGORIES_SORT_BY[dbType] && (restored.direction === 'asc' || restored.direction === 'desc') ? restored.direction : 'desc'
+    );
 
 
     // -- HELP FUNCTIONS -- //
@@ -168,6 +186,26 @@ function GeneralItemList({
 
 
     // -- USE EFFECTS -- //
+    // Теги (фільтр кастомних типів) живуть у redux, а при виході зі сторінок папок скидаються (TypeTMDBSelector).
+    // Тому при поверненні назад повертаємо їх із збереженого стану.
+    useEffect(() => {
+        if (dbType === "mongo" && Array.isArray(restored?.tags)) dispatch(setCustomTypes(restored.tags));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Зберігаємо стан списку, щоб відновити його при поверненні
+    useEffect(() => {
+        try {
+            window.sessionStorage.setItem(listStateKey, JSON.stringify({
+                search: searchValue,
+                sortBy: nameSortBy,
+                direction: sortDirection,
+                tags: dbType === "mongo" ? customTypes : [],
+            }));
+        } catch {
+            // сховище недоступне (приватний режим) — просто не зберігаємо
+        }
+    }, [listStateKey, searchValue, nameSortBy, sortDirection, customTypesKey, dbType]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Очищуємо параметр filter з URL після завантаження, щоб він не застосовувався повторно
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
