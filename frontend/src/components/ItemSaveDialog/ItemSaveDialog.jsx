@@ -414,7 +414,10 @@ function ItemSaveDialog({
                                             color: selectedFolder?.name ? 'text.main' : 'text.secondary',
                                         }}
                                     >
-                                        {selectedFolder?.name && <FolderThumb folder={selectedFolder} size={20} />}
+                                        {/* When editing, selectedFolder is only { name }: the status comes from the full folder. */}
+                                        {selectedFolder?.name && (
+                                            <FolderThumb folder={folders?.find((f) => f.name === selectedFolder.name) || selectedFolder} size={20} />
+                                        )}
                                         <Typography variant="body2" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
                                             {selectedFolder?.name || 'Choose a folder'}
                                         </Typography>
