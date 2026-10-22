@@ -98,7 +98,10 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         return all.filter((n) => !season.watchedEpisodes[String(n)])
     }
 
-    const subtitle = row.kind === 'collection'
+    const isCaughtUp = row.unwatchedCount === 0
+    const subtitle = isCaughtUp
+        ? 'All caught up'
+        : row.kind === 'collection'
         ? `${row.unwatchedCount} unwatched of ${row.parts.length}`
         : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
 
@@ -155,8 +158,9 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     size="small"
                     label={row.unwatchedCount}
                     sx={{
-                        bgcolor: 'yellow.main',
-                        color: 'yellow.contrastText',
+                        // Нового не лишилось — лічильник приглушений (рядок зникне при наступному відкритті сторінки)
+                        bgcolor: isCaughtUp ? 'action.selected' : 'yellow.main',
+                        color: isCaughtUp ? 'text.secondary' : 'yellow.contrastText',
                         fontWeight: 700,
                         flexShrink: 0,
                         transition: 'background-color 0.15s, color 0.15s',

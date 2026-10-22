@@ -290,35 +290,32 @@ function UpdatesPage() {
     // Перезавантажувати весь список після кожної дії надто дорого: це десятки
     // запитів до TMDB і спінер на пів екрана. Тому правимо стан на місці.
 
+    // Рядок не прибираємо зі списку одразу, навіть якщо в ньому не лишилось нового (остання частина переглянута або
+    // колекція вже не підходить режиму): різке зникнення збиває з пантелику. З лічильником 0 він лишається,
+    // а при наступному відкритті сторінки список збирається заново за звичайними правилами й рядка вже не буде.
     const patchMoviePart = useCallback((tmdbId, patch) => {
-        setRows((prev) => prev.reduce((acc, row) => {
-            if (row.kind !== 'collection' || !row.parts.some((p) => p.id === tmdbId)) {
-                acc.push(row)
-                return acc
-            }
+        setRows((prev) => prev.map((row) => {
+            if (row.kind !== 'collection' || !row.parts.some((p) => p.id === tmdbId)) return row
             // patch — обʼєкт або функція від поточної частини (коли нове значення залежить від старого)
             const parts = row.parts.map((p) => (
                 p.id === tmdbId ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p
             ))
             const unwatched = parts.filter((p) => !HANDLED_STATUSES.has(p.status))
-            // Колекція без непереглянутих або та, що не підходить поточному режиму (кинута/не кинута), зникає зі списку
-            if (unwatched.length === 0 || !isCollectionVisible(view, parts)) return acc
-            acc.push({
+            return {
                 ...row,
                 parts,
                 unwatchedCount: unwatched.length,
                 latestDate: unwatched.reduce((max, p) => (p.releaseDate > max ? p.releaseDate : max), ''),
-            })
-            return acc
-        }, []))
-    }, [view])
+            }
+        }))
+    }, [])
 
     // entries: { [номерСерії]: дані }. Одна серія — окремий випадок масового
     // позначення, тож обидва сценарії йдуть через один хелпер і один рендер.
     // removed — номери серій (рядками), які прибрали з бази: серія знову непереглянута
     const patchEpisodes = useCallback((rowKey, seasonNumber, entries, removed = []) => {
-        setRows((prev) => prev.reduce((acc, row) => {
-            if (row.key !== rowKey) { acc.push(row); return acc }
+        setRows((prev) => prev.map((row) => {
+            if (row.key !== rowKey) return row
             const seasons = row.seasons.map((s) => {
                 if (s.seasonNumber !== seasonNumber) return s
                 const watchedEpisodes = { ...s.watchedEpisodes, ...entries }
@@ -330,18 +327,16 @@ function UpdatesPage() {
                 }
             })
             const unwatchedCount = seasons.reduce((sum, s) => sum + s.unwatchedCount, 0)
-            // Серіал без нових серій зникає зі списку
-            if (unwatchedCount === 0) return acc
-            acc.push({
+            // Серіал без нових серій лишається в списку до наступного відкриття сторінки (див. patchMoviePart)
+            return {
                 ...row,
                 seasons,
                 unwatchedCount,
                 latestDate: seasons
                     .filter((s) => s.unwatchedCount > 0)
                     .reduce((max, s) => (s.airDate > max ? s.airDate : max), ''),
-            })
-            return acc
-        }, []))
+            }
+        }))
     }, [])
 
     // --- ФІЛЬМ: плюсик (додати) і галочка (редагувати) ---
@@ -503,6 +498,8 @@ function UpdatesPage() {
     }
 
     const totalNew = sortedRows.reduce((sum, row) => sum + row.unwatchedCount, 0)
+    // Рядки, де нового вже не лишилось (щойно все позначили), ще на екрані, але в підсумок не входять
+    const titlesWithNew = sortedRows.filter((row) => row.unwatchedCount > 0).length
     const isDroppedView = view === VIEWS.DROPPED
 
     return (
@@ -526,7 +523,7 @@ function UpdatesPage() {
                             ? 'Loading…'
                             : sortedRows.length === 0
                             ? (isDroppedView ? 'No dropped titles with new releases' : 'Everything you are watching is up to date')
-                            : `${totalNew} new in ${sortedRows.length} ${sortedRows.length === 1 ? 'title' : 'titles'}`}
+                            : `${totalNew} new in ${titlesWithNew} ${titlesWithNew === 1 ? 'title' : 'titles'}`}
                     </Typography>
                 </Box>
 
