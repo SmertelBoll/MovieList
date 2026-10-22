@@ -949,7 +949,7 @@ function TVPage({ isSaved = false }) {
                                 ...(isSaved && {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                                    '@media (hover: hover)': { "&:hover": {
+                                    '@media (hover: hover) and (pointer: fine)': { "&:hover": {
                                         transform: (theme) => theme.hoverLift,
                                         boxShadow: 6
                                     } }
@@ -998,16 +998,17 @@ function TVPage({ isSaved = false }) {
                                     size="small"
                                     component={Link}
                                     to={`/genre/${genre.id}`}
-                                    clickable
                                     sx={{
                                         cursor: 'pointer',
                                         backgroundColor: "overlay.chip",
                                         color: "text.white",
                                         transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
-                                        '&.MuiChip-root:hover': {
-                                            backgroundColor: 'yellow.main',
-                                            color: 'text.dark',
-                                            borderColor: 'text.dark',
+                                        '@media (hover: hover) and (pointer: fine)': {
+                                            '&.MuiChip-root:hover': {
+                                                backgroundColor: 'yellow.main',
+                                                color: 'text.dark',
+                                                borderColor: 'text.dark',
+                                            }
                                         }
                                     }}
                                 />
@@ -1082,17 +1083,18 @@ function TVPage({ isSaved = false }) {
                                             variant="outlined"
                                             component={Link}
                                             to={savedFolderPath(folder.name)}
-                                            clickable
                                             sx={{
                                                 cursor: 'pointer',
                                                 backgroundColor: "overlay.chipSubtle",
                                                 color: "text.white",
                                                 borderColor: "overlay.chip",
                                                 transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
-                                                '&.MuiChip-root:hover': {
-                                                    backgroundColor: 'yellow.main',
-                                                    color: 'text.dark',
-                                                    borderColor: 'text.dark',
+                                                '@media (hover: hover) and (pointer: fine)': {
+                                                    '&.MuiChip-root:hover': {
+                                                        backgroundColor: 'yellow.main',
+                                                        color: 'text.dark',
+                                                        borderColor: 'text.dark',
+                                                    }
                                                 }
                                             }}
                                         />
@@ -1265,7 +1267,7 @@ function TVPage({ isSaved = false }) {
                         sx={{
                             py: 1,
                             px: 2,
-                            '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.main', color: 'text.dark' } },
+                            '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.main', color: 'text.dark' } },
                         }}
                     >
                         {item.label}

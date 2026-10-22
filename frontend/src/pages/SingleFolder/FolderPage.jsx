@@ -70,7 +70,9 @@ function FolderPage() {
                     sx={{
                         ...getStatusChipSx(curFolder?.status),
                         cursor: 'pointer',
-                        '@media (hover: hover)': { '&:hover': { opacity: 0.85 } },
+                        // Власний колір чіпа лишається й під час hover / фокусу (MUI підставляє action.hover)
+                        '&.MuiChip-clickable:hover, &.MuiChip-clickable.Mui-focusVisible': { bgcolor: getStatusChipSx(curFolder?.status).bgcolor },
+                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { opacity: 0.85 } },
                     }}
                 />
             )}

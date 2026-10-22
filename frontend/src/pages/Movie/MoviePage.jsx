@@ -413,7 +413,7 @@ function MoviePage({ isSaved = false }) {
                                 ...(isSaved && {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                                    '@media (hover: hover)': { "&:hover": {
+                                    '@media (hover: hover) and (pointer: fine)': { "&:hover": {
                                         transform: (theme) => theme.hoverLift,
                                         boxShadow: 6
                                     } }
@@ -471,16 +471,17 @@ function MoviePage({ isSaved = false }) {
                                     size="small"
                                     component={Link}
                                     to={`/genre/${genre.id}`}
-                                    clickable
                                     sx={{
                                         cursor: 'pointer',
                                         backgroundColor: "overlay.chip",
                                         color: "overlay.onImage",
                                         transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
-                                        '&.MuiChip-root:hover': {
-                                            backgroundColor: 'yellow.main',
-                                            color: 'text.dark',
-                                            borderColor: 'text.dark',
+                                        '@media (hover: hover) and (pointer: fine)': {
+                                            '&.MuiChip-root:hover': {
+                                                backgroundColor: 'yellow.main',
+                                                color: 'text.dark',
+                                                borderColor: 'text.dark',
+                                            }
                                         }
                                     }}
                                 />
@@ -568,17 +569,18 @@ function MoviePage({ isSaved = false }) {
                                             variant="outlined"
                                             component={Link}
                                             to={savedFolderPath(folder.name)}
-                                            clickable
                                             sx={{
                                                 cursor: 'pointer',
                                                 backgroundColor: "overlay.chipSubtle",
                                                 color: "overlay.onImage",
                                                 borderColor: "overlay.chip",
                                                 transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
-                                                '&.MuiChip-root:hover': {
-                                                    backgroundColor: 'yellow.main',
-                                                    color: 'text.dark',
-                                                    borderColor: 'text.dark',
+                                                '@media (hover: hover) and (pointer: fine)': {
+                                                    '&.MuiChip-root:hover': {
+                                                        backgroundColor: 'yellow.main',
+                                                        color: 'text.dark',
+                                                        borderColor: 'text.dark',
+                                                    }
                                                 }
                                             }}
                                         />
@@ -691,15 +693,16 @@ function MoviePage({ isSaved = false }) {
                                 variant="outlined"
                                 component={Link}
                                 to={`/company/${company.id}`}
-                                clickable
                                 sx={{
                                     cursor: 'pointer',
                                     flexShrink: 0,
                                     transition: (theme) => theme.transitions.create(['background-color', 'color', 'border-color']),
-                                    '&.MuiChip-root:hover': {
-                                        backgroundColor: 'yellow.main',
-                                        color: 'text.dark',
-                                        borderColor: 'text.dark',
+                                    '@media (hover: hover) and (pointer: fine)': {
+                                        '&.MuiChip-root:hover': {
+                                            backgroundColor: 'yellow.main',
+                                            color: 'text.dark',
+                                            borderColor: 'text.dark',
+                                        }
                                     }
                                 }}
                             />

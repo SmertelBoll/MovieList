@@ -44,8 +44,10 @@ function ScrollToTopButton() {
                     right: 20,
                     zIndex: 1000,
                     backgroundColor: theme.palette.yellow.main,
+                    // MUI на touch ставить Fab сірий фон під «залиплим» hover — тримаємо жовтий (вища специфічність)
+                    '&.MuiFab-root': { backgroundColor: theme.palette.yellow.main },
                     color: theme.palette.text.dark,
-                    '@media (hover: hover)': { '&:hover': {
+                    '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                         backgroundColor: theme.palette.yellow.dark,
                     } },
                     boxShadow: theme.shadows[8],

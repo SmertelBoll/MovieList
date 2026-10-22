@@ -479,8 +479,10 @@ function ProfilePage() {
                             bottom: 0,
                             right: 0,
                             bgcolor: 'yellow.main',
+                            // MUI на touch скидає фон IconButton у прозорий під «залиплим» hover — тримаємо свій
+                            '&.MuiIconButton-root': { bgcolor: 'yellow.main' },
                             color: 'text.dark',
-                            '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.dark' } },
+                            '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.dark' } },
                         }}
                     >
                         <PhotoCameraIcon fontSize="small" />
@@ -496,8 +498,9 @@ function ProfilePage() {
                                 top: 0,
                                 right: 0,
                                 bgcolor: 'danger.main',
+                                '&.MuiIconButton-root': { bgcolor: 'danger.main' },
                                 color: 'danger.contrastText',
-                                '@media (hover: hover)': { '&:hover': { bgcolor: 'danger.dark' } },
+                                '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'danger.dark' } },
                             }}
                         >
                             <CloseIcon fontSize="small" />
@@ -708,7 +711,7 @@ function ProfilePage() {
                     {userRatingSystem.length >= 2 && (
                         <MainButton
                             onClick={deleteRatingSystem}
-                            sx={{ m: 0, bgcolor: 'danger.main', color: 'danger.contrastText', '@media (hover: hover)': { ':hover': { bgcolor: 'danger.dark' } } }}
+                            sx={{ m: 0, bgcolor: 'danger.main', color: 'danger.contrastText', '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'danger.dark' } } }}
                         >
                             Delete custom system
                         </MainButton>
@@ -802,7 +805,7 @@ function ProfilePage() {
                     <MainButton
                         onClick={handleCloseEmailDialog}
                         disabled={savingEmail}
-                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } } }}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'bg.selected' } } }}
                     >
                         Cancel
                     </MainButton>
@@ -849,7 +852,7 @@ function ProfilePage() {
                     <MainButton
                         onClick={handleClosePwdDialog}
                         disabled={savingPassword}
-                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } } }}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'bg.selected' } } }}
                     >
                         Cancel
                     </MainButton>
@@ -914,7 +917,7 @@ function ProfilePage() {
                     <MainButton
                         onClick={handleCloseRatingDialog}
                         disabled={savingRating}
-                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } } }}
+                        sx={{ m: 0, bgcolor: 'transparent', color: 'text.main', border: '1px solid', borderColor: 'text.secondary', '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'bg.selected' } } }}
                     >
                         Cancel
                     </MainButton>

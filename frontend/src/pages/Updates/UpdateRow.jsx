@@ -112,7 +112,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                     display: 'flex', alignItems: 'center', gap: 2, p: { xs: 1, sm: 2 },
                     cursor: 'pointer',
                     transition: 'background-color 0.15s, color 0.15s',
-                    '@media (hover: hover)': { '&:hover': {
+                    '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                         bgcolor: 'yellow.main',
                         color: 'yellow.contrastText',
                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
@@ -190,7 +190,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                             borderRadius: 2,
                                             border: '1px solid', borderColor: 'divider',
                                             transition: 'box-shadow 0.2s ease-in-out',
-                                            '@media (hover: hover)': { '&:hover': { boxShadow: 4 } },
+                                            '@media (hover: hover) and (pointer: fine)': { '&:hover': { boxShadow: 4 } },
                                         }}
                                     >
                                         <SavedItemOpener mediaType="movie" tmdbId={part.id} title={part.title} sx={{ display: 'flex', flexShrink: 0 }}>
@@ -244,7 +244,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                         display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0,
                                         // Підйом при наведенні — як у карток фільмів у списках
                                         transition: 'transform 0.2s ease-in-out',
-                                        '@media (hover: hover)': { '&:hover': {
+                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
                                             '& .update-poster': { boxShadow: 6 },
                                         } },
@@ -325,7 +325,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                 display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, p: 1,
                                                 cursor: 'pointer',
                                                 transition: 'background-color 0.15s, color 0.15s',
-                                                '@media (hover: hover)': { '&:hover': {
+                                                '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                                     bgcolor: 'yellow.main',
                                                     '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                                     '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
@@ -366,7 +366,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                         flexShrink: 0, px: 1, py: 0.25, borderRadius: 1, cursor: 'pointer',
                                                         border: '1px solid', borderColor: 'text.main',
                                                         transition: 'background-color 0.15s, color 0.15s',
-                                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText', borderColor: 'yellow.dark' } },
+                                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText', borderColor: 'yellow.dark' } },
                                                     }}
                                                 >
                                                     <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>
@@ -409,7 +409,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                 cursor: clickable ? 'pointer' : 'default',
                                                                 transition: 'background-color 0.15s, color 0.15s',
                                                                 ...(clickable && {
-                                                                    '@media (hover: hover)': { '&:hover': {
+                                                                    '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                                                         bgcolor: 'yellow.main',
                                                                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                                                         '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
@@ -444,7 +444,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                                                                         flexShrink: 0, px: 1, py: 0.25, borderRadius: 1, cursor: 'pointer',
                                                                         border: '1px solid', borderColor: 'text.main',
                                                                         transition: 'background-color 0.15s, color 0.15s',
-                                                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' } },
+                                                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText', borderColor: 'yellow.main' } },
                                                                     }}
                                                                 >
                                                                     <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>

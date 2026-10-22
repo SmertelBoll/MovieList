@@ -238,7 +238,7 @@ function RegistrationForm() {
                 color: "text.main",
                 fontWeight: 700,
                 textDecoration: "underline",
-                '@media (hover: hover)': { "&:hover": { color: "yellow.dark" } },
+                '@media (hover: hover) and (pointer: fine)': { "&:hover": { color: "yellow.dark" } },
               }}
             >
               Log in

@@ -31,7 +31,7 @@ function EditActions({ onCancel, onSave, isSaving }) {
                     color: 'text.main',
                     border: '1px solid',
                     borderColor: 'text.secondary',
-                    '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } },
+                    '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'bg.selected' } },
                 }}
             >
                 Cancel

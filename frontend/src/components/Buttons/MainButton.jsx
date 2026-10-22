@@ -22,7 +22,7 @@ function MainButton(props) {
         px: { xs: 3, sm: 5 },
         alignSelf: "center",
 
-        '@media (hover: hover)': { ":hover": {
+        '@media (hover: hover) and (pointer: fine)': { ":hover": {
           backgroundColor: "yellow.dark",
           color: "yellow.contrastText",
         } },

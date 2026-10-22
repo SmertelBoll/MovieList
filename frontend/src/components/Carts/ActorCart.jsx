@@ -21,7 +21,7 @@ function ActorCart({ person, role }) {
             p: 1,
             cursor: "pointer",
             transition: "transform 0.2s ease-in-out",
-            '@media (hover: hover)': { "&:hover": {
+            '@media (hover: hover) and (pointer: fine)': { "&:hover": {
                 transform: (theme) => theme.hoverLift
             } }
         }}

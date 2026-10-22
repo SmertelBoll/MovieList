@@ -12,19 +12,21 @@ import FolderListTooltip from './FolderListTooltip'
 // Вигляд кнопки. corner — у куті постера картки, hero — у шапці сторінки фільму/серіалу.
 // Правило сайту: кнопки на постері завжди справа зверху.
 const hoverSx = {
-    '@media (hover: hover)': { '&:hover': {
+    '@media (hover: hover) and (pointer: fine)': { '&:hover': {
         opacity: 1,
         backgroundColor: 'yellow.main',
         '& svg': { color: 'text.dark' },
     } },
 }
+// MUI на touch (:hover «залипає» після дотику) ставить IconButton прозорий фон зі специфічністю 0,2,0 — вища за звичайний sx.
+// Тому власний фон дублюємо під селектором «&.MuiIconButton-root» (та сама специфічність, але стоїть пізніше).
 const TONES = {
     corner: {
-        plate: { position: 'absolute', right: 5, top: 5, backgroundColor: 'text.main', opacity: 0.8, zIndex: 1, borderRadius: 2, ...hoverSx },
+        plate: { position: 'absolute', right: 5, top: 5, backgroundColor: 'text.main', '&.MuiIconButton-root': { backgroundColor: 'text.main' }, opacity: 0.8, zIndex: 1, borderRadius: 2, ...hoverSx },
         icon: 'bg.second',
     },
     hero: {
-        plate: { position: 'absolute', right: { xs: 12, sm: 20 }, top: { xs: 12, sm: 20 }, backgroundColor: 'overlay.onImage', opacity: 0.9, zIndex: 2, borderRadius: 2, ...hoverSx },
+        plate: { position: 'absolute', right: { xs: 12, sm: 20 }, top: { xs: 12, sm: 20 }, backgroundColor: 'overlay.onImage', '&.MuiIconButton-root': { backgroundColor: 'overlay.onImage' }, opacity: 0.9, zIndex: 2, borderRadius: 2, ...hoverSx },
         icon: 'text.dark',
     },
 }

@@ -120,7 +120,7 @@ function useFolderPicker() {
                                 color: 'text.main',
                                 transition: 'background-color 0.15s, transform 0.15s',
                                 // Як на сторінці Folders: на жовтому весь вміст темніє
-                                '@media (hover: hover)': { '&:hover': {
+                                '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                     transform: (t) => t.hoverLift,
                                     bgcolor: 'yellow.main',
                                     color: 'yellow.contrastText',
@@ -172,7 +172,7 @@ function useFolderPicker() {
                         color: 'text.main',
                         border: '1px solid',
                         borderColor: 'text.secondary',
-                        '@media (hover: hover)': { ':hover': { bgcolor: 'bg.selected' } },
+                        '@media (hover: hover) and (pointer: fine)': { ':hover': { bgcolor: 'bg.selected' } },
                     }}
                 >
                     Cancel

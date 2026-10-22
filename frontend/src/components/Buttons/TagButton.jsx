@@ -8,7 +8,7 @@ function TagButton({ children, onClick }) {
       onClick={onClick}
       sx={{
         color: "text.second",
-        '@media (hover: hover)': { ":hover": {
+        '@media (hover: hover) and (pointer: fine)': { ":hover": {
           color: "text.main",
           cursor: "pointer",
         } },

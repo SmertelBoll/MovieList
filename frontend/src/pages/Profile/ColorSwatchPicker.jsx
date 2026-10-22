@@ -39,7 +39,7 @@ function ColorSwatchPicker({ color, onChange }) {
                     fontSize: 13,
                     lineHeight: 1,
                     transition: 'transform 0.12s, box-shadow 0.12s',
-                    '@media (hover: hover)': { '&:hover': { transform: 'scale(1.08)', boxShadow: 2 } },
+                    '@media (hover: hover) and (pointer: fine)': { '&:hover': { transform: 'scale(1.08)', boxShadow: 2 } },
                 }}
             >
                 {!color && '?'}
@@ -149,7 +149,7 @@ function ColorSwatchPicker({ color, onChange }) {
                                             ? `0 0 0 2px ${theme.palette.bg.second}, 0 0 0 4px ${theme.palette.text.main}`
                                             : `inset 0 0 0 1px ${theme.palette.overlay.hairline}`,
                                     transition: 'transform 0.12s',
-                                    '@media (hover: hover)': { '&:hover': { transform: 'scale(1.15)' } },
+                                    '@media (hover: hover) and (pointer: fine)': { '&:hover': { transform: 'scale(1.15)' } },
                                 })}
                             />
                         ))}

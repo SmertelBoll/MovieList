@@ -155,9 +155,11 @@ function DropdownMenu({
                                     '&.Mui-selected': {
                                         bgcolor: 'yellow.main',
                                         color: 'yellow.contrastText',
-                                        '@media (hover: hover)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' } },
+                                        // Вибраний пункт лишається жовтим і під «залиплим» hover на телефоні (див. theme.js)
+                                        '&:hover': { bgcolor: 'yellow.main', color: 'yellow.contrastText' },
+                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { bgcolor: 'yellow.dark', color: 'yellow.contrastText' } },
                                     },
-                                    '@media (hover: hover)': { '&:hover': {
+                                    '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                         bgcolor: 'yellow.main',
                                         color: 'yellow.contrastText',
                                     } },

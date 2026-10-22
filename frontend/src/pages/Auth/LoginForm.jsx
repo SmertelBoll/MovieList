@@ -178,7 +178,7 @@ function LoginForm() {
                 color: "text.main",
                 fontWeight: 700,
                 textDecoration: "underline",
-                '@media (hover: hover)': { "&:hover": { color: "yellow.dark" } },
+                '@media (hover: hover) and (pointer: fine)': { "&:hover": { color: "yellow.dark" } },
               }}
             >
               Sign up
@@ -194,7 +194,7 @@ function LoginForm() {
             position: "absolute",
             top: 2,
             right: 5,
-            '@media (hover: hover)': { "&:hover": { bgcolor: "transparent", color: "text.main" } },
+            '@media (hover: hover) and (pointer: fine)': { "&:hover": { bgcolor: "transparent", color: "text.main" } },
           }}
         >
           <InfoOutlinedIcon />

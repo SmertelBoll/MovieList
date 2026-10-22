@@ -60,7 +60,7 @@ function SortableTypeItem({ type, onRename, onDelete }) {
             <IconButton
                 size="small"
                 onClick={onRename}
-                sx={{ color: 'text.dark', '@media (hover: hover)': { '&:hover': { color: 'text.main' } } }}
+                sx={{ color: 'text.dark', '@media (hover: hover) and (pointer: fine)': { '&:hover': { color: 'text.main' } } }}
             >
                 <EditIcon fontSize="small" />
             </IconButton>
@@ -68,7 +68,7 @@ function SortableTypeItem({ type, onRename, onDelete }) {
             <IconButton
                 size="small"
                 onClick={onDelete}
-                sx={{ color: 'text.dark', '@media (hover: hover)': { '&:hover': { color: 'danger.main' } } }}
+                sx={{ color: 'text.dark', '@media (hover: hover) and (pointer: fine)': { '&:hover': { color: 'danger.main' } } }}
             >
                 <CloseIcon fontSize="small" />
             </IconButton>

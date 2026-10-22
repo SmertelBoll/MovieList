@@ -24,11 +24,13 @@ const EpisodeCart = ({
                 flexShrink: 0,
                 transition: "transform 0.1s, box-shadow 0.1s",
                 cursor: isHoverActive ? (onClick ? "pointer" : "help") : "default",
-                "&:hover": isHoverActive ? {
-                    transform: "scale(1.05)",
-                    boxShadow: 3,
-                    zIndex: 1
-                } : {}
+                '@media (hover: hover) and (pointer: fine)': {
+                    "&:hover": isHoverActive ? {
+                        transform: "scale(1.05)",
+                        boxShadow: 3,
+                        zIndex: 1
+                    } : {}
+                }
             }}
         >
             {children && (

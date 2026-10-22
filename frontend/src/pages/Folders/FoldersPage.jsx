@@ -255,7 +255,7 @@ function FoldersPage() {
                                     borderRadius: 2,
                                     transition: 'background-color 0.15s, transform 0.15s',
                                     ...(!isRenaming && {
-                                        '@media (hover: hover)': { '&:hover': {
+                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': {
                                             transform: (theme) => theme.hoverLift,
                                             bgcolor: 'yellow.main',
                                             // На жовтому весь вміст картки темніє:

@@ -531,7 +531,7 @@ function ItemSaveDialog({
                                             borderColor: 'text.main',
                                             color: typeCustom.length ? 'text.main' : 'text.secondary',
                                             transition: 'border-color 0.15s',
-                                            '@media (hover: hover)': { '&:hover': { borderColor: 'text.main' } },
+                                            '@media (hover: hover) and (pointer: fine)': { '&:hover': { borderColor: 'text.main' } },
                                         }}
                                     >
                                         <Typography variant="body2" noWrap>
@@ -579,7 +579,7 @@ function ItemSaveDialog({
                                                         gap: 1, width: '100%', height: 40, boxSizing: 'border-box', p: 1,
                                                         borderRadius: '4px', cursor: 'pointer', border: '1px solid',
                                                         borderColor: 'text.main',
-                                                        '@media (hover: hover)': { '&:hover': { borderColor: 'text.main' } },
+                                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { borderColor: 'text.main' } },
                                                     }}
                                                 >
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
@@ -663,7 +663,7 @@ function ItemSaveDialog({
                             mr: { sm: 'auto' },
                             backgroundColor: 'danger.main',
                             color: 'danger.contrastText',
-                            '@media (hover: hover)': { ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' } },
+                            '@media (hover: hover) and (pointer: fine)': { ':hover': { backgroundColor: 'danger.dark', color: 'danger.contrastText' } },
                         }}
                     >
                         Delete

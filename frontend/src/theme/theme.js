@@ -65,7 +65,7 @@ export const getTheme = (mode) =>
                 color: theme.palette.yellow.contrastText,
               },
               // hover лише на пристроях з курсором — на телефоні він «залипає» після дотику
-              "@media (hover: hover)": {
+              "@media (hover: hover) and (pointer: fine)": {
                 "&:hover": {
                   backgroundColor: theme.palette.yellow.main,
                   color: theme.palette.yellow.contrastText,
@@ -79,7 +79,7 @@ export const getTheme = (mode) =>
         styleOverrides: {
           root: ({ theme }) => ({
             color: theme.palette.text.main,
-            "@media (hover: hover)": {
+            "@media (hover: hover) and (pointer: fine)": {
               "&:hover": {
                 backgroundColor: theme.palette.yellow.main,
                 color: theme.palette.yellow.contrastText,
@@ -88,11 +88,15 @@ export const getTheme = (mode) =>
             "&.Mui-selected": {
               backgroundColor: theme.palette.yellow.main,
               color: theme.palette.yellow.contrastText,
+              "&:hover": {
+                backgroundColor: theme.palette.yellow.main,
+                color: theme.palette.yellow.contrastText,
+              },
               "&:focus": {
                 backgroundColor: theme.palette.yellow.dark,
                 color: theme.palette.yellow.contrastText,
               },
-              "@media (hover: hover)": {
+              "@media (hover: hover) and (pointer: fine)": {
                 "&:hover": {
                   backgroundColor: theme.palette.yellow.dark,
                   color: theme.palette.yellow.contrastText,
@@ -125,7 +129,7 @@ export const getTheme = (mode) =>
       MuiMenuItem: {
         styleOverrides: {
           root: ({ theme }) => ({
-            "@media (hover: hover)": {
+            "@media (hover: hover) and (pointer: fine)": {
               "&:hover": {
                 backgroundColor: theme.palette.yellow.main,
                 color: theme.palette.yellow.contrastText,
@@ -134,7 +138,14 @@ export const getTheme = (mode) =>
             "&.Mui-selected": {
               backgroundColor: theme.palette.yellow.main,
               color: theme.palette.yellow.contrastText,
-              "@media (hover: hover)": {
+              // На touch-пристрої після дотику елемент лишається :hover, і MUI для «.Mui-selected:hover» ставить
+              // блідий фон (@media (hover: none)) зі специфічністю вищою за звичайне «.Mui-selected» —
+              // вибраний пункт ставав блідим. Тут той самий селектор, але з жовтим.
+              "&:hover": {
+                backgroundColor: theme.palette.yellow.main,
+                color: theme.palette.yellow.contrastText,
+              },
+              "@media (hover: hover) and (pointer: fine)": {
                 "&:hover": {
                   backgroundColor: theme.palette.yellow.dark,
                   color: theme.palette.yellow.contrastText,

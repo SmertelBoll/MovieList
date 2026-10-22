@@ -48,7 +48,7 @@ function ItemCart({
                 position: "relative",
                 cursor: "pointer",
                 transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                '@media (hover: hover)': { "&:hover": {
+                '@media (hover: hover) and (pointer: fine)': { "&:hover": {
                     transform: (theme) => theme.hoverLift,
                     boxShadow: 4
                 } }

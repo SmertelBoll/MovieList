@@ -260,7 +260,7 @@ function SideBar({
                                         alignItems: "center",
                                         // Кольорова іконка статусу на жовтому фоні (наведення / вибрана папка)
                                         // стає темною, як і текст — світлі кольори статусів там не читались би
-                                        "&:hover .folder-status-icon": { color: "inherit" },
+                                        '@media (hover: hover) and (pointer: fine)': { "&:hover .folder-status-icon": { color: "inherit" } },
                                         ...(selectedFolder && selectedFolder.name === folder.name && {
                                             "& .folder-status-icon": { color: "inherit" },
                                         }),
