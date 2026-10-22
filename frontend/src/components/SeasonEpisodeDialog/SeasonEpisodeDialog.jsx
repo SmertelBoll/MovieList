@@ -242,7 +242,7 @@ function SeasonEpisodeDialog({
                             onClick={() => alertConfirm(
                                 mode === "episode"
                                     ? 'Delete this episode from your list?'
-                                    : 'Delete the rating, comment and date of this season? Its episodes will stay.',
+                                    : 'Delete this season and all its episodes from your list?',
                                 onDelete
                             )}
                             sx={{

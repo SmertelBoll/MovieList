@@ -460,7 +460,7 @@ function TVPage({ isSaved = false }) {
             })
     }
 
-    // Видалення даних сезону (оцінка, коментар, дата). Серії сезону лишаються
+    // Повне видалення сезону з бази разом з усіма його серіями
     const handleDeleteSeason = (sNum) => {
         instance
             .delete(`/tv/${serial._id}/season/${sNum}`)
