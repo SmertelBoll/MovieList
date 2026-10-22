@@ -32,7 +32,9 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
 
     // Постер у рядку відкриває серіал, а для колекції — її ПЕРШУ частину (за датою виходу).
     // Що саме відкриється (TMDB / збережена / вибір папки) вирішує SavedItemOpener.
-    const targetPart = row.kind === 'collection' ? row.parts[0] : null
+    // Частини, що ще не вийшли (SOON у Timeline), на Updates не показуємо
+    const visibleParts = row.kind === 'collection' ? row.parts.filter((p) => !p.upcoming) : []
+    const targetPart = row.kind === 'collection' ? visibleParts[0] || row.parts[0] : null
 
     const [open, setOpen] = useState(false)
     // Множина, а не одне значення: сезони розкриваються незалежно один від одного
@@ -102,7 +104,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
     const subtitle = isCaughtUp
         ? 'All caught up'
         : row.kind === 'collection'
-        ? `${row.unwatchedCount} unwatched of ${row.parts.length}`
+        ? `${row.unwatchedCount} unwatched of ${row.releasedCount}`
         : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
 
     return (
@@ -181,7 +183,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                         // --- Частини колекції: компактні рядки (режим «list», як у General) або картки ---
                         viewMode === 'list' ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                {row.parts.map((part) => (
+                                {visibleParts.map((part) => (
                                     <Box
                                         key={part.id}
                                         sx={{
@@ -241,7 +243,7 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
                             gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(140px, 1fr))' },
                             gap: 2,
                         }}>
-                            {row.parts.map((part) => (
+                            {visibleParts.map((part) => (
                                 <Box
                                     key={part.id}
                                     sx={{

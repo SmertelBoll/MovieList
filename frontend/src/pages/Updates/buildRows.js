@@ -43,6 +43,15 @@ export const slimTv = (data) => ({
         })),
 })
 
+// Вийшло вже чи ні. Без дати (ще не анонсовано) або з датою в майбутньому — не вийшло: у Timeline на сторінці фільму
+// такі частини з позначкою SOON, а на Updates їх не показуємо й не рахуємо як «нове».
+// Дати TMDB — «yyyy-MM-dd», тож порівняння рядків з сьогоднішньою датою працює без розбору.
+const todayIso = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+export const isReleased = (date) => Boolean(date) && date <= todayIso()
+
 // Частини колекції в хронологічному порядку; без дати виходу (ще не анонсовані, TBA) — в кінець,
 // як і в Timeline на сторінці фільму. Порожній рядок за звичайним порівнянням був би першим.
 const byReleaseDate = (a, b) => {
@@ -74,7 +83,7 @@ const latestDateOf = (items, dateOf) => items.reduce((max, item) => (dateOf(item
 
 /** Серіал: entry — що збережено (бекенд), meta — що на TMDB. */
 export function buildTvRow(entry, meta) {
-    const seasons = meta.seasons.map((s) => {
+    const seasons = meta.seasons.filter((s) => isReleased(s.airDate)).map((s) => {
         const watchedEpisodes = entry.watched[String(s.seasonNumber)] || {}
         // Сезон переглянутий, лише якщо переглянуті ВСІ серії
         const unwatchedCount = Math.max(0, s.episodeCount - Object.keys(watchedEpisodes).length)
@@ -127,6 +136,9 @@ export function buildCollectionRow(meta, savedByTmdbId) {
             title: part.title,
             posterPath: part.posterPath,
             releaseDate: part.releaseDate,
+            // Ще не вийшла: у рядку не показується й не рахується, але лишається в parts — її збережена копія
+            // в папці dropped, як і раніше, ховає франшизу
+            upcoming: !isReleased(part.releaseDate),
             // null — не збережений; інакше статус папки
             status: saved?.status || null,
             hasDropped: Boolean(saved?.hasDropped),
@@ -143,11 +155,12 @@ export function buildCollectionRow(meta, savedByTmdbId) {
     return { key: `collection-${meta.id}`, kind: 'collection', id: meta.id, title: cleanCollectionName(meta.name), posterPath: meta.posterPath, parts, lastActivity, ...collectionTotals(parts) }
 }
 
-function collectionTotals(parts) {
+export function collectionTotals(parts) {
     // Позаду лише переглянуте й кинуте. Те, що дивляться зараз (watching) або заплановане (planned),
-    // лишається в лічильнику — просто з іншою іконкою.
-    const unwatched = parts.filter((p) => !HANDLED_STATUSES.has(p.status))
-    return { unwatchedCount: unwatched.length, latestDate: latestDateOf(unwatched, (p) => p.releaseDate) }
+    // лишається в лічильнику — просто з іншою іконкою. Частини, що ще не вийшли, не рахуємо.
+    const released = parts.filter((p) => !p.upcoming)
+    const unwatched = released.filter((p) => !HANDLED_STATUSES.has(p.status))
+    return { unwatchedCount: unwatched.length, releasedCount: released.length, latestDate: latestDateOf(unwatched, (p) => p.releaseDate) }
 }
 
 /** Оновлення показаної колекції: статуси частин беремо з екрана (див. mergeTvRow). */

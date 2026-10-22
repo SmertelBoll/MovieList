@@ -21,8 +21,8 @@ import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpis
 import MarkWatchedDialog from '../../components/MarkWatchedDialog/MarkWatchedDialog'
 import UpdateRow from './UpdateRow'
 import {
-    HANDLED_STATUSES, SEED_STATUSES, VIEWS, isCollectionVisible,
-    slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow,
+    SEED_STATUSES, VIEWS, isCollectionVisible,
+    slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow, collectionTotals,
 } from './buildRows'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
@@ -307,14 +307,15 @@ function UpdatesPage() {
             const parts = row.parts.map((p) => (
                 p.id === tmdbId ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p
             ))
-            const unwatched = parts.filter((p) => !HANDLED_STATUSES.has(p.status))
+            const { unwatchedCount, releasedCount, latestDate } = collectionTotals(parts)
             return {
                 ...row,
                 parts,
+                releasedCount,
                 // Будь-яка правка — свіжа активність: при наступному кліку на сортування рядок підніметься нагору
                 lastActivity: Date.now(),
-                unwatchedCount: unwatched.length,
-                latestDate: unwatched.reduce((max, p) => (p.releaseDate > max ? p.releaseDate : max), ''),
+                unwatchedCount,
+                latestDate,
             }
         }))
     }, [])
