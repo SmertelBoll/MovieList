@@ -48,6 +48,8 @@ async function mapLimit(items, limit, fn) {
 // order — напрямок за замовчуванням: desc дає той самий порядок, що й раніше
 // (спершу найбільше нового / найсвіжіші релізи), Title — за зростанням (A–Z).
 const SORT_OPTIONS = {
+    // Перший у списку й за замовчуванням: спершу те, що дивилися нещодавно
+    'Recently watched': { order: 'desc' },
     'New episodes': { order: 'desc' },
     'Release date': { order: 'desc' },
     'Title': { order: 'asc' },
@@ -55,6 +57,7 @@ const SORT_OPTIONS = {
 
 // Компаратори завжди за зростанням — напрямок перевертає сортування нижче
 const SORT_COMPARATORS = {
+    'Recently watched': (a, b) => (a.lastActivity || 0) - (b.lastActivity || 0),
     'New episodes': (a, b) => a.unwatchedCount - b.unwatchedCount,
     'Release date': (a, b) => (a.latestDate || '').localeCompare(b.latestDate || ''),
     'Title': (a, b) => a.title.localeCompare(b.title),
@@ -80,8 +83,8 @@ function UpdatesPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
     const [rows, setRows] = useState([])
-    const [nameSortBy, setNameSortBy] = useState('New episodes')
-    const [sortDirection, setSortDirection] = useState(SORT_OPTIONS['New episodes'].order)
+    const [nameSortBy, setNameSortBy] = useState('Recently watched')
+    const [sortDirection, setSortDirection] = useState(SORT_OPTIONS['Recently watched'].order)
 
     // Папки потрібні діалогу збереження (він показує сайдбар з вибором папки)
     const [folders, setFolders] = useState([])
@@ -255,7 +258,7 @@ function UpdatesPage() {
     rowsRef.current = rows
     const [loadVersion, setLoadVersion] = useState(0)
     const sortOrder = useMemo(() => {
-        const compare = SORT_COMPARATORS[nameSortBy] || SORT_COMPARATORS['New episodes']
+        const compare = SORT_COMPARATORS[nameSortBy] || SORT_COMPARATORS['Recently watched']
         const keys = [...rowsRef.current]
             .sort((a, b) => sortDirection === 'asc' ? compare(a, b) : -compare(a, b))
             .map((row) => row.key)
@@ -308,6 +311,8 @@ function UpdatesPage() {
             return {
                 ...row,
                 parts,
+                // Будь-яка правка — свіжа активність: при наступному кліку на сортування рядок підніметься нагору
+                lastActivity: Date.now(),
                 unwatchedCount: unwatched.length,
                 latestDate: unwatched.reduce((max, p) => (p.releaseDate > max ? p.releaseDate : max), ''),
             }
@@ -335,6 +340,7 @@ function UpdatesPage() {
             return {
                 ...row,
                 seasons,
+                lastActivity: Date.now(),
                 unwatchedCount,
                 latestDate: seasons
                     .filter((s) => s.unwatchedCount > 0)

@@ -43,16 +43,32 @@ export const slimTv = (data) => ({
         })),
 })
 
+// Частини колекції в хронологічному порядку; без дати виходу (ще не анонсовані, TBA) — в кінець,
+// як і в Timeline на сторінці фільму. Порожній рядок за звичайним порівнянням був би першим.
+const byReleaseDate = (a, b) => {
+    if (!a.releaseDate && !b.releaseDate) return 0
+    if (!a.releaseDate) return 1
+    if (!b.releaseDate) return -1
+    return a.releaseDate.localeCompare(b.releaseDate)
+}
+
 export const slimCollection = (data) => ({
     id: data.id,
     name: data.name,
     posterPath: data.poster_path,
     parts: [...(data.parts || [])]
-        .sort((a, b) => (a.release_date || '').localeCompare(b.release_date || ''))
-        .map((p) => ({ id: p.id, title: p.title, posterPath: p.poster_path, releaseDate: p.release_date || '' })),
+        .map((p) => ({ id: p.id, title: p.title, posterPath: p.poster_path, releaseDate: p.release_date || '' }))
+        .sort(byReleaseDate),
 })
 
 // ---- Рядки ----
+
+// Остання активність рядка в мс — для сортування «Recently watched»: коли востаннє дивилися (за датою перегляду);
+// якщо дат перегляду немає — коли запис востаннє змінювали
+const toMs = (value) => {
+    const t = value ? Date.parse(value) : NaN
+    return Number.isNaN(t) ? 0 : t
+}
 
 const latestDateOf = (items, dateOf) => items.reduce((max, item) => (dateOf(item) > max ? dateOf(item) : max), '')
 
@@ -75,6 +91,7 @@ export function buildTvRow(entry, meta) {
         title: meta.name,
         posterPath: meta.posterPath,
         seasons,
+        lastActivity: toMs(entry.lastWatched) || toMs(entry.updatedAt),
         ...tvTotals(seasons),
     }
 }
@@ -103,7 +120,7 @@ export function mergeTvRow(existing, fresh) {
 
 /** Колекція фільмів: meta — склад колекції на TMDB, savedByTmdbId — що з неї збережено (бекенд). */
 export function buildCollectionRow(meta, savedByTmdbId) {
-    const parts = meta.parts.map((part) => {
+    const parts = [...meta.parts].sort(byReleaseDate).map((part) => {
         const saved = savedByTmdbId.get(part.id)
         return {
             id: part.id,
@@ -119,7 +136,11 @@ export function buildCollectionRow(meta, savedByTmdbId) {
             saved: saved || null,
         }
     })
-    return { key: `collection-${meta.id}`, kind: 'collection', id: meta.id, title: cleanCollectionName(meta.name), posterPath: meta.posterPath, parts, ...collectionTotals(parts) }
+    // Заплановані частини в активність не рахуються: їхня dateAdded — це дата додавання в папку, а не перегляду
+    const lastActivity = Math.max(0, ...parts
+        .filter((p) => p.status && p.status !== FOLDER_STATUSES.PLANNED)
+        .map((p) => toMs(p.saved?.dateAdded) || toMs(p.saved?.updatedAt)))
+    return { key: `collection-${meta.id}`, kind: 'collection', id: meta.id, title: cleanCollectionName(meta.name), posterPath: meta.posterPath, parts, lastActivity, ...collectionTotals(parts) }
 }
 
 function collectionTotals(parts) {

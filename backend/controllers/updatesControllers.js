@@ -23,6 +23,13 @@ import { normalizeTags } from "../utils/tags.js";
  * елемент зберігали, тож дедуплікація за ним зливає "Spider-Man" збережений
  * англійською і українською в один запис.
  */
+// Пізніша з двох дат (будь-яка може бути порожня)
+const latestOf = (a, b) => {
+  if (!a) return b || null;
+  if (!b) return a;
+  return new Date(a) >= new Date(b) ? a : b;
+};
+
 export const getUpdates = async (req, res) => {
   try {
     const userId = req.userId;
@@ -59,10 +66,11 @@ export const getUpdates = async (req, res) => {
 
     // З серіалів потрібні лише ті поля серій, які сторінка показує або передає у діалог редагування
     const [movies, tvs] = await Promise.all([
-      MovieModel.find({ _id: { $in: movieRefs }, user: userId }, { tmdbId: 1, rating: 1, comment: 1, dateAdded: 1, customType: 1 }).lean().exec(),
+      MovieModel.find({ _id: { $in: movieRefs }, user: userId }, { tmdbId: 1, rating: 1, comment: 1, dateAdded: 1, customType: 1, updatedAt: 1 }).lean().exec(),
       TvModel.find({ _id: { $in: tvRefs }, user: userId }, {
         tmdbId: 1,
         customType: 1,
+        updatedAt: 1,
         "seasons.season": 1,
         "seasons.episodes.episode": 1,
         "seasons.episodes.dateAdded": 1,
@@ -97,6 +105,8 @@ export const getUpdates = async (req, res) => {
         rating: takeThis ? movie.rating ?? null : existing.rating,
         comment: takeThis ? movie.comment || "" : existing.comment,
         dateAdded: takeThis ? movie.dateAdded || null : existing.dateAdded,
+        // Для сортування «Recently watched»: коли запис востаннє змінювали (найпізніше серед копій)
+        updatedAt: latestOf(existing?.updatedAt, movie.updatedAt),
         customType: takeThis ? normalizeTags(movie.customType) : existing.customType,
         copies: (existing?.copies || 0) + 1,
       });
@@ -123,10 +133,13 @@ export const getUpdates = async (req, res) => {
       const tvTags = normalizeTags(tv.customType);
       for (const tag of tvTags.length ? tvTags : [""]) entry.customTypes.add(tag);
 
+      entry.updatedAt = latestOf(entry.updatedAt, tv.updatedAt);
       for (const season of tv.seasons) {
         if (!entry.watched.has(season.season)) entry.watched.set(season.season, new Map());
         const episodes = entry.watched.get(season.season);
         for (const episode of season.episodes) {
+          // Остання дата перегляду по всіх копіях (навіть тих серій, що нижче пропускаються як дублікати)
+          entry.lastWatched = latestOf(entry.lastWatched, episode.dateAdded);
           // Перша копія перемагає — при кількох копіях редагування все одно вимкнене
           if (episodes.has(episode.episode)) continue;
           // Віддаємо лише значення, що відрізняються від типових (оцінки немає, коментаря немає, 1 перегляд,
@@ -149,6 +162,8 @@ export const getUpdates = async (req, res) => {
       mongoId: entry.mongoId,
       folderName: entry.folderName,
       customTypes: [...entry.customTypes],
+      lastWatched: entry.lastWatched || null,
+      updatedAt: entry.updatedAt || null,
       watched: Object.fromEntries(
         [...entry.watched.entries()].map(([season, episodes]) => [
           String(season),
