@@ -1,4 +1,5 @@
-import { Box, Checkbox, Dialog, DialogContent, DialogActions, FormControlLabel, Slider, useTheme, Typography } from '@mui/material';
+import { Box, Checkbox, Dialog, DialogContent, DialogActions, FormControlLabel, useTheme, Typography } from '@mui/material';
+import RatingSlider from '../RatingSlider';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
@@ -65,11 +66,6 @@ function SeasonEpisodeDialog({
     };
 
     const skippedSx = skipped ? { opacity: 0.4, pointerEvents: 'none' } : {};
-
-    const marks = Array.from({ length: 11 }, (_, index) => ({
-        value: 10 * index,
-        label: 10 * index,
-    }));
 
     const handleSliderChange = (event, newValue) => setRating(newValue);
     const handleInputSliderChange = (event) => setRating(event.target.value === '' ? 0 : Number(event.target.value));
@@ -167,26 +163,16 @@ function SeasonEpisodeDialog({
                         );
                     })()
                 ) : (
-                    <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1, ...skippedSx }}>
-                        <Slider
-                            value={typeof rating === 'number' ? rating : 0}
-                            onChange={handleSliderChange}
-                            min={0}
-                            max={100}
-                            step={1}
-                            marks={marks}
-                            valueLabelDisplay="auto"
-                            color="text.dark"
-                        />
+                    <RatingSlider value={typeof rating === 'number' ? rating : 0} onChange={handleSliderChange} sx={skippedSx}>
                         <InputBox
                             value={rating ?? ''}
                             size="small"
                             onChange={handleInputSliderChange}
                             onBlur={handleBlur}
                             inputProps={{ step: 1, min: 0, max: 100, type: 'number' }}
-                            sx={{ '& .MuiInput-underline': { display: 'none' } }}
+                            sx={{ width: 112, flexShrink: 0, mt: -0.5, '& .MuiInput-underline': { display: 'none' } }}
                         />
-                    </Box>
+                    </RatingSlider>
                 )}
 
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: mode === "episode" ? 'space-between' : 'flex-end', width: '100%', ...skippedSx }}>

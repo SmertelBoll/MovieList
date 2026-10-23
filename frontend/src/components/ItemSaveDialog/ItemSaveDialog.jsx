@@ -1,4 +1,5 @@
-import { Box, Dialog, DialogContent, DialogActions, Slider, useTheme, useMediaQuery, Typography } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogActions, useTheme, useMediaQuery, Typography } from '@mui/material';
+import RatingSlider from '../RatingSlider';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
@@ -102,11 +103,6 @@ function ItemSaveDialog({
     }, [isDeleteItem]);
 
     // -- HELP FUNCTIONS -- //
-    const marks = Array.from({ length: 11 }, (_, index) => ({
-        value: 10 * index,
-        label: 10 * index,
-    }));
-
     // 0 means no rating: stored as null
     const handleSliderChange = (event, newValue) => {
         setRating(newValue === 0 ? null : newValue);
@@ -563,17 +559,7 @@ function ItemSaveDialog({
                                 );
                             })()
                         ) : (
-                            <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
-                                <Slider
-                                    value={typeof rating === 'number' ? rating : 0}
-                                    onChange={handleSliderChange}
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    marks={marks}
-                                    valueLabelDisplay="auto"
-                                    color="text.dark"
-                                />
+                            <RatingSlider value={typeof rating === 'number' ? rating : 0} onChange={handleSliderChange}>
                                 <InputBox
                                     value={rating ? rating : ''}
                                     size="small"
@@ -581,13 +567,13 @@ function ItemSaveDialog({
                                     onBlur={handleBlur}
                                     inputProps={{
                                         step: 1,
-                                        min: 1,
+                                        min: 0,
                                         max: 100,
                                         type: 'number',
                                     }}
-                                    sx={{ '& .MuiInput-underline': { display: 'none' } }}
+                                    sx={{ width: 112, flexShrink: 0, mt: -0.5, '& .MuiInput-underline': { display: 'none' } }}
                                 />
-                            </Box>
+                            </RatingSlider>
                         )}
                         <InputBox
                             label="Enter text..."

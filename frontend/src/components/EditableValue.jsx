@@ -1,4 +1,4 @@
-import { Box, Rating, Slider, Typography, useTheme } from '@mui/material'
+import { Box, Rating, Typography, useTheme } from '@mui/material'
 import { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import CheckIcon from '@mui/icons-material/Check'
@@ -7,13 +7,12 @@ import DropdownMenu from './_customMUI/DropdownMenu'
 import TextFieldCustom from './_customMUI/TextFieldCustom'
 import MainButton from './Buttons/MainButton'
 import RatingDot from './RatingDot'
+import RatingSlider from './RatingSlider'
 import { DatePicker } from '@mui/x-date-pickers'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { formatRatingLabel, getRatingLevels, hasRatingSystem } from '../utils/ratingSystem'
 import { formatDateOnly, parseDateOnly, toDateOnlyISO } from '../utils/dates'
-
-const SLIDER_MARKS = Array.from({ length: 6 }, (_, index) => ({ value: 20 * index, label: 20 * index }))
 
 const clamp = (number) => Math.min(100, Math.max(0, number))
 
@@ -161,18 +160,7 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                         )}
                     />
                 ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 3, md: 5 }, pt: 2, pl: 1 }}>
-                        <Slider
-                            value={draft.rating}
-                            onChange={(e, next) => setRating(next)}
-                            min={0}
-                            max={100}
-                            step={1}
-                            marks={SLIDER_MARKS}
-                            valueLabelDisplay="auto"
-                            color="text.dark"
-                            sx={{ flexGrow: 1 }}
-                        />
+                    <RatingSlider value={draft.rating} onChange={(e, next) => setRating(next)}>
                         <InputBox
                             value={draft.rating}
                             size="small"
@@ -181,7 +169,7 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
                             inputProps={{ step: 1, min: 0, max: 100, type: 'number' }}
                             sx={{ width: 112, flexShrink: 0, mt: -0.5 }}
                         />
-                    </Box>
+                    </RatingSlider>
                 )}
 
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
