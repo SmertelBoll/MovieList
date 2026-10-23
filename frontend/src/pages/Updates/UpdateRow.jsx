@@ -1,13 +1,17 @@
-import { Box, Card, Chip, Collapse, Tooltip, Typography } from '@mui/material'
+import { Box, ButtonBase, Card, Chip, Collapse, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { formatDateOnly } from '../../utils/dates'
 import ItemFolderButton from '../../components/ItemFolderButton'
+import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import SavedItemOpener from '../../components/SavedItemOpener'
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
+import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
@@ -22,7 +26,7 @@ const poster = (path) => tmdbImageOrDefault(path, 'w185')
 const asDate = (value) => formatDateOnly(value) || '—'
 
 // One list row: a movie collection or a series. A click expands details.
-function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
+function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
     const { language, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
 
@@ -92,11 +96,24 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
     }
 
     const isCaughtUp = row.unwatchedCount === 0
-    const subtitle = isCaughtUp
+    const baseSubtitle = isCaughtUp
         ? 'All caught up'
         : row.kind === 'collection'
         ? `${row.unwatchedCount} unwatched of ${row.releasedCount}`
         : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
+    const subtitle = mutedMode
+        ? `${baseSubtitle} · ${mutedMode === 'forever' ? 'Muted' : 'Muted until a new part'}`
+        : baseSubtitle
+
+    // Follow state of a franchise, a bell like a channel's: the chip shows it and opens the actions. It sits in the
+    // expanded row, so the header looks the same for movies and series.
+    const followItems = mutedMode
+        ? [{ key: 'unmute', label: 'Follow again', onClick: () => onUnmute(row) }]
+        : [
+            { key: 'mute-forever', label: 'Stop following', onClick: () => onMute(row, 'forever') },
+            { key: 'mute-new-part', label: 'Stop until a new part', onClick: () => onMute(row, 'new-part') },
+        ]
+    const followLabel = !mutedMode ? 'Following' : mutedMode === 'forever' ? 'Muted' : 'Muted until a new part'
 
     return (
         // Card, so the background matches the movie cards (background.paper)
@@ -168,6 +185,45 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
 
             <Collapse in={open} unmountOnExit>
                 <Box sx={{ px: { xs: 1, sm: 2 }, pb: 2, pt: 1 }}>
+                    {row.kind === 'collection' && (
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                        <DropdownMenu
+                            width={220}
+                            items={followItems}
+                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                            renderTrigger={({ onClick, open: isMenuOpen }) => (
+                                <ButtonBase
+                                    onClick={onClick}
+                                    disableRipple
+                                    aria-label="follow options"
+                                    aria-haspopup="menu"
+                                    aria-expanded={isMenuOpen}
+                                    sx={{
+                                        // Same shape as the Sort control
+                                        display: 'inline-flex', alignItems: 'center', gap: 1,
+                                        height: 40, px: 2, boxSizing: 'border-box', borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'text.main',
+                                        color: 'text.main',
+                                        transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
+                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': {
+                                            bgcolor: 'yellow.main',
+                                            borderColor: 'yellow.main',
+                                            color: 'yellow.contrastText',
+                                        } },
+                                    }}
+                                >
+                                    {mutedMode ? <NotificationsOffOutlinedIcon fontSize="small" /> : <NotificationsNoneIcon fontSize="small" />}
+                                    <Typography variant="body2" component="span" sx={{ color: 'inherit', lineHeight: 1 }}>
+                                        {followLabel}
+                                    </Typography>
+                                    <ArrowDropDownIcon fontSize="small" />
+                                </ButtonBase>
+                            )}
+                        />
+                        </Box>
+                    )}
                     {row.kind === 'collection' ? (
                         viewMode === 'list' ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

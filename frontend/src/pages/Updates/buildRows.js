@@ -10,18 +10,28 @@ export const SEED_STATUSES = new Set([FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.
 
 // Handled = not new: watched, dropped, skipped. watching/planned are not handled, so they stay in the counters
 // (watching is both seed and "new").
-// skipped, unlike dropped, doesn't hide the franchise (hasDropped ignores it).
 export const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.WATCHED,
     FOLDER_STATUSES.DROPPED,
     FOLDER_STATUSES.SKIPPED,
 ])
 
-// Modes: normal ("new releases") and dropped, same logic over a different set. If any part of a franchise is dropped,
-// its Timeline is hidden in normal mode and shown only in dropped mode (movies only).
-export const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped' }
-const hasDroppedPart = (parts) => parts.some((p) => p.hasDropped)
-export const isCollectionVisible = (view, parts) => (view === VIEWS.DROPPED ? hasDroppedPart(parts) : !hasDroppedPart(parts))
+// Modes: normal ("new releases"), dropped (series from dropped folders) and muted (franchises the user stopped
+// following). A dropped movie doesn't stop its franchise from being followed: it just counts as handled.
+export const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped', MUTED: 'muted' }
+
+// A franchise the user stopped following (user.mutedCollections): forever, or until a part is released after the day
+// it was muted. A TBA date ('') never counts as released after.
+export const getMute = (mutedCollections, collectionId) => mutedCollections.find((m) => m.collectionId === collectionId) || null
+export const isMuted = (mute, parts) =>
+    Boolean(mute) && (mute.mode === 'forever' || !parts.some((p) => !p.upcoming && p.releaseDate > mute.mutedAt))
+
+// Collections are movies only, and the Dropped view is for series.
+export function isCollectionVisible(view, row, mutedCollections) {
+    if (view === VIEWS.DROPPED) return false
+    const muted = isMuted(getMute(mutedCollections, row.id), row.parts)
+    return view === VIEWS.MUTED ? muted : !muted
+}
 
 export const slimTv = (data) => ({
     name: data.name,
@@ -41,7 +51,7 @@ export const slimTv = (data) => ({
 // Released = has a date that isn't in the future. Timeline shows other parts as SOON; Updates neither shows nor counts
 // them.
 // TMDB dates are yyyy-MM-dd, so string comparison works.
-const todayIso = () => {
+export const todayIso = () => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -124,11 +134,9 @@ export function buildCollectionRow(meta, savedByTmdbId) {
             title: part.title,
             posterPath: part.posterPath,
             releaseDate: part.releaseDate,
-            // Not released yet: not shown or counted in the row, but kept in parts: its saved copy in a
-            // dropped folder still hides the franchise.
+            // Not released yet: not shown or counted in the row, but kept in parts for the mute check.
             upcoming: !isReleased(part.releaseDate),
             status: saved?.status || null,
-            hasDropped: Boolean(saved?.hasDropped),
             mongoId: saved?.mongoId || null,
             folderName: saved?.folderName || null,
             saved: saved || null,
@@ -156,4 +164,4 @@ export function mergeCollectionRow(existing, fresh) {
     return { ...existing, title: fresh.title, posterPath: fresh.posterPath, parts, ...collectionTotals(parts) }
 }
 
-const pickState = ({ status, hasDropped, mongoId, folderName, saved }) => ({ status, hasDropped, mongoId, folderName, saved })
+const pickState = ({ status, mongoId, folderName, saved }) => ({ status, mongoId, folderName, saved })

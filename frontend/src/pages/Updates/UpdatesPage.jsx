@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectIsAuth } from '../../redux/slices/AuthSlice'
+import { selectIsAuth, updateUserData } from '../../redux/slices/AuthSlice'
 import GridViewIcon from '@mui/icons-material/GridView'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import instance from '../../axios'
@@ -20,7 +20,7 @@ import SeasonEpisodeDialog from '../../components/SeasonEpisodeDialog/SeasonEpis
 import MarkWatchedDialog from '../../components/MarkWatchedDialog/MarkWatchedDialog'
 import UpdateRow from './UpdateRow'
 import {
-    SEED_STATUSES, VIEWS, isCollectionVisible,
+    SEED_STATUSES, VIEWS, isCollectionVisible, getMute, todayIso,
     slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow, collectionTotals,
 } from './buildRows'
 import { tmdbGet as tmdbRequest } from '../../utils/tmdbApi'
@@ -68,6 +68,11 @@ function UpdatesPage() {
     const tmdbLanguage = getTmdbLanguage(language)
     // Where each copy lives (saved index): needed to compute a part's status after an edit
     const savedIndex = useSelector((state) => state.saved.byKey)
+    // Franchises the user stopped following. A ref, so the load effect reads the current list without re-running when
+    // it changes.
+    const mutedCollections = useSelector((state) => state.auth.data?.mutedCollections) || []
+    const mutedRef = useRef(mutedCollections)
+    mutedRef.current = mutedCollections
 
     // switchView is what the switch shows (instant); view is the mode the data is loaded for, trailing by the animation
     // time so the reload doesn't stall the slide.
@@ -113,24 +118,27 @@ function UpdatesPage() {
         const load = async () => {
             // 1) User-saved data (watched, folders, ratings) always comes fresh from the backend and is never
             // cached.
-            const { data } = await instance.get('/updates', { params: { view } })
+            const { data } = await instance.get('/updates', { params: { view: view === VIEWS.DROPPED ? VIEWS.DROPPED : VIEWS.ACTIVE } })
             const { movies, tv } = data.results
             if (cancelled) return
 
             const savedByTmdbId = new Map(movies.map((m) => [m.tmdbId, m]))
 
-            // Seed: only watching/watched. A franchise with nothing watched (all planned) or dropped doesn't
-            // appear. In dropped mode the seed is a movie in a dropped folder.
-            const seeds = movies.filter((m) => (view === VIEWS.DROPPED ? m.hasDropped : SEED_STATUSES.has(m.status)))
+            // Seed: only watching/watched. A franchise with nothing watched (all planned or dropped) doesn't appear. The
+            // Dropped view is series only.
+            const seeds = view === VIEWS.DROPPED ? [] : movies.filter((m) => SEED_STATUSES.has(m.status))
 
             // 2) TMDB metadata: draw from the cache at once (even stale), refresh missing/expired entries in
             // the background.
-            const isShown = (row) => row.unwatchedCount > 0 && (row.kind !== 'collection' || isCollectionVisible(view, row.parts))
+            // The Muted view lists franchises even when nothing is new (that's where they are un-muted), and no series.
+            const isShown = (row) => row.kind === 'collection'
+                ? isCollectionVisible(view, row, mutedRef.current) && (view === VIEWS.MUTED || row.unwatchedCount > 0)
+                : view !== VIEWS.MUTED && row.unwatchedCount > 0
             const rowsByKey = new Map()
             const tasks = []
             const scheduledCollections = new Set() // one collection can serve several watched parts
 
-            for (const entry of tv) {
+            for (const entry of (view === VIEWS.MUTED ? [] : tv)) {
                 const cached = cacheGet('tv', tmdbLanguage, entry.tmdbId)
                 if (cached) {
                     const row = buildTvRow(entry, cached.d)
@@ -331,6 +339,27 @@ function UpdatesPage() {
         }))
     }, [])
 
+    // Stop following a franchise (mode: 'forever' | 'new-part') or follow it again. The row leaves the list at once:
+    // it's an explicit action, unlike an edit.
+    const applyMuted = useCallback((mutedList, row) => {
+        dispatch(updateUserData({ mutedCollections: mutedList }))
+        setRows((prev) => prev.filter((r) => r.key !== row.key))
+    }, [dispatch])
+
+    const handleMute = useCallback(async (row, mode) => {
+        try {
+            const { data } = await instance.put(`/auth/muted-collections/${row.id}`, { mode, mutedAt: todayIso() })
+            applyMuted(data.results, row)
+        } catch (err) { console.warn(err); alertError(err) }
+    }, [applyMuted])
+
+    const handleUnmute = useCallback(async (row) => {
+        try {
+            const { data } = await instance.delete(`/auth/muted-collections/${row.id}`)
+            applyMuted(data.results, row)
+        } catch (err) { console.warn(err); alertError(err) }
+    }, [applyMuted])
+
     const handleMoviePlus = useCallback((part) => {
         setMovieDialog({
             mode: 'add',
@@ -376,7 +405,6 @@ function UpdatesPage() {
             const others = (savedIndex[`movie:${dialog.item.id}`] || []).filter((c) => c.mongoId !== editedId)
             patchMoviePart(dialog.item.id, () => ({
                 status: getBestStatus([...others.map((c) => c.status), dialog.folder?.status || null]),
-                hasDropped: [...others.map((c) => c.status), dialog.folder?.status].includes(FOLDER_STATUSES.DROPPED),
                 mongoId: editedId || null,
                 folderName: dialog.folder?.name || null,
                 saved: {
@@ -396,7 +424,6 @@ function UpdatesPage() {
         const others = (savedIndex[`movie:${movieDialog.item.id}`] || []).filter((c) => c.mongoId !== movieDialog.item._id)
         patchMoviePart(movieDialog.item.id, () => ({
             status: getBestStatus(others.map((c) => c.status)),
-            hasDropped: others.some((c) => c.status === FOLDER_STATUSES.DROPPED),
             mongoId: others[0]?.mongoId || null,
             folderName: others[0]?.folderName || null,
             saved: null,
@@ -484,6 +511,7 @@ function UpdatesPage() {
     // without a cache); otherwise "all watched" would flash.
     const isWaiting = isLoading || (refresh !== null && sortedRows.length === 0)
     const isDroppedView = view === VIEWS.DROPPED
+    const isMutedView = view === VIEWS.MUTED
 
     return (
         <Box bgcolor="bg.second" sx={{ borderRadius: 2, p: { xs: 1, sm: 3 }, display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
@@ -497,13 +525,15 @@ function UpdatesPage() {
             }}>
                 <Box sx={{ minWidth: 0 }}>
                     <Typography variant="sectionTitle" color="text.main">
-                        {isDroppedView ? 'Dropped' : 'New releases'}
+                        {isDroppedView ? 'Dropped' : isMutedView ? 'Muted franchises' : 'New releases'}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                         {isWaiting
                             ? 'Loading…'
                             : sortedRows.length === 0
-                            ? (isDroppedView ? 'No dropped titles with new releases' : 'Everything you are watching is up to date')
+                            ? (isDroppedView ? 'No dropped series with new episodes' : isMutedView ? 'No muted franchises' : 'Everything you are watching is up to date')
+                            : isMutedView
+                            ? `${sortedRows.length} ${sortedRows.length === 1 ? 'franchise' : 'franchises'}${refresh ? ' · updating…' : ''}`
                             : `${totalNew} new in ${titlesWithNew} ${titlesWithNew === 1 ? 'title' : 'titles'}${refresh ? ' · updating…' : ''}`}
                     </Typography>
                 </Box>
@@ -515,6 +545,7 @@ function UpdatesPage() {
                     options={[
                         { value: VIEWS.ACTIVE, label: 'New' },
                         { value: VIEWS.DROPPED, label: 'Dropped' },
+                        { value: VIEWS.MUTED, label: 'Muted' },
                     ]}
                 />
 
@@ -553,7 +584,11 @@ function UpdatesPage() {
                     <Typography variant="body1" color="text.secondary" textAlign="center">
                         {isDroppedView ? (
                             <>
-                                Nothing here. Movies and shows from folders with the "Dropped" status that have new releases will appear here.
+                                Nothing here. Series from folders with the "Dropped" status that have new episodes will appear here.
+                            </>
+                        ) : isMutedView ? (
+                            <>
+                                Nothing here. Movie franchises you stop following will appear here, so you can follow them again.
                             </>
                         ) : (
                             <>
@@ -568,6 +603,9 @@ function UpdatesPage() {
                         <UpdateRow
                             key={row.key}
                             row={row}
+                            mutedMode={row.kind === 'collection' ? getMute(mutedCollections, row.id)?.mode ?? null : null}
+                            onMute={handleMute}
+                            onUnmute={handleUnmute}
                             onMoviePlus={handleMoviePlus}
                             onMovieCheck={handleMovieCheck}
                             onEpisodeMark={(seasonNumber, episodeNumber) => handleEpisodeMark(row, seasonNumber, episodeNumber)}

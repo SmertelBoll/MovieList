@@ -52,7 +52,20 @@ const UserSchema = new mongoose.Schema(
     ratingSystem: {
       type: Array,
       default: [],
-    }
+    },
+    // Movie franchises (TMDB collections) hidden from Updates. mode "forever" hides for good, "new-part" until a part
+    // is released after mutedAt (a yyyy-MM-dd calendar day).
+    mutedCollections: {
+      type: [
+        {
+          _id: false,
+          collectionId: { type: Number, required: true },
+          mode: { type: String, enum: ["forever", "new-part"], required: true },
+          mutedAt: { type: String, required: true },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -13,7 +13,7 @@ const latestOf = (a, b) => {
 export const getUpdates = async (req, res) => {
   try {
     const userId = req.userId;
-    // ?view=dropped: same logic over dropped folders. Movies are the same in both views, flagged with hasDropped.
+    // ?view=dropped: series from dropped folders. Movies are the same in both views.
     const tvStatuses = req.query.view === "dropped"
       ? [FOLDER_STATUSES.DROPPED]
       : [FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED];
@@ -71,8 +71,6 @@ export const getUpdates = async (req, res) => {
       movieByTmdbId.set(movie.tmdbId, {
         tmdbId: movie.tmdbId,
         status,
-        // hasDropped: any copy in a dropped folder hides the franchise, even if another copy is stronger.
-        hasDropped: Boolean(existing?.hasDropped) || placement.status === FOLDER_STATUSES.DROPPED,
         mongoId: takeThis ? String(movie._id) : existing.mongoId,
         folderName: takeThis ? placement.folderName : existing.folderName,
         // Needed by the edit dialog, otherwise saving would wipe the rating and comment.

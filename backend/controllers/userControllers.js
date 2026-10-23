@@ -302,6 +302,59 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+const MUTE_MODES = ["forever", "new-part"];
+const DAY_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+
+// Stops following a movie franchise on Updates (or changes how). Body: { mode, mutedAt? }; mutedAt is the client's
+// calendar day, the server's UTC day when absent.
+export const muteCollection = async (req, res) => {
+  try {
+    const collectionId = Number(req.params.collectionId);
+    const { mode, mutedAt } = req.body;
+    if (!Number.isInteger(collectionId) || collectionId <= 0) {
+      return res.status(400).json({ title: "Mute error", message: "invalid collection id" });
+    }
+    if (!MUTE_MODES.includes(mode)) {
+      return res.status(400).json({ title: "Mute error", message: "mode must be forever or new-part" });
+    }
+    const day = typeof mutedAt === "string" && DAY_PATTERN.test(mutedAt) ? mutedAt : new Date().toISOString().slice(0, 10);
+
+    const user = await UserModel.findById(req.userId).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Mute error", message: "user not found" });
+    }
+    user.mutedCollections = [
+      ...user.mutedCollections.filter((m) => m.collectionId !== collectionId),
+      { collectionId, mode, mutedAt: day },
+    ];
+    await user.save();
+
+    res.json({ success: true, results: user.mutedCollections });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Mute error", message: "failed to stop following the collection" });
+  }
+};
+
+export const unmuteCollection = async (req, res) => {
+  try {
+    const collectionId = Number(req.params.collectionId);
+    const user = await UserModel.findByIdAndUpdate(
+      req.userId,
+      { $pull: { mutedCollections: { collectionId } } },
+      { new: true }
+    ).exec();
+    if (!user) {
+      return res.status(404).json({ title: "Mute error", message: "user not found" });
+    }
+
+    res.json({ success: true, results: user.mutedCollections });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Mute error", message: "failed to follow the collection again" });
+  }
+};
+
 // Keep in sync with DATE_FORMATS in frontend/src/utils/dateFormats.js
 const ALLOWED_DATE_FORMATS = ["MM/dd/yyyy", "dd.MM.yyyy", "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "yyyy.MM.dd"];
 

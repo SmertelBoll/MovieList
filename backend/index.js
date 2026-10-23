@@ -8,7 +8,7 @@ dotenv.config();
 
 import { loginValidation, registerValidation } from "./validations/auth.js";
 import { checkValidationError } from "./utils/checkValidationError.js";
-import { getMe, loginUser, registerUser, updateSettings, updateProfile, deleteCustomType, renameCustomType, updateEmail, updatePassword } from "./controllers/userControllers.js";
+import { getMe, loginUser, registerUser, updateSettings, updateProfile, deleteCustomType, renameCustomType, updateEmail, updatePassword, muteCollection, unmuteCollection } from "./controllers/userControllers.js";
 import { checkAuth } from "./utils/checkAuth.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
@@ -52,6 +52,8 @@ app.post("/auth/register", registerValidation, checkValidationError, registerUse
 app.post("/auth/login", loginValidation, checkValidationError, loginUser);
 app.get("/auth/me", checkAuth, getMe);
 app.patch("/auth/settings", checkAuth, updateSettings);
+app.put("/auth/muted-collections/:collectionId", checkAuth, muteCollection);
+app.delete("/auth/muted-collections/:collectionId", checkAuth, unmuteCollection);
 app.patch("/auth/profile", checkAuth, updateProfile);
 app.patch("/auth/email", checkAuth, updateEmail);
 app.patch("/auth/password", checkAuth, updatePassword);
