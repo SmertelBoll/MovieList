@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { formatDateOnly } from '../../utils/dates'
+import { getContrastText, getRatingAbbr, getRatingLevelColor } from '../../utils/ratingSystem'
+import RatingLabel from '../../components/RatingLabel'
 import ItemFolderButton from '../../components/ItemFolderButton'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
 import SavedItemOpener from '../../components/SavedItemOpener'
@@ -24,6 +26,41 @@ import { tmdbGet } from '../../utils/tmdbApi'
 const poster = (path) => tmdbImageOrDefault(path, 'w185')
 // TMDB dates are already yyyy-mm-dd, while dateAdded is an ISO string
 const asDate = (value) => formatDateOnly(value) || '—'
+
+// State icon of an episode. A watched one with a rating shows the rating inside the same yellow circle instead of the
+// check: the level color and abbreviation of the user's rating system, otherwise the number.
+function EpisodeMark({ saved }) {
+    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
+    if (saved?.skipped) return <CancelIcon fontSize="small" sx={{ color: 'status.skipped' }} />
+    if (!saved) return <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+    if (saved.rating == null) return <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
+
+    const levelColor = getRatingLevelColor(saved.rating, ratingSystem)
+    const label = String(getRatingAbbr(saved.rating, ratingSystem) ?? saved.rating)
+    return (
+        <Box
+            component="span"
+            // rating-circle: on the yellow row hover the circle turns dark like the check icons do
+            className={levelColor ? undefined : 'rating-circle'}
+            aria-label={`Rating ${label}`}
+            sx={{
+                // The circle of the small check icon is 17px inside its 20px box (1.5px of margin each side), so the same
+                // size and the same slot keep the circle and the titles lined up
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                width: 17, height: 17, m: '1.5px', borderRadius: '50%', boxSizing: 'border-box',
+                bgcolor: levelColor || 'status.watched',
+                color: levelColor ? getContrastText(levelColor) : 'text.dark',
+                // Longer labels ("100", two letters) need a smaller size to fit the circle
+                fontSize: label.length > 2 ? 7 : label.length === 2 ? 9 : 10, fontWeight: 800, lineHeight: 1,
+                letterSpacing: label.length > 2 ? '-0.3px' : 0,
+                // Capitals sit in the middle of the line; lowercase letters look pushed down
+                textTransform: 'uppercase',
+            }}
+        >
+            {label}
+        </Box>
+    )
+}
 
 // One list row: a movie collection or a series. A click expands details.
 function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdit, onSeasonMarkAll }) {
@@ -262,9 +299,12 @@ function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMov
                                             }}>
                                                 {part.title}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {asDate(part.releaseDate)}
-                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                    {asDate(part.releaseDate)}
+                                                </Typography>
+                                                <RatingLabel rating={part.saved?.rating} inline />
+                                            </Box>
                                         </Box>
 
                                         <ItemFolderButton
@@ -327,6 +367,7 @@ function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMov
                                             onAdd={() => onMoviePlus(part)}
                                             onEdit={(copy) => onMovieCheck(part, copy)}
                                         />
+                                        <RatingLabel rating={part.saved?.rating} />
                                     </Box>
 
                                     <Typography variant="body2" color="text.main" sx={{
@@ -453,15 +494,12 @@ function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMov
                                                                         bgcolor: 'yellow.main',
                                                                         '& .MuiTypography-root': { color: 'yellow.contrastText' },
                                                                         '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
+                                                                        '& .rating-circle': { bgcolor: 'yellow.contrastText', color: 'yellow.main' },
                                                                     } },
                                                                 }),
                                                             }}
                                                         >
-                                                            {saved?.skipped
-                                                                ? <CancelIcon fontSize="small" sx={{ color: 'status.skipped' }} />
-                                                                : watched
-                                                                    ? <CheckCircleIcon fontSize="small" sx={{ color: 'status.watched' }} />
-                                                                    : <RadioButtonUncheckedIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+                                                            <EpisodeMark saved={saved} />
 
                                                             <Typography variant="body2" color="text.main" sx={{ flexGrow: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
                                                                 {episode.episode_number}. {episode.name}
