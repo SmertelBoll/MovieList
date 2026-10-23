@@ -2,9 +2,6 @@ import { Box, Dialog, DialogContent, DialogActions, useTheme, useMediaQuery, Typ
 import RatingInput from '../RatingInput';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
-import { DatePicker } from "@mui/x-date-pickers";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import instance from '../../axios';
 import { alertError, alertConfirm, alertSuccess } from '../../alerts';
@@ -19,6 +16,7 @@ import { setUserTypeCustom } from '../../redux/slices/AuthSlice';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
+import DateField from '../DateField'
 
 const DEFAULT_RATE = null;
 const DEFAULT_DATE = new Date();
@@ -46,7 +44,7 @@ function ItemSaveDialog({
 }) {
     const theme = useTheme();
     const [promptText, textPromptDialog] = useTextPrompt()
-    const { language, dateFormat } = useSelector((state) => state.config)
+    const { language } = useSelector((state) => state.config)
     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isStacked = useMediaQuery(theme.breakpoints.down('md'));
     const dispatch = useDispatch();
@@ -409,28 +407,7 @@ function ItemSaveDialog({
                             width: '100%'
                         }}>
                             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
-                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                    {/* x-date-pickers v7 dropped renderInput: the field is plugged in via slots (otherwise unstyled, with a yellow primary focus ring). */}
-                                    <DatePicker
-                                        label="Choose date"
-                                        format={dateFormat}
-                                        value={selectedDate}
-                                        onChange={handleDateChange}
-                                        slots={{ textField: InputBox }}
-                                        slotProps={{
-                                            textField: {
-                                                fullWidth: true,
-                                                // InputBox has reduced padding (~39px); without size="small" MUI sizes
-                                                // the label for full height and it sinks in an empty field.
-                                                size: 'small',
-                                                sx: { width: '100%', mb: 0 },
-                                            },
-                                            // Clear button: the date is optional, an item can sit in a folder
-                                            // without one.
-                                            field: { clearable: true },
-                                        }}
-                                    />
-                                </LocalizationProvider>
+                                <DateField value={selectedDate} onChange={handleDateChange} dense />
                             </Box>
 
                             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', '& > div': { width: '100%', display: 'flex' } }}>

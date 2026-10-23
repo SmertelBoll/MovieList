@@ -1,23 +1,12 @@
-import { Box, Dialog, DialogActions, DialogContent, Typography, useTheme } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { DatePicker } from '@mui/x-date-pickers'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import TextFieldCustom from '../_customMUI/TextFieldCustom'
+import { Dialog, DialogActions, DialogContent, Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
 import MainButton from '../Buttons/MainButton'
 import { toDateOnlyISO } from '../../utils/dates'
+import DateField from '../DateField'
 
 // Bulk "watched" dialog (whole season): asks the watch date for all marked episodes (default today, can be cleared).
 // onConfirm(dateAdded)
 function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
-    const theme = useTheme()
-    const dateFormat = useSelector((state) => state.config.dateFormat)
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, false),
-        [theme.palette.bg.second, theme.palette.text.main]
-    )
-
     const [date, setDate] = useState(new Date())
     useEffect(() => {
         if (open) setDate(new Date())
@@ -35,19 +24,7 @@ function MarkWatchedDialog({ open, title, description, onClose, onConfirm }) {
                     </Typography>
                 )}
 
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                        label="Choose date"
-                        format={dateFormat}
-                        value={date}
-                        onChange={(newDate) => setDate(newDate)}
-                        slots={{ textField: InputBox }}
-                        slotProps={{
-                            textField: { fullWidth: true, sx: { mb: 0 } },
-                            field: { clearable: true },
-                        }}
-                    />
-                </LocalizationProvider>
+                <DateField value={date} onChange={(newDate) => setDate(newDate)} />
 
                 <DialogActions sx={{ p: 0, gap: 1 }}>
                     <MainButton

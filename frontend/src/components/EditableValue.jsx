@@ -4,11 +4,9 @@ import { useSelector } from 'react-redux'
 import TextFieldCustom from './_customMUI/TextFieldCustom'
 import MainButton from './Buttons/MainButton'
 import RatingInput from './RatingInput'
-import { DatePicker } from '@mui/x-date-pickers'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { formatRatingLabel } from '../utils/ratingSystem'
 import { formatDateOnly, parseDateOnly, toDateOnlyISO } from '../utils/dates'
+import DateField from './DateField'
 
 function EditActions({ onCancel, onSave, isSaving }) {
     return (
@@ -39,7 +37,6 @@ function EditActions({ onCancel, onSave, isSaving }) {
 function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', emptyText = 'No comment' }) {
     const theme = useTheme()
     const isRatingDate = type === 'ratingDate'
-    const dateFormat = useSelector((state) => state.config.dateFormat)
 
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
 
@@ -115,19 +112,12 @@ function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: { sm: 380 } }}>
                 <RatingInput value={draft.rating || null} onChange={(next) => setRating(next ?? 0)} onKeyDown={handleKeyDown} />
 
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                        label="Added"
-                        format={dateFormat}
-                        value={draft.date}
-                        onChange={(next) => setDraft((prev) => ({ ...prev, date: next }))}
-                        slots={{ textField: InputBox }}
-                        slotProps={{
-                            textField: { fullWidth: true, size: 'small', sx: { mb: 0 } },
-                            field: { clearable: true },
-                        }}
-                    />
-                </LocalizationProvider>
+                <DateField
+                    label="Added"
+                    value={draft.date}
+                    onChange={(next) => setDraft((prev) => ({ ...prev, date: next }))}
+                    dense
+                />
 
                 <EditActions onCancel={cancel} onSave={saveDraft} isSaving={isSaving} />
             </Box>

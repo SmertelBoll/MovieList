@@ -1,14 +1,11 @@
 import { Box, Checkbox, Dialog, DialogContent, DialogActions, FormControlLabel, useTheme, Typography } from '@mui/material';
 import RatingInput from '../RatingInput';
 import React, { useMemo, useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
-import { DatePicker } from "@mui/x-date-pickers";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import MainButton from '../Buttons/MainButton';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import { alertConfirm } from '../../alerts';
+import DateField from '../DateField'
 
 function SeasonEpisodeDialog({
     open,
@@ -33,7 +30,6 @@ function SeasonEpisodeDialog({
         [theme.palette.bg.second, theme.palette.text.main]
     );
 
-    const dateFormat = useSelector((state) => state.config.dateFormat);
 
     const [rating, setRating] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null);
@@ -112,20 +108,7 @@ function SeasonEpisodeDialog({
                             sx={{ mb: 0 }}
                         />
                     )}
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                        {/* x-date-pickers v7 dropped renderInput: the field is plugged in via slots (otherwise unstyled, with a yellow primary focus ring). */}
-                        <DatePicker
-                            label="Choose date"
-                            format={dateFormat}
-                            value={selectedDate}
-                            onChange={(newDate) => setSelectedDate(newDate)}
-                            slots={{ textField: InputBoxRegular }}
-                            slotProps={{
-                                textField: { fullWidth: true, sx: { mb: 0 } },
-                                field: { clearable: true },
-                            }}
-                        />
-                    </LocalizationProvider>
+                    <DateField value={selectedDate} onChange={(newDate) => setSelectedDate(newDate)} />
                 </Box>
 
                 <InputBox
