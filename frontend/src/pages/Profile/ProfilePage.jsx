@@ -1,5 +1,5 @@
 import { Avatar, Box, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -11,7 +11,6 @@ import { changeDateFormat } from '../../redux/slices/ConfigSlice'
 import { DATE_FORMATS } from '../../utils/dateFormats'
 import { format as formatDate } from 'date-fns'
 import DropdownMenu from '../../components/_customMUI/DropdownMenu'
-import TextFieldCustom from '../../components/_customMUI/TextFieldCustom'
 import MainButton from '../../components/Buttons/MainButton'
 import SortableTypeItem from './SortableTypeItem'
 import SortableRatingBlock from './SortableRatingBlock'
@@ -21,6 +20,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
+import useInputBox from '../../components/_customMUI/useInputBox'
 
 const fileToBase = (file) =>
     new Promise((resolve) => {
@@ -38,15 +38,9 @@ function ProfilePage() {
     const isAuth = useSelector(selectIsAuth)
     const user = useSelector((state) => state.auth.data)
 
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.bg.second, theme.palette.text.main]
-    )
+    const InputBox = useInputBox({ dense: true })
     // Standard-height variant for floating-label fields (otherwise the label sinks).
-    const LabeledInputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
-        [theme.palette.bg.second, theme.palette.text.main]
-    )
+    const LabeledInputBox = useInputBox()
 
     const [fullName, setFullName] = useState(user?.fullName || '')
     const [newEmail, setNewEmail] = useState(user?.email || '')

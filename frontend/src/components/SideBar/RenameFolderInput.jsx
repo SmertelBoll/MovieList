@@ -1,8 +1,8 @@
-import { Box, InputAdornment, useTheme } from '@mui/material';
+import { Box, InputAdornment } from '@mui/material';
 import React, { useEffect, useRef } from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import TextFieldCustom from '../_customMUI/TextFieldCustom';
+import useInputBox from '../_customMUI/useInputBox'
 
 function RenameFolderInput({
     curFolderName,
@@ -12,12 +12,8 @@ function RenameFolderInput({
     handleClickDelete,
     isInputNewFolder
 }) {
-    const theme = useTheme();
     const inputRef = useRef(null);
-    const InputBox = React.useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.mode]
-    );
+    const InputBox = useInputBox({ dense: true })
 
     // autoFocus doesn't fire when the Menu closes and returns focus to its trigger, so focus manually after
     // the close animation.

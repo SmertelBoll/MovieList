@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Dialog, DialogActions, DialogContent, DialogTitle, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import TextFieldCustom from './TextFieldCustom'
 import MainButton from '../Buttons/MainButton'
+import useInputBox from './useInputBox'
 
 // Text input dialog instead of a swal2 input. Returns [prompt, dialog]: prompt(options) -> Promise<string|null> (null =
 // cancelled); render dialog in the tree.
@@ -11,10 +11,7 @@ function useTextPrompt() {
     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
     // Regular field height: with a floating label the caption would otherwise shift.
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
-        [theme.palette.bg.second, theme.palette.text.main]
-    )
+    const InputBox = useInputBox()
 
     const [config, setConfig] = useState(null)
     const [value, setValue] = useState('')

@@ -1,18 +1,15 @@
 import { IconButton } from "@mui/material";
-import React, { useMemo } from "react";
+import React from 'react'
 import { useTheme } from "@mui/material/styles";
 
-import TextFieldCustom from "../_customMUI/TextFieldCustom";
 
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import useInputBox from '../_customMUI/useInputBox'
 
 function Search({ inputText, onChangeInput, label = "Search" }) {
     const theme = useTheme();
-    const SearchBox = useMemo(() => TextFieldCustom(
-        theme.palette.bg.main,
-        theme.palette.text.main
-    ), [theme.palette.mode]);
+    const SearchBox = useInputBox({ background: 'main' })
 
     const handleChange = (e) => {
         onChangeInput(e);

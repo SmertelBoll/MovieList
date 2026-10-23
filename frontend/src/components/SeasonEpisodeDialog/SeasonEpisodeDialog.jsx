@@ -1,11 +1,11 @@
 import { Box, Checkbox, Dialog, DialogContent, DialogActions, FormControlLabel, useTheme, Typography } from '@mui/material';
 import RatingInput from '../RatingInput';
-import React, { useMemo, useState, useEffect } from 'react';
-import TextFieldCustom from '../_customMUI/TextFieldCustom';
+import React, { useState, useEffect } from 'react';
 import MainButton from '../Buttons/MainButton';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import { alertConfirm } from '../../alerts';
 import DateField from '../DateField'
+import useInputBox from '../_customMUI/useInputBox'
 
 function SeasonEpisodeDialog({
     open,
@@ -20,15 +20,9 @@ function SeasonEpisodeDialog({
     onDelete,
 }) {
     const theme = useTheme();
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.bg.second, theme.palette.text.main]
-    );
+    const InputBox = useInputBox({ dense: true })
     // Without reduced padding, to match the date field height (DatePicker).
-    const InputBoxRegular = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, false),
-        [theme.palette.bg.second, theme.palette.text.main]
-    );
+    const InputBoxRegular = useInputBox()
 
 
     const [rating, setRating] = useState(null);

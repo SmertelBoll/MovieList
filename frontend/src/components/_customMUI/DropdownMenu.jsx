@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Menu, MenuItem, Typography, Divider, InputAdornment, useTheme } from '@mui/material';
+import { Box, Menu, MenuItem, Typography, Divider, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import TextFieldCustom from './TextFieldCustom';
+import useInputBox from './useInputBox'
 
 // Generic dropdown. items: { key, label, subLabel, icon, endAdornment, selected, disabled, onClick, closeOnClick };
 // renderTrigger: ({ onClick, open }) => node.
@@ -19,15 +19,11 @@ function DropdownMenu({
     stopPropagation = false,
     emptyText = 'No results',
 }) {
-    const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState(null);
     const [open, setOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const SearchBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.main, theme.palette.text.main, false),
-        [theme.palette.bg.main, theme.palette.text.main]
-    );
+    const SearchBox = useInputBox({ background: 'main' })
 
     const handleOpen = (event) => {
         if (stopPropagation) {

@@ -1,26 +1,21 @@
 import { Avatar, Box, IconButton, InputAdornment, Typography } from "@mui/material";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "../../axios";
-import { useTheme } from "@mui/material/styles";
 
 import { alertError } from "../../alerts";
 import { fetchRegister, selectIsAuth } from "../../redux/slices/AuthSlice";
-import TextFieldCustom from "../../components/_customMUI/TextFieldCustom";
 import ContainerCustom from "../../components/_customMUI/ContainerCustom";
 import MainButton from "../../components/Buttons/MainButton";
 
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import useInputBox from '../../components/_customMUI/useInputBox'
 
 function RegistrationForm() {
-  const theme = useTheme();
-  const InputBox = useMemo(
-    () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main),
-    [theme.palette.mode]
-  );
+  const InputBox = useInputBox()
 
   const dispatch = useDispatch();
   const isAuth = useSelector(selectIsAuth);

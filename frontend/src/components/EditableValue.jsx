@@ -1,12 +1,12 @@
-import { Box, Rating, Typography, useTheme } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { Box, Rating, Typography } from '@mui/material'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
-import TextFieldCustom from './_customMUI/TextFieldCustom'
 import MainButton from './Buttons/MainButton'
 import RatingInput from './RatingInput'
 import { formatRatingLabel } from '../utils/ratingSystem'
 import { formatDateOnly, parseDateOnly, toDateOnlyISO } from '../utils/dates'
 import DateField from './DateField'
+import useInputBox from './_customMUI/useInputBox'
 
 function EditActions({ onCancel, onSave, isSaving }) {
     return (
@@ -35,15 +35,11 @@ function EditActions({ onCancel, onSave, isSaving }) {
 // In-place editor for a saved item's values: type="text" (comment) or type="ratingDate" (rating + date saved
 // together). A tap enables editing.
 function EditableValue({ type = 'text', value, onSave, sx, title = 'My review', emptyText = 'No comment' }) {
-    const theme = useTheme()
     const isRatingDate = type === 'ratingDate'
 
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
 
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, isRatingDate),
-        [theme.palette.bg.second, theme.palette.text.main, isRatingDate]
-    )
+    const InputBox = useInputBox({ dense: isRatingDate })
 
     const [isEditing, setIsEditing] = useState(false)
     // text: string; ratingDate: { rating 0-100 (0 = none), date: Date | null }

@@ -1,25 +1,21 @@
-import { Box, Typography, useTheme } from '@mui/material'
-import { useMemo } from 'react'
+import { Box, Typography } from '@mui/material'
+
 import { useSelector } from 'react-redux'
 import CheckIcon from '@mui/icons-material/Check'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import DropdownMenu from './_customMUI/DropdownMenu'
-import TextFieldCustom from './_customMUI/TextFieldCustom'
 import RatingDot from './RatingDot'
 import RatingSlider from './RatingSlider'
 import { getRatingLevels, hasRatingSystem } from '../utils/ratingSystem'
+import useInputBox from './_customMUI/useInputBox'
 
 const clamp = (number) => Math.min(100, Math.max(0, number))
 
 // The one way to enter a rating: the user's own levels (dropdown) when they have a rating system, otherwise the 0-100
 // slider with a number field. value / onChange use null for "no rating" (0 counts as none).
 function RatingInput({ value, onChange, onKeyDown, sx }) {
-    const theme = useTheme()
     const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || [])
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.bg.second, theme.palette.text.main]
-    )
+    const InputBox = useInputBox({ dense: true })
 
     if (hasRatingSystem(ratingSystem)) {
         const levels = getRatingLevels(ratingSystem)

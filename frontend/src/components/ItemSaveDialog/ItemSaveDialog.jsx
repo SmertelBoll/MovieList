@@ -1,7 +1,6 @@
 import { Box, Dialog, DialogContent, DialogActions, useTheme, useMediaQuery, Typography } from '@mui/material';
 import RatingInput from '../RatingInput';
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import TextFieldCustom from '../_customMUI/TextFieldCustom';
+import React, { useState, useEffect, useRef } from 'react';
 import MainButton from '../Buttons/MainButton';
 import instance from '../../axios';
 import { alertError, alertConfirm, alertSuccess } from '../../alerts';
@@ -17,6 +16,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import DateField from '../DateField'
+import useInputBox from '../_customMUI/useInputBox'
 
 const DEFAULT_RATE = null;
 const DEFAULT_DATE = new Date();
@@ -49,10 +49,7 @@ function ItemSaveDialog({
     const isStacked = useMediaQuery(theme.breakpoints.down('md'));
     const dispatch = useDispatch();
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
-    const InputBox = useMemo(
-        () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
-        [theme.palette.bg.second, theme.palette.text.main]
-    );
+    const InputBox = useInputBox({ dense: true })
 
     // Submit label is remembered: during the close animation both flags are already false and a fallback would flash.
     // Folder the item was in when editing opened: deletion always targets it, even if another folder is selected for a
