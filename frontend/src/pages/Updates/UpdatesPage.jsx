@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -24,6 +24,7 @@ import {
     slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow, collectionTotals,
 } from './buildRows'
 import { tmdbGet as tmdbRequest } from '../../utils/tmdbApi'
+import CenteredState from '../../components/CenteredState'
 
 
 // TMDB has no batch endpoint, so every movie/series is its own request; concurrency is capped to stay under
@@ -465,11 +466,7 @@ function UpdatesPage() {
 
     if (!isAuth) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <Typography variant="h6" color="text.secondary">
-                    Please log in to see new releases
-                </Typography>
-            </Box>
+            <CenteredState minHeight={300}>Please log in to see new releases</CenteredState>
         )
     }
 
@@ -477,9 +474,7 @@ function UpdatesPage() {
     // thumb wouldn't finish sliding: the component would vanish.
     if (isLoading && rows.length === 0 && !hasLoadedOnce) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <CircularProgress color="primary" />
-            </Box>
+            <CenteredState minHeight={400} loading />
         )
     }
 
@@ -552,9 +547,7 @@ function UpdatesPage() {
             </Box>
 
             {isWaiting ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                    <CircularProgress color="primary" />
-                </Box>
+                <CenteredState minHeight={200} loading />
             ) : sortedRows.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <Typography variant="body1" color="text.secondary" textAlign="center">

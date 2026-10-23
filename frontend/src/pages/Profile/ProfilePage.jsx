@@ -21,6 +21,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import useInputBox from '../../components/_customMUI/useInputBox'
+import CenteredState from '../../components/CenteredState'
 
 const fileToBase = (file) =>
     new Promise((resolve) => {
@@ -116,11 +117,7 @@ function ProfilePage() {
 
     if (!isAuth) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <Typography variant="h6" color="text.secondary">
-                    Please log in to see your profile
-                </Typography>
-            </Box>
+            <CenteredState minHeight={300}>Please log in to see your profile</CenteredState>
         )
     }
 

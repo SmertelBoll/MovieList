@@ -13,6 +13,7 @@ import UpdateFolder from '../../components/SideBar/UpdateFolder'
 import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
 import { getStatusLabel, getStatusChipSx } from '../../utils/folderStatus'
 import { yellowHoverSx } from '../../theme/hoverSx'
+import CenteredState from '../../components/CenteredState'
 
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
@@ -190,19 +191,13 @@ function FoldersPage() {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <CircularProgress color="primary" />
-            </Box>
+            <CenteredState minHeight={300} loading />
         )
     }
 
     if (!isAuth) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <Typography variant="h6" color="text.secondary">
-                    Please log in to see your folders
-                </Typography>
-            </Box>
+            <CenteredState minHeight={300}>Please log in to see your folders</CenteredState>
         )
     }
 
@@ -235,11 +230,7 @@ function FoldersPage() {
             <>
 
             {sorted.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                    <Typography variant="h6" color="text.secondary">
-                        {hasFilters && folders.length > 0 ? 'No folders match the filters' : 'No folders yet'}
-                    </Typography>
-                </Box>
+                <CenteredState minHeight={200}>{hasFilters && folders.length > 0 ? 'No folders match the filters' : 'No folders yet'}</CenteredState>
             ) : (
                 <Box sx={{
                     display: 'grid',

@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, useMediaQuery } from '@mui/material'
+import { Box, Typography, Chip, Card, CardMedia, Tooltip, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -21,6 +21,7 @@ import { formatDateOnly } from '../../utils/dates'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
 import { liftHoverSx } from '../../theme/hoverSx'
+import CenteredState from '../../components/CenteredState'
 
 
 // Section title: h5 (1.5rem) is too big on narrow screens
@@ -301,19 +302,13 @@ function MoviePage({ isSaved = false }) {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <CircularProgress color="primary" />
-            </Box>
+            <CenteredState minHeight={400} loading />
         )
     }
 
     if (!movie) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <Typography variant="h6" color="text.secondary">
-                    Movie not found
-                </Typography>
-            </Box>
+            <CenteredState minHeight={400}>Movie not found</CenteredState>
         )
     }
 

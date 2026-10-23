@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Card } from '@mui/material'
+import { Box, Typography, Card } from '@mui/material'
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -12,6 +12,7 @@ import {
     heroInfoSx, heroTitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
 import { tmdbGet } from '../../utils/tmdbApi'
+import CenteredState from '../../components/CenteredState'
 
 
 function GenrePage() {
@@ -82,15 +83,9 @@ function GenrePage() {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {isLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <CircularProgress color="primary" />
-                </Box>
+                <CenteredState minHeight={400} loading />
             ) : !genre ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <Typography variant="h6" color="text.secondary">
-                        Genre not found
-                    </Typography>
-                </Box>
+                <CenteredState minHeight={400}>Genre not found</CenteredState>
             ) : (
                 <>
                     {/* Hero Section */}

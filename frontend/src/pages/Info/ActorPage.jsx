@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Card, CardMedia } from '@mui/material'
+import { Box, Typography, Card, CardMedia } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -14,6 +14,7 @@ import {
 } from './heroStyles'
 import { tmdbImage, tmdbImageOrDefault } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
+import CenteredState from '../../components/CenteredState'
 
 
 function ActorPage() {
@@ -71,15 +72,9 @@ function ActorPage() {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {isLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <CircularProgress color="primary" />
-                </Box>
+                <CenteredState minHeight={400} loading />
             ) : !actor ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <Typography variant="h6" color="text.secondary">
-                        Actor not found
-                    </Typography>
-                </Box>
+                <CenteredState minHeight={400}>Actor not found</CenteredState>
             ) : (
                 <>
                     {/* Hero Section */}

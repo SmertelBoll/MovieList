@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import Header from './components/Header/Header'
 import Footer from './components/Footer'
 import ScrollToTopButton from './components/Buttons/ScrollToTopButton'
-import { Box, CircularProgress, ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 import { getTheme } from "./theme/theme";
 
 import HomePage from "./pages/Home/HomePage";
@@ -27,6 +27,7 @@ import { SAVED_CHANGED_EVENT } from "./axios";
 import { setMode, setLanguage, setDateFormat } from "./redux/slices/ConfigSlice";
 import { isDateFormat } from "./utils/dateFormats";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
+import CenteredState from './components/CenteredState'
 
 function App() {
   const dispatch = useDispatch();
@@ -97,9 +98,7 @@ function App() {
           <ContainerCustom paddingY bgcolor="bg.main">
             {isChecking ? (
               // Wait for the auth check so pages don't flash "log in" on reload.
-              <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <CircularProgress color="primary" />
-              </Box>
+              <CenteredState minHeight={300} loading />
             ) : (
             <Routes key={remountKey}>
               <Route path="/" element={<HomePage />} />

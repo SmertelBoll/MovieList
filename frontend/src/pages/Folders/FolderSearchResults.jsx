@@ -1,4 +1,4 @@
-import { Box, Chip, CircularProgress, Collapse, Grid2, Typography } from '@mui/material'
+import { Box, Chip, Collapse, Grid2, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import GridViewIcon from '@mui/icons-material/GridView'
@@ -15,6 +15,7 @@ import SegmentedSwitch from '../../components/SegmentedSwitch'
 import FolderThumb from '../../components/SideBar/FolderThumb'
 import { getStatusChipSx, getStatusLabel } from '../../utils/folderStatus'
 import { tmdbGet } from '../../utils/tmdbApi'
+import CenteredState from '../../components/CenteredState'
 
 const MAX_ITEMS = 80
 
@@ -139,9 +140,7 @@ function FolderSearchResults({ query, folders, setFolders }) {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                <CircularProgress color="primary" />
-            </Box>
+            <CenteredState minHeight={200} loading />
         )
     }
 

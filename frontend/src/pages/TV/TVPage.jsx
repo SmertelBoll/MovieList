@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Card, CardMedia, Tooltip, Menu, MenuItem, useMediaQuery } from '@mui/material'
+import { Box, Typography, Chip, Card, CardMedia, Tooltip, Menu, MenuItem, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -27,6 +27,7 @@ import { fetchSavedDoc } from '../../utils/savedItems'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
 import { liftHoverSx } from '../../theme/hoverSx'
+import CenteredState from '../../components/CenteredState'
 
 
 // Memoized episode cell: re-renders only when its own primitive props change, so saving one episode doesn't touch
@@ -811,19 +812,13 @@ function TVPage({ isSaved = false }) {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <CircularProgress color="primary" />
-            </Box>
+            <CenteredState minHeight={400} loading />
         )
     }
 
     if (!serial) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <Typography variant="h6" color="text.secondary">
-                    TV Show not found
-                </Typography>
-            </Box>
+            <CenteredState minHeight={400}>TV Show not found</CenteredState>
         )
     }
 

@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Chip, Grid2, Card, CardMedia, CardContent } from '@mui/material'
+import { Box, Typography, Chip, Grid2, Card, CardMedia, CardContent } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
@@ -14,6 +14,7 @@ import {
 } from './heroStyles'
 import { tmdbImage, tmdbImageOrDefault } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
+import CenteredState from '../../components/CenteredState'
 
 
 function CrewPage() {
@@ -82,15 +83,9 @@ function CrewPage() {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {isLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <CircularProgress color="text.main" />
-                </Box>
+                <CenteredState minHeight={400} loading />
             ) : !crew ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                    <Typography variant="h6" color="text.secondary">
-                        Crew member not found
-                    </Typography>
-                </Box>
+                <CenteredState minHeight={400}>Crew member not found</CenteredState>
             ) : (
                 <>
                     {/* Hero Section */}
