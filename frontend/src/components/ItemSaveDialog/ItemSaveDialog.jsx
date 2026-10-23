@@ -1,5 +1,5 @@
 import { Box, Dialog, DialogContent, DialogActions, useTheme, useMediaQuery, Typography } from '@mui/material';
-import RatingSlider from '../RatingSlider';
+import RatingInput from '../RatingInput';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import TextFieldCustom from '../_customMUI/TextFieldCustom';
 import { DatePicker } from "@mui/x-date-pickers";
@@ -11,9 +11,7 @@ import { alertError, alertConfirm, alertSuccess } from '../../alerts';
 import useTextPrompt from '../_customMUI/useTextPrompt';
 import SideBar from '../SideBar/SideBar';
 import FolderThumb from '../SideBar/FolderThumb';
-import RatingDot from '../RatingDot';
 import DropdownMenu from '../_customMUI/DropdownMenu';
-import { getRatingLevels, hasRatingSystem as hasRatingSystemUtil } from '../../utils/ratingSystem';
 import { parseDateOnly, toDateOnlyISO } from '../../utils/dates';
 import { getTags } from '../../utils/tags';
 import { useDispatch, useSelector } from 'react-redux';
@@ -53,9 +51,6 @@ function ItemSaveDialog({
     const isStacked = useMediaQuery(theme.breakpoints.down('md'));
     const dispatch = useDispatch();
     const userTypes = useSelector((state) => state.auth.data?.typeCustom || []);
-    const ratingSystem = useSelector((state) => state.auth.data?.ratingSystem || []);
-    const hasRatingSystem = hasRatingSystemUtil(ratingSystem);
-    const ratingLevels = getRatingLevels(ratingSystem);
     const InputBox = useMemo(
         () => TextFieldCustom(theme.palette.bg.second, theme.palette.text.main, true),
         [theme.palette.bg.second, theme.palette.text.main]
@@ -103,22 +98,6 @@ function ItemSaveDialog({
     }, [isDeleteItem]);
 
     // -- HELP FUNCTIONS -- //
-    // 0 means no rating: stored as null
-    const handleSliderChange = (event, newValue) => {
-        setRating(newValue === 0 ? null : newValue);
-    };
-    const handleInputSliderChange = (event) => {
-        const value = event.target.value;
-        setRating(value === '' || Number(value) === 0 ? null : Number(value));
-    };
-    const handleBlur = () => {
-        if (rating > 100) {
-            setRating(100);
-        } else if (rating < 0) {
-            setRating(null);
-        }
-    };
-
     const handleDateChange = (newDate) => {
         setSelectedDate(newDate);
     };
@@ -506,75 +485,7 @@ function ItemSaveDialog({
                             />
                             </Box>
                         </Box>
-                        {hasRatingSystem ? (
-                            (() => {
-                                const current = ratingLevels.find((l) => l.value === rating);
-                                return (
-                                    <Box>
-                                        <DropdownMenu
-                                            width={240}
-                                            items={[
-                                                ...ratingLevels.map((lvl) => ({
-                                                    key: lvl.value,
-                                                    label: lvl.name,
-                                                    selected: rating === lvl.value,
-                                                    icon: <RatingDot color={lvl.color} />,
-                                                    endAdornment: rating === lvl.value ? <CheckIcon fontSize="small" /> : null,
-                                                    onClick: () => setRating(lvl.value),
-                                                })),
-                                                { key: '__divider__', divider: true },
-                                                {
-                                                    key: '__none__',
-                                                    label: 'No rating',
-                                                    selected: rating == null,
-                                                    onClick: () => setRating(null),
-                                                },
-                                            ]}
-                                            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                                            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                                            renderTrigger={({ onClick }) => (
-                                                <Box
-                                                    onClick={onClick}
-                                                    sx={{
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                        gap: 1, width: '100%', height: 40, boxSizing: 'border-box', p: 1,
-                                                        borderRadius: '4px', cursor: 'pointer', border: '1px solid',
-                                                        borderColor: 'text.main',
-                                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': { borderColor: 'text.main' } },
-                                                    }}
-                                                >
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-                                                        {current && <RatingDot color={current.color} />}
-                                                        <Typography
-                                                        variant="body2"
-                                                        noWrap
-                                                        sx={{ color: current ? 'text.main' : 'text.secondary', minWidth: 0 }}
-                                                    >                                                            {current ? current.name : 'Rating'}                                                        </Typography>
-                                                    </Box>
-                                                    <ArrowDropDownIcon fontSize="small" sx={{ color: 'text.main' }} />
-                                                </Box>
-                                            )}
-                                        />
-                                    </Box>
-                                );
-                            })()
-                        ) : (
-                            <RatingSlider value={typeof rating === 'number' ? rating : 0} onChange={handleSliderChange}>
-                                <InputBox
-                                    value={rating ? rating : ''}
-                                    size="small"
-                                    onChange={handleInputSliderChange}
-                                    onBlur={handleBlur}
-                                    inputProps={{
-                                        step: 1,
-                                        min: 0,
-                                        max: 100,
-                                        type: 'number',
-                                    }}
-                                    sx={{ width: 112, flexShrink: 0, mt: -0.5, '& .MuiInput-underline': { display: 'none' } }}
-                                />
-                            </RatingSlider>
-                        )}
+                        <RatingInput value={rating} onChange={setRating} />
                         <InputBox
                             label="Enter text..."
                             fullWidth
