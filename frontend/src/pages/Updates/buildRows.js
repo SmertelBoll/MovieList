@@ -65,8 +65,8 @@ export const slimCollection = (data) => ({
         .sort(byReleaseDate),
 })
 
-// Row activity in ms for the "Recently watched" sort: last watched (by watch date), or last modified if there
-// are no watch dates.
+// Row activity in ms for the "Recently watched" sort: the last watch date only. No date = 0 (sorts last), not the
+// edit time: that would put old, undated titles on top.
 const toMs = (value) => {
     const t = value ? Date.parse(value) : NaN
     return Number.isNaN(t) ? 0 : t
@@ -91,7 +91,7 @@ export function buildTvRow(entry, meta) {
         title: meta.name,
         posterPath: meta.posterPath,
         seasons,
-        lastActivity: toMs(entry.lastWatched) || toMs(entry.updatedAt),
+        lastActivity: toMs(entry.lastWatched),
         ...tvTotals(seasons),
     }
 }
@@ -138,7 +138,7 @@ export function buildCollectionRow(meta, savedByTmdbId) {
     // watched.
     const lastActivity = Math.max(0, ...parts
         .filter((p) => p.status && p.status !== FOLDER_STATUSES.PLANNED)
-        .map((p) => toMs(p.saved?.dateAdded) || toMs(p.saved?.updatedAt)))
+        .map((p) => toMs(p.saved?.dateAdded)))
     return { key: `collection-${meta.id}`, kind: 'collection', id: meta.id, title: cleanCollectionName(meta.name), posterPath: meta.posterPath, parts, lastActivity, ...collectionTotals(parts) }
 }
 
