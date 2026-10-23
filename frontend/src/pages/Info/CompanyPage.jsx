@@ -12,8 +12,8 @@ import {
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
 import { tmdbImage } from '../../utils/tmdbImage'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 function CompanyPage() {
     const { id } = useParams()
@@ -33,20 +33,13 @@ function CompanyPage() {
     useEffect(() => {
         setIsLoading(true)
 
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/company/${id}`, {
-                params: {
-                    api_key: API_KEY,
-                    language: tmdbLanguage
-                }
-            })
-            .then((res) => {
-                setCompany(res.data)
+        tmdbGet(`/company/${id}`, { language: tmdbLanguage })
+            .then((data) => {
+                setCompany(data)
 
-                const endpoint = `${process.env.REACT_APP_URL_TMDB}/discover`
+                const endpoint = '/discover'
 
                 let params = {
-                    api_key: API_KEY,
                     language: tmdbLanguage,
                     with_companies: id,
                     page: 1
@@ -54,9 +47,9 @@ function CompanyPage() {
 
                 Promise.all(
                     typeTMDB.map(type =>
-                        instance.get(`${endpoint}/${type}`, { params })
-                            .then(res => ({
-                                totalResults: res.data.total_results
+                        tmdbGet(`${endpoint}/${type}`, params)
+                            .then(data => ({
+                                totalResults: data.total_results
                             }))
                     )
                 )

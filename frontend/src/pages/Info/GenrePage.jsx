@@ -11,8 +11,8 @@ import {
     heroSectionSx, heroInnerSx, heroLandscapeSx,
     heroInfoSx, heroTitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 function GenrePage() {
     const { id } = useParams()
@@ -31,21 +31,14 @@ function GenrePage() {
     useEffect(() => {
         setIsLoading(true)
 
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/genre/movie/list`, {
-                params: {
-                    api_key: API_KEY,
-                    language: tmdbLanguage
-                }
-            })
-            .then((res) => {
-                const currentGenre = res.data.genres.find(g => g.id === parseInt(id))
+        tmdbGet('/genre/movie/list', { language: tmdbLanguage })
+            .then((data) => {
+                const currentGenre = data.genres.find(g => g.id === parseInt(id))
                 setGenre(currentGenre)
 
-                const endpoint = `${process.env.REACT_APP_URL_TMDB}/discover`
+                const endpoint = '/discover'
 
                 let params = {
-                    api_key: API_KEY,
                     language: tmdbLanguage,
                     with_genres: id,
                     page: 1
@@ -53,9 +46,9 @@ function GenrePage() {
 
                 Promise.all(
                     typeTMDB.map(type =>
-                        instance.get(`${endpoint}/${type}`, { params })
-                            .then(res => ({
-                                totalResults: res.data.total_results
+                        tmdbGet(`${endpoint}/${type}`, params)
+                            .then(data => ({
+                                totalResults: data.total_results
                             }))
                     )
                 )

@@ -25,8 +25,8 @@ import StretchedLink from '../../components/StretchedLink'
 import { scrollbarSx, scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 // Memoized episode cell: re-renders only when its own primitive props change, so saving one episode doesn't touch
 // hundreds of cells. onClick must be stable.
@@ -119,31 +119,19 @@ function TVPage({ isSaved = false }) {
         setIsLoading(true)
 
         const loadTmdb = (tmdbId, savedFields = {}) => {
-            instance
-                .get(`${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}`, {
-                    params: {
-                        api_key: API_KEY,
-                        language: tmdbLanguage,
-                        append_to_response: "credits"
-                    }
-                })
-                .then((res) => {
-                    setSerial({ ...res.data, media_type: "tv", tmdbId: res.data.id, ...savedFields })
+            tmdbGet(`/tv/${tmdbId}`, { language: tmdbLanguage, append_to_response: "credits" })
+                .then((data) => {
+                    setSerial({ ...data, media_type: "tv", tmdbId: data.id, ...savedFields })
 
-                    const seasonPromises = res.data.seasons
+                    const seasonPromises = data.seasons
                         .filter(s => s.season_number > 0)
-                        .map(s =>
-                            instance.get(
-                                `${process.env.REACT_APP_URL_TMDB}/tv/${tmdbId}/season/${s.season_number}`,
-                                { params: { api_key: API_KEY, language: tmdbLanguage } }
-                            )
-                        );
+                        .map(s => tmdbGet(`/tv/${tmdbId}/season/${s.season_number}`, { language: tmdbLanguage }));
 
                     Promise.all(seasonPromises)
                         .then(responses => {
                             const seasonMap = {};
                             responses.forEach(r => {
-                                const season = r.data;
+                                const season = r;
                                 const episodeMap = {};
                                 season.episodes.forEach(e => {
                                     episodeMap[e.episode_number] = e;

@@ -19,8 +19,8 @@ import { scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { formatDateOnly } from '../../utils/dates'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 // Section title: h5 (1.5rem) is too big on narrow screens
 const sectionTitleSx = { mb: 2, color: "text.main" }
@@ -72,16 +72,9 @@ function MoviePage({ isSaved = false }) {
         setIsLoading(true)
 
         const loadTmdb = (tmdbId, savedFields = {}) => {
-            instance
-                .get(`${process.env.REACT_APP_URL_TMDB}/movie/${tmdbId}`, {
-                    params: {
-                        api_key: API_KEY,
-                        language: tmdbLanguage,
-                        append_to_response: "credits"
-                    }
-                })
-                .then((res) => {
-                    setMovie({ ...res.data, media_type: "movie", tmdbId: res.data.id, ...savedFields })
+            tmdbGet(`/movie/${tmdbId}`, { language: tmdbLanguage, append_to_response: "credits" })
+                .then((data) => {
+                    setMovie({ ...data, media_type: "movie", tmdbId: data.id, ...savedFields })
                     setIsLoading(false)
                 })
                 .catch((err) => {
@@ -162,15 +155,9 @@ function MoviePage({ isSaved = false }) {
         }
 
         let cancelled = false
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/collection/${collectionId}`, {
-                params: {
-                    api_key: API_KEY,
-                    language: tmdbLanguage
-                }
-            })
-            .then((res) => {
-                if (!cancelled) setCollection(res.data)
+        tmdbGet(`/collection/${collectionId}`, { language: tmdbLanguage })
+            .then((data) => {
+                if (!cancelled) setCollection(data)
             })
             .catch((err) => {
                 // The collection block is optional, so no alert on failure.

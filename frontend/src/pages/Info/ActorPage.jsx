@@ -13,8 +13,8 @@ import {
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
 import { tmdbImage, tmdbImageOrDefault } from '../../utils/tmdbImage'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 function ActorPage() {
     const { id } = useParams()
@@ -32,16 +32,9 @@ function ActorPage() {
     useEffect(() => {
         setIsLoading(true)
 
-        instance
-            .get(`${process.env.REACT_APP_URL_TMDB}/person/${id}`, {
-                params: {
-                    api_key: API_KEY,
-                    language: tmdbLanguage,
-                    append_to_response: "combined_credits"
-                }
-            })
-            .then((res) => {
-                setActor(res.data)
+        tmdbGet(`/person/${id}`, { language: tmdbLanguage, append_to_response: "combined_credits" })
+            .then((data) => {
+                setActor(data)
                 setIsLoading(false)
             })
             .catch((err) => {

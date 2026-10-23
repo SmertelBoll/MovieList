@@ -23,9 +23,8 @@ import {
     SEED_STATUSES, VIEWS, isCollectionVisible,
     slimTv, slimCollection, buildTvRow, mergeTvRow, buildCollectionRow, mergeCollectionRow, collectionTotals,
 } from './buildRows'
+import { tmdbGet as tmdbRequest } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const TMDB = process.env.REACT_APP_URL_TMDB
 
 // TMDB has no batch endpoint, so every movie/series is its own request; concurrency is capped to stay under
 // the rate limit.
@@ -89,12 +88,7 @@ function UpdatesPage() {
     const [movieDialog, setMovieDialog] = useState(null) // { mode, item, folder }
     const [episodeDialog, setEpisodeDialog] = useState(null) // { row, seasonNumber, episode, initial }
 
-    const tmdbGet = useCallback(async (path, params = {}) => {
-        const res = await instance.get(`${TMDB}${path}`, {
-            params: { api_key: API_KEY, language: tmdbLanguage, ...params },
-        })
-        return res.data
-    }, [tmdbLanguage])
+    const tmdbGet = useCallback((path, params = {}) => tmdbRequest(path, { language: tmdbLanguage, ...params }), [tmdbLanguage])
 
     useEffect(() => {
         if (isGetFolders && isAuth) {

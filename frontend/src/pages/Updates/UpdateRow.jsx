@@ -1,7 +1,6 @@
 import { Box, Card, Chip, Collapse, Tooltip, Typography } from '@mui/material'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
-import instance from '../../axios'
 import { alertError } from '../../alerts'
 import { getTmdbLanguage } from '../../utils/languages'
 import { formatDateOnly } from '../../utils/dates'
@@ -15,9 +14,8 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import LockIcon from '@mui/icons-material/Lock'
 import { DIMMED_POSTER_SX, isDimmedStatus } from '../../utils/folderStatus'
 import { tmdbImageOrDefault } from '../../utils/tmdbImage'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const TMDB = process.env.REACT_APP_URL_TMDB
 
 const poster = (path) => tmdbImageOrDefault(path, 'w185')
 // TMDB dates are already yyyy-mm-dd, while dateAdded is an ISO string
@@ -47,10 +45,8 @@ function UpdateRow({ row, onMoviePlus, onMovieCheck, onEpisodeMark, onEpisodeEdi
         if (episodesBySeason[seasonNumber]) return
         try {
             setLoadingSeason(seasonNumber)
-            const res = await instance.get(`${TMDB}/tv/${row.id}/season/${seasonNumber}`, {
-                params: { api_key: API_KEY, language: tmdbLanguage },
-            })
-            setEpisodesBySeason((prev) => ({ ...prev, [seasonNumber]: res.data.episodes || [] }))
+            const data = await tmdbGet(`/tv/${row.id}/season/${seasonNumber}`, { language: tmdbLanguage })
+            setEpisodesBySeason((prev) => ({ ...prev, [seasonNumber]: data.episodes || [] }))
         } catch (err) {
             console.warn(err)
             alertError(err, 'Failed to load episodes')

@@ -16,8 +16,8 @@ import MainButton from '../Buttons/MainButton';
 import ItemSaveDialog from '../ItemSaveDialog/ItemSaveDialog';
 import Sort from '../Sorting/Sort';
 import { fetchSavedDoc } from '../../utils/savedItems';
+import { tmdbGet } from '../../utils/tmdbApi';
 
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 
 const CATEGORIES_SORT_BY = {
     tmdb: {
@@ -157,17 +157,8 @@ function GeneralItemList({
     }, []);
 
     const getItemsById = useCallback(async (item) => {
-        const params = {
-            api_key: API_KEY,
-            language: tmdbLanguage,
-        };
-
         try {
-            const res = await instance.get(
-                `${process.env.REACT_APP_URL_TMDB}/${item.media_type}/${item.tmdbId}`,
-                { params }
-            );
-            return res.data
+            return await tmdbGet(`/${item.media_type}/${item.tmdbId}`, { language: tmdbLanguage })
         } catch (err) {
             console.warn(err);
             alertError(err);
@@ -245,10 +236,9 @@ function GeneralItemList({
         const serverPage = loadedPage.current + 1
 
         if (dbType === "tmdb") {
-            const endpoint = `${process.env.REACT_APP_URL_TMDB}/${searchValue.trim() === "" ? "discover" : "search"}`
+            const endpoint = `/${searchValue.trim() === "" ? "discover" : "search"}`
 
             let params = {
-                api_key: API_KEY,
                 language: tmdbLanguage,
                 page: serverPage,
                 ...urlParams
@@ -260,15 +250,13 @@ function GeneralItemList({
 
             Promise.all(
                 typeTMDB.map(type =>
-                    instance.get(`${endpoint}/${type}`, {
-                        params: {
-                            ...params,
-                            sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][type]}.${sortDirection}`,
-                        }
+                    tmdbGet(`${endpoint}/${type}`, {
+                        ...params,
+                        sort_by: `${CATEGORIES_SORT_BY[dbType][nameSortBy]["keys"][type]}.${sortDirection}`,
                     })
-                        .then(res => ({
-                            results: res.data.results.map(item => ({ ...item, media_type: type })),
-                            totalPages: res.data.total_pages
+                        .then(data => ({
+                            results: data.results.map(item => ({ ...item, media_type: type })),
+                            totalPages: data.total_pages
                         }))
                 )
             )

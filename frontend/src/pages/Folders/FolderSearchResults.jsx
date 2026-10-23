@@ -14,34 +14,16 @@ import ItemSaveDialog from '../../components/ItemSaveDialog/ItemSaveDialog'
 import SegmentedSwitch from '../../components/SegmentedSwitch'
 import FolderThumb from '../../components/SideBar/FolderThumb'
 import { getStatusChipSx, getStatusLabel } from '../../utils/folderStatus'
+import { tmdbGet } from '../../utils/tmdbApi'
 
-const TMDB_URL = process.env.REACT_APP_URL_TMDB
-const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const MAX_ITEMS = 80
 
 // TMDB search in the UI language: finds titles the user saved under another name (e.g. saved in English, searched in
 // Ukrainian).
-async function searchTmdb(type, query, language) {
-    try {
-        const params = new URLSearchParams({ api_key: API_KEY, language, query })
-        const res = await fetch(`${TMDB_URL}/search/${type}?${params}`)
-        if (!res.ok) return []
-        return (await res.json()).results || []
-    } catch {
-        return []
-    }
-}
+const searchTmdb = (type, query, language) =>
+    tmdbGet(`/search/${type}`, { language, query }).then((data) => data.results || []).catch(() => [])
 
-const detailsCache = new Map()
-function fetchDetails(type, id, language) {
-    const key = `${language}:${type}:${id}`
-    if (!detailsCache.has(key)) {
-        detailsCache.set(key, fetch(`${TMDB_URL}/${type}/${id}?api_key=${API_KEY}&language=${language}`)
-            .then((res) => (res.ok ? res.json() : null))
-            .catch(() => null))
-    }
-    return detailsCache.get(key)
-}
+const fetchDetails = (type, id, language) => tmdbGet(`/${type}/${id}`, { language }).catch(() => null)
 
 // Search over all folders, grouped by folder: "Watched" and its items under it, as rows or cards (same switch and same
 // item components as the folder pages).
