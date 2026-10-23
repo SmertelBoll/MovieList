@@ -26,6 +26,7 @@ import { scrollbarSx, scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
+import { liftHoverSx } from '../../theme/hoverSx'
 
 
 // Memoized episode cell: re-renders only when its own primitive props change, so saving one episode doesn't touch
@@ -889,10 +890,7 @@ function TVPage({ isSaved = false }) {
                                 ...(isSaved && {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                                    '@media (hover: hover) and (pointer: fine)': { "&:hover": {
-                                        transform: (theme) => theme.hoverLift,
-                                        boxShadow: 6
-                                    } }
+                                    ...liftHoverSx(6),
                                 })
                             }}
                         >

@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import StretchedLink from '../StretchedLink'
 import { tmdbImageOrDefault } from '../../utils/tmdbImage'
+import { liftHoverSx } from '../../theme/hoverSx'
 
 
 function ActorCart({ person, role }) {
@@ -19,9 +20,7 @@ function ActorCart({ person, role }) {
             p: 1,
             cursor: "pointer",
             transition: "transform 0.2s ease-in-out",
-            '@media (hover: hover) and (pointer: fine)': { "&:hover": {
-                transform: (theme) => theme.hoverLift
-            } }
+            ...liftHoverSx(),
         }}
         >
             <StretchedLink to={href} label={person.name} />

@@ -20,6 +20,7 @@ import { fetchSavedDoc } from '../../utils/savedItems'
 import { formatDateOnly } from '../../utils/dates'
 import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 import { tmdbGet } from '../../utils/tmdbApi'
+import { liftHoverSx } from '../../theme/hoverSx'
 
 
 // Section title: h5 (1.5rem) is too big on narrow screens
@@ -383,10 +384,7 @@ function MoviePage({ isSaved = false }) {
                                 ...(isSaved && {
                                     cursor: "pointer",
                                     transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                                    '@media (hover: hover) and (pointer: fine)': { "&:hover": {
-                                        transform: (theme) => theme.hoverLift,
-                                        boxShadow: 6
-                                    } }
+                                    ...liftHoverSx(6),
                                 })
                             }}
                         >

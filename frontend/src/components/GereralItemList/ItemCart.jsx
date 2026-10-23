@@ -7,6 +7,7 @@ import ItemFolderButton from '../ItemFolderButton';
 import { formatRatingLabel } from '../../utils/ratingSystem';
 import { formatDateOnly } from '../../utils/dates';
 import { tmdbImageOrDefault } from '../../utils/tmdbImage'
+import { liftHoverSx } from '../../theme/hoverSx'
 
 
 function ItemCart({
@@ -46,10 +47,7 @@ function ItemCart({
                 position: "relative",
                 cursor: "pointer",
                 transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                '@media (hover: hover) and (pointer: fine)': { "&:hover": {
-                    transform: (theme) => theme.hoverLift,
-                    boxShadow: 4
-                } }
+                ...liftHoverSx(4),
             }}
         >
             {href && <StretchedLink to={href} label={mediaType === "movie" ? item.title : item.name} />}

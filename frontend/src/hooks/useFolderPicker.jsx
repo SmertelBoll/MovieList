@@ -5,6 +5,7 @@ import { useTheme } from '@mui/material/styles'
 import FolderIcon from '@mui/icons-material/Folder'
 import MainButton from '../components/Buttons/MainButton'
 import { getStatusChipSx, getStatusLabel } from '../utils/folderStatus'
+import { yellowHoverSx } from '../theme/hoverSx'
 
 const ICON_SIZE = { xs: '4rem', sm: '5rem' }
 
@@ -99,13 +100,7 @@ function useFolderPicker() {
                                 cursor: 'pointer',
                                 color: 'text.main',
                                 transition: 'background-color 0.15s, transform 0.15s',
-                                '@media (hover: hover) and (pointer: fine)': { '&:hover': {
-                                    transform: (t) => t.hoverLift,
-                                    bgcolor: 'yellow.main',
-                                    color: 'yellow.contrastText',
-                                    '& .MuiTypography-root': { color: 'yellow.contrastText' },
-                                    '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                } },
+                                ...yellowHoverSx,
                             }}
                         >
                             {tile.image ? (

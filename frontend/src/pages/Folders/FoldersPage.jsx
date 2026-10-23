@@ -12,6 +12,7 @@ import FolderIcon from '@mui/icons-material/Folder'
 import UpdateFolder from '../../components/SideBar/UpdateFolder'
 import RenameFolderInput from '../../components/SideBar/RenameFolderInput'
 import { getStatusLabel, getStatusChipSx } from '../../utils/folderStatus'
+import { yellowHoverSx } from '../../theme/hoverSx'
 
 function FoldersPage() {
     const isAuth = useSelector(selectIsAuth)
@@ -266,17 +267,7 @@ function FoldersPage() {
                                     minWidth: 0,
                                     borderRadius: 2,
                                     transition: 'background-color 0.15s, transform 0.15s',
-                                    ...(!isRenaming && {
-                                        '@media (hover: hover) and (pointer: fine)': { '&:hover': {
-                                            transform: (theme) => theme.hoverLift,
-                                            bgcolor: 'yellow.main',
-                                            // On yellow the whole card content turns dark: labels, folder
-                                            // icon and counter.
-                                            color: 'yellow.contrastText',
-                                            '& .MuiTypography-root': { color: 'yellow.contrastText' },
-                                            '& .MuiSvgIcon-root': { color: 'yellow.contrastText' },
-                                        } },
-                                    }),
+                                    ...(!isRenaming && yellowHoverSx),
                                 }}
                             >
                                 {!isRenaming && <StretchedLink to={`/folders/${encodeURIComponent(folder.name)}`} label={folder.name} />}
