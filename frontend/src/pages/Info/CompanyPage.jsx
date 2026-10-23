@@ -11,10 +11,9 @@ import {
     heroSectionSx, heroInnerSx, heroLandscapeSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
+import { tmdbImage } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function CompanyPage() {
     const { id } = useParams()
@@ -107,7 +106,7 @@ function CompanyPage() {
                         ...heroSectionSx,
                         backgroundImage: (theme) => [
                             `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
-                            company.logo_path && `url(${IMAGE_BASE_URL_ORIGINAL}${company.logo_path})`,
+                            company.logo_path && `url(${tmdbImage(company.logo_path, 'original')})`,
                         ].filter(Boolean).join(", "),
                     }}>
                         <Box sx={heroInnerSx}>
@@ -123,7 +122,7 @@ function CompanyPage() {
                                 {company.logo_path ? (
                                     <CardMedia
                                         component="img"
-                                        image={`${IMAGE_BASE_URL_ORIGINAL}${company.logo_path}`}
+                                        image={tmdbImage(company.logo_path, 'original')}
                                         alt={company.name}
                                         sx={{
                                             objectFit: 'contain',

@@ -1,8 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import StretchedLink from '../StretchedLink'
+import { tmdbImageOrDefault } from '../../utils/tmdbImage'
 
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`;
 
 function ActorCart({ person, role }) {
     const isCrew = ['Director', 'Producer', 'Writer', 'Screenplay', 'Editor', 'Cinematography', 'Production Design', 'Costume Design', 'Makeup', 'Sound'].includes(role);
@@ -28,7 +27,7 @@ function ActorCart({ person, role }) {
             <StretchedLink to={href} label={person.name} />
             <Box
                 component="img"
-                src={person.profile_path ? IMAGE_BASE_URL_W185 + person.profile_path : IMAGE_DEFAULT}
+                src={tmdbImageOrDefault(person.profile_path, 'w185')}
                 alt={person.name}
                 sx={{
                     width: 100,

@@ -12,11 +12,9 @@ import {
     heroSectionSx, heroInnerSx, heroPortraitSx, heroMediaSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
+import { tmdbImage, tmdbImageOrDefault } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function ActorPage() {
     const { id } = useParams()
@@ -96,7 +94,7 @@ function ActorPage() {
                         ...heroSectionSx,
                         backgroundImage: (theme) => [
                             `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
-                            actor.profile_path && `url(${IMAGE_BASE_URL_ORIGINAL}${actor.profile_path})`,
+                            actor.profile_path && `url(${tmdbImage(actor.profile_path, 'original')})`,
                         ].filter(Boolean).join(", "),
                     }}>
                         <Box sx={heroInnerSx}>
@@ -104,10 +102,7 @@ function ActorPage() {
                             <Card sx={heroPortraitSx}>
                                 <CardMedia
                                     component="img"
-                                    image={actor.profile_path
-                                        ? `${IMAGE_BASE_URL_W500}${actor.profile_path}`
-                                        : IMAGE_DEFAULT
-                                    }
+                                    image={tmdbImageOrDefault(actor.profile_path, 'w500')}
                                     sx={heroMediaSx}
                                 />
                             </Card>

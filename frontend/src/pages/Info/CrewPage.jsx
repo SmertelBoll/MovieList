@@ -12,11 +12,9 @@ import {
     heroSectionSx, heroInnerSx, heroPortraitSx, heroMediaSx,
     heroInfoSx, heroTitleSx, heroSubtitleSx, heroStatsSx, heroStatValueSx
 } from './heroStyles'
+import { tmdbImage, tmdbImageOrDefault } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 function CrewPage() {
     const { id } = useParams()
@@ -107,7 +105,7 @@ function CrewPage() {
                         ...heroSectionSx,
                         backgroundImage: (theme) => [
                             `linear-gradient(${theme.palette.overlay.soft}, ${theme.palette.overlay.soft})`,
-                            crew.profile_path && `url(${IMAGE_BASE_URL_ORIGINAL}${crew.profile_path})`,
+                            crew.profile_path && `url(${tmdbImage(crew.profile_path, 'original')})`,
                         ].filter(Boolean).join(", "),
                     }}>
                         <Box sx={heroInnerSx}>
@@ -115,10 +113,7 @@ function CrewPage() {
                             <Card sx={heroPortraitSx}>
                                 <CardMedia
                                     component="img"
-                                    image={crew.profile_path
-                                        ? `${IMAGE_BASE_URL_W500}${crew.profile_path}`
-                                        : IMAGE_DEFAULT
-                                    }
+                                    image={tmdbImageOrDefault(crew.profile_path, 'w500')}
                                     alt={crew.name}
                                     sx={heroMediaSx}
                                 />

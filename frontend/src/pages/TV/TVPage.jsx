@@ -24,12 +24,9 @@ import EditableValue from '../../components/EditableValue'
 import StretchedLink from '../../components/StretchedLink'
 import { scrollbarSx, scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
+import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
-const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 // Memoized episode cell: re-renders only when its own primitive props change, so saving one episode doesn't touch
 // hundreds of cells. onClick must be stable.
@@ -842,9 +839,9 @@ function TVPage({ isSaved = false }) {
     }
 
     // Poster is portrait, backdrop landscape; card and background take different images (as on the movie page).
-    const posterUrl = serial.poster_path ? `${IMAGE_BASE_URL_W500}${serial.poster_path}` : null
-    const backdropUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_W780}${serial.backdrop_path}` : null
-    const backdropFullUrl = serial.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${serial.backdrop_path}` : null
+    const posterUrl = tmdbImage(serial.poster_path, 'w500')
+    const backdropUrl = tmdbImage(serial.backdrop_path, 'w780')
+    const backdropFullUrl = tmdbImage(serial.backdrop_path, 'original')
     const heroImage = (isSmall ? backdropUrl || posterUrl : posterUrl || backdropUrl) || IMAGE_DEFAULT
     const heroBackground = isSmall ? posterUrl || backdropFullUrl : backdropFullUrl || posterUrl
 

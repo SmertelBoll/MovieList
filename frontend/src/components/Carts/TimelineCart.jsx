@@ -5,9 +5,8 @@ import { selectSavedCopies } from '../../redux/slices/SavedSlice'
 import { DIMMED_POSTER_SX, getBestStatus, isDimmedStatus } from '../../utils/folderStatus'
 import ItemFolderButton from '../ItemFolderButton'
 import StretchedLink from '../StretchedLink'
+import { tmdbImageOrDefault } from '../../utils/tmdbImage'
 
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`; // w342 keeps the poster sharp on retina
 
 function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
     const isAuth = useSelector(selectIsAuth)
@@ -54,7 +53,8 @@ function TimelineCart({ part, isCurrent, onAdd, onEdit }) {
             >
                 <Box
                     component="img"
-                    src={part.poster_path ? IMAGE_BASE_URL_W342 + part.poster_path : IMAGE_DEFAULT}
+                    // w342 keeps the poster sharp on retina
+                    src={tmdbImageOrDefault(part.poster_path, 'w342')}
                     alt={part.title}
                     loading="lazy"
                     sx={{

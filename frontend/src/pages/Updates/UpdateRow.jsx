@@ -14,13 +14,12 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import LockIcon from '@mui/icons-material/Lock'
 import { DIMMED_POSTER_SX, isDimmedStatus } from '../../utils/folderStatus'
+import { tmdbImageOrDefault } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
 const TMDB = process.env.REACT_APP_URL_TMDB
-const IMG_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`
-const IMG_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
-const poster = (path) => (path ? IMG_W185 + path : IMG_DEFAULT)
+const poster = (path) => tmdbImageOrDefault(path, 'w185')
 // TMDB dates are already yyyy-mm-dd, while dateAdded is an ISO string
 const asDate = (value) => formatDateOnly(value) || '—'
 

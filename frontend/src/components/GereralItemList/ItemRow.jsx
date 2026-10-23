@@ -6,9 +6,8 @@ import StretchedLink from '../StretchedLink'
 import { formatRatingLabel } from '../../utils/ratingSystem'
 import { formatDateOnly } from '../../utils/dates'
 import { getItemHref } from '../../utils/itemLinks'
+import { tmdbImageOrDefault } from '../../utils/tmdbImage'
 
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W185 = `${process.env.REACT_APP_TMDB_IMG}/w185`
 
 // Same columns in every row so date and rating line up: poster | title + subtitle | date | rating. Room on
 // the right for the button.
@@ -88,7 +87,7 @@ function ItemRow({
             <Box
                 component="img"
                 alt={title}
-                src={item.poster_path ? IMAGE_BASE_URL_W185 + item.poster_path : IMAGE_DEFAULT}
+                src={tmdbImageOrDefault(item.poster_path, 'w185')}
                 loading="lazy"
                 sx={{ width: 36, height: 54, objectFit: 'cover', borderRadius: 0.5, display: 'block' }}
             />

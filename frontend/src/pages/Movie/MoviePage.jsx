@@ -18,12 +18,9 @@ import StretchedLink from '../../components/StretchedLink'
 import { scrollStripSx } from '../../theme/scrollbar'
 import { fetchSavedDoc } from '../../utils/savedItems'
 import { formatDateOnly } from '../../utils/dates'
+import { IMAGE_DEFAULT, tmdbImage } from '../../utils/tmdbImage'
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY
-const IMAGE_BASE_URL_ORIGINAL = `${process.env.REACT_APP_TMDB_IMG}/original`;
-const IMAGE_BASE_URL_W500 = `${process.env.REACT_APP_TMDB_IMG}/w500`;
-const IMAGE_BASE_URL_W780 = `${process.env.REACT_APP_TMDB_IMG}/w780`;
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
 
 // Section title: h5 (1.5rem) is too big on narrow screens
 const sectionTitleSx = { mb: 2, color: "text.main" }
@@ -334,9 +331,9 @@ function MoviePage({ isSaved = false }) {
 
     // Poster is portrait, backdrop landscape; card and background take different images: phone card = backdrop,
     // background = poster; desktop the reverse.
-    const posterUrl = movie.poster_path ? `${IMAGE_BASE_URL_W500}${movie.poster_path}` : null
-    const backdropUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_W780}${movie.backdrop_path}` : null
-    const backdropFullUrl = movie.backdrop_path ? `${IMAGE_BASE_URL_ORIGINAL}${movie.backdrop_path}` : null
+    const posterUrl = tmdbImage(movie.poster_path, 'w500')
+    const backdropUrl = tmdbImage(movie.backdrop_path, 'w780')
+    const backdropFullUrl = tmdbImage(movie.backdrop_path, 'original')
 
     const heroImage = (isSmall ? backdropUrl || posterUrl : posterUrl || backdropUrl) || IMAGE_DEFAULT
     const heroBackground = isSmall

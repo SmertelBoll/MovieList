@@ -6,9 +6,8 @@ import { selectIsAuth } from '../../redux/slices/AuthSlice';
 import ItemFolderButton from '../ItemFolderButton';
 import { formatRatingLabel } from '../../utils/ratingSystem';
 import { formatDateOnly } from '../../utils/dates';
+import { tmdbImageOrDefault } from '../../utils/tmdbImage'
 
-const IMAGE_DEFAULT = process.env.REACT_APP_DEFAULT_IMG
-const IMAGE_BASE_URL_W342 = `${process.env.REACT_APP_TMDB_IMG}/w342`;
 
 function ItemCart({
     item,
@@ -73,11 +72,7 @@ function ItemCart({
                 isImage && <CardMedia
                     component="img"
                     alt={item.title}
-                    image={
-                        item.poster_path
-                            ? IMAGE_BASE_URL_W342 + item.poster_path
-                            : IMAGE_DEFAULT
-                    }
+                    image={tmdbImageOrDefault(item.poster_path, 'w342')}
                 />
             }
 
