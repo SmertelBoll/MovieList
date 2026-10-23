@@ -13,7 +13,7 @@ import { checkAuth } from "./utils/checkAuth.js";
 import { uploadFile } from "./controllers/imageControllers.js";
 import { folderCreateValidation } from "./validations/folder.js";
 import { getUpdates } from "./controllers/updatesControllers.js";
-import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, getSavedIndex, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
+import { createFolder, getFoldersByUser, orderDecrement, orderIncrement, removeFolder, renameFolder, getFoldersByMovie, getFoldersByTV, getItemsFromFolder, getSavedIndex, searchSavedItems, updateFolderImage, updateFolderStatus } from "./controllers/folderControllers.js";
 import { addMovieToFolder, getMovieByTmdbId, getMovieByMongoId, updateMovieByMongoId, removeMovieFromFolder } from "./controllers/movieControllers.js";
 import { addTvToFolder, getTvByTmdbId, getTvByMongoId, removeTvFromFolder, updateTvByMongoId, updateTvSeason, updateTvEpisode, markSeasonEpisodesWatched, deleteTvEpisode, deleteTvSeason } from "./controllers/tvControllers.js";
 
@@ -85,6 +85,7 @@ app.get("/folders/tv/:tmdbId", checkAuth, getFoldersByTV)
 
 app.get("/updates", checkAuth, getUpdates);
 app.get("/items/saved", checkAuth, getSavedIndex);
+app.get("/items/search", checkAuth, searchSavedItems);
 
 app.get("/folders", checkAuth, getFoldersByUser);
 app.post("/folders", checkAuth, folderCreateValidation, checkValidationError, createFolder);

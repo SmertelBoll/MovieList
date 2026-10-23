@@ -524,6 +524,61 @@ export const getItemsFromFolder = async (req, res) => {
   }
 };
 
+// Search over everything the user saved, across all folders. An item matches by its saved title or by a TMDB id the
+// client found for the same query (so a search in the UI language also finds titles saved in English).
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const parseIds = (str) => (str || "").split(",").map(Number).filter(Number.isInteger).slice(0, 100);
+
+export const searchSavedItems = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const query = (req.query.query || "").trim();
+    if (!query) return res.json({ success: true, results: [] });
+
+    const titleMatch = { $regex: escapeRegex(query), $options: "i" };
+    const find = (Model, ids) => Model
+      .find({ user: userId, $or: [{ tmdbTitle: titleMatch }, { tmdbId: { $in: ids } }] })
+      .select("tmdbId tmdbTitle dateAdded rating comment customType")
+      .limit(200)
+      .lean();
+
+    const [movies, tvs, folders] = await Promise.all([
+      find(MovieModel, parseIds(req.query.movieIds)),
+      find(TvModel, parseIds(req.query.tvIds)),
+      FolderModel.find({ user: userId }).select("name status folderElements").lean(),
+    ]);
+
+    const foldersOfItem = new Map();
+    for (const folder of folders) {
+      for (const el of folder.folderElements) {
+        const key = el.itemId.toString();
+        if (!foldersOfItem.has(key)) foldersOfItem.set(key, []);
+        foldersOfItem.get(key).push({ name: folder.name, status: folder.status ?? null });
+      }
+    }
+
+    const toResult = (mediaType) => (doc) => ({
+      mongoId: doc._id,
+      media_type: mediaType,
+      tmdbId: doc.tmdbId,
+      tmdbTitle: doc.tmdbTitle,
+      dateAdded: doc.dateAdded ?? null,
+      rating: doc.rating ?? null,
+      comment: doc.comment ?? "",
+      customType: normalizeTags(doc.customType),
+      folders: foldersOfItem.get(doc._id.toString()) || [],
+    });
+
+    const results = [...movies.map(toResult("movie")), ...tvs.map(toResult("tv"))]
+      .sort((a, b) => a.tmdbTitle.localeCompare(b.tmdbTitle));
+
+    res.json({ success: true, results });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ title: "Search error", message: "Failed to search saved items" });
+  }
+};
+
 // Index of all saved items: which folders hold each movie/tv. Key is "movie:<tmdbId>" / "tv:<tmdbId>", value
 // is its copies (one per folder).
 export const getSavedIndex = async (req, res) => {

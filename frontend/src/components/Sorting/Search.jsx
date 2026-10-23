@@ -7,7 +7,7 @@ import TextFieldCustom from "../_customMUI/TextFieldCustom";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-function Search({ inputText, onChangeInput }) {
+function Search({ inputText, onChangeInput, label = "Search" }) {
     const theme = useTheme();
     const SearchBox = useMemo(() => TextFieldCustom(
         theme.palette.bg.main,
@@ -23,7 +23,7 @@ function Search({ inputText, onChangeInput }) {
     return (
         <SearchBox
             // autoFocus
-            label="Search"
+            label={label}
             value={inputText}
             onChange={handleChange}
             size="small"

@@ -1,5 +1,7 @@
-import { Box, Chip, CircularProgress, Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { Box, Chip, CircularProgress, debounce, Typography } from '@mui/material'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Search from '../../components/Sorting/Search'
+import FolderSearchResults from './FolderSearchResults'
 import StretchedLink from '../../components/StretchedLink'
 import { useSelector } from 'react-redux'
 import { selectIsAuth } from '../../redux/slices/AuthSlice'
@@ -17,6 +19,17 @@ function FoldersPage() {
 
     const [folders, setFolders] = useState([])
     const [isLoading, setIsLoading] = useState(true)
+
+    // The search box shows results from all folders instead of the folder grid.
+    const [inputText, setInputText] = useState('')
+    const [searchQuery, setSearchQuery] = useState('')
+    const updateSearchQuery = useMemo(() => debounce((str) => setSearchQuery(str.trim()), 400), [])
+    useEffect(() => () => updateSearchQuery.clear(), [updateSearchQuery])
+    const onChangeSearch = (e, empty = false) => {
+        const next = empty ? '' : e.target.value
+        setInputText(next)
+        updateSearchQuery(next)
+    }
 
     const [curFolderToRename, setCurFolderToRename] = useState(null)
     const [curFolderName, setCurFolderName] = useState('')
@@ -213,6 +226,13 @@ function FoldersPage() {
                 My Folders
             </Typography>
 
+            <Search inputText={inputText} onChangeInput={onChangeSearch} label="Search movies & TV shows" />
+
+            {searchQuery ? (
+                <FolderSearchResults query={searchQuery} folders={folders} setFolders={setFolders} />
+            ) : (
+            <>
+
             {sorted.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                     <Typography variant="h6" color="text.secondary">
@@ -350,6 +370,8 @@ function FoldersPage() {
                         )
                     })}
                 </Box>
+            )}
+            </>
             )}
         </Box>
     )
