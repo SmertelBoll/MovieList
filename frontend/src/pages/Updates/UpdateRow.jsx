@@ -102,7 +102,7 @@ function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMov
         ? `${row.unwatchedCount} unwatched of ${row.releasedCount}`
         : `${row.unwatchedCount} new ${row.unwatchedCount === 1 ? 'episode' : 'episodes'} of ${row.episodeCount}`
     const subtitle = mutedMode
-        ? `${baseSubtitle} · ${mutedMode === 'forever' ? 'Muted' : 'Muted until a new part'}`
+        ? `${baseSubtitle} · ${mutedMode === 'forever' ? 'Skipped' : 'Skipped until a new part'}`
         : baseSubtitle
 
     // Follow state of a franchise, a bell like a channel's: the chip shows it and opens the actions. It sits in the
@@ -113,7 +113,7 @@ function UpdateRow({ row, mutedMode = null, onMute, onUnmute, onMoviePlus, onMov
             { key: 'mute-forever', label: 'Stop following', onClick: () => onMute(row, 'forever') },
             { key: 'mute-new-part', label: 'Stop until a new part', onClick: () => onMute(row, 'new-part') },
         ]
-    const followLabel = !mutedMode ? 'Following' : mutedMode === 'forever' ? 'Muted' : 'Muted until a new part'
+    const followLabel = mutedMode ? 'Skipped' : 'Following'
 
     return (
         // Card, so the background matches the movie cards (background.paper)

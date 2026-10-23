@@ -13,10 +13,13 @@ const latestOf = (a, b) => {
 export const getUpdates = async (req, res) => {
   try {
     const userId = req.userId;
-    // ?view=dropped: series from dropped folders. Movies are the same in both views.
-    const tvStatuses = req.query.view === "dropped"
-      ? [FOLDER_STATUSES.DROPPED]
-      : [FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED];
+    // ?view=dropped: series from dropped folders; ?view=muted: series from skipped ones (not followed). Movies are
+    // the same in every view.
+    const tvStatusesByView = {
+      dropped: [FOLDER_STATUSES.DROPPED],
+      muted: [FOLDER_STATUSES.SKIPPED],
+    };
+    const tvStatuses = tvStatusesByView[req.query.view] || [FOLDER_STATUSES.WATCHING, FOLDER_STATUSES.WATCHED];
 
     // lean(): plain objects, much faster for hundreds of series with thousands of episodes.
     const folders = await FolderModel.find({

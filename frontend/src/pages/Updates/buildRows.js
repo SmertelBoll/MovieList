@@ -16,8 +16,9 @@ export const HANDLED_STATUSES = new Set([
     FOLDER_STATUSES.SKIPPED,
 ])
 
-// Modes: normal ("new releases"), dropped (series from dropped folders) and muted (franchises the user stopped
-// following). A dropped movie doesn't stop its franchise from being followed: it just counts as handled.
+// Modes: normal ("new releases"), dropped (series from dropped folders) and muted, shown as "Skipped": franchises
+// the user stopped following plus series from the Skipped folder. A dropped movie doesn't stop its franchise from
+// being followed: it just counts as handled.
 export const VIEWS = { ACTIVE: 'active', DROPPED: 'dropped', MUTED: 'muted' }
 
 // A franchise the user stopped following (user.mutedCollections): forever, or until a part is released after the day
@@ -57,6 +58,10 @@ export const todayIso = () => {
 }
 export const isReleased = (date) => Boolean(date) && date <= todayIso()
 
+// A season with episodes but no air date counts as released: TMDB leaves the date empty on many long-running series
+// (One Piece has it on most seasons). A really upcoming season has a future date, or no episodes (slimTv drops those).
+const isSeasonReleased = (date) => !date || isReleased(date)
+
 // Parts in chronological order; no release date (TBA) goes last, like the Timeline on the movie page. An
 // empty string would otherwise sort first.
 const byReleaseDate = (a, b) => {
@@ -85,7 +90,7 @@ const toMs = (value) => {
 const latestDateOf = (items, dateOf) => items.reduce((max, item) => (dateOf(item) > max ? dateOf(item) : max), '')
 
 export function buildTvRow(entry, meta) {
-    const seasons = meta.seasons.filter((s) => isReleased(s.airDate)).map((s) => {
+    const seasons = meta.seasons.filter((s) => isSeasonReleased(s.airDate)).map((s) => {
         const watchedEpisodes = entry.watched[String(s.seasonNumber)] || {}
         const unwatchedCount = Math.max(0, s.episodeCount - Object.keys(watchedEpisodes).length)
         return { ...s, watchedEpisodes, unwatchedCount }

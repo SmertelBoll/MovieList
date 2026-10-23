@@ -118,7 +118,7 @@ function UpdatesPage() {
         const load = async () => {
             // 1) User-saved data (watched, folders, ratings) always comes fresh from the backend and is never
             // cached.
-            const { data } = await instance.get('/updates', { params: { view: view === VIEWS.DROPPED ? VIEWS.DROPPED : VIEWS.ACTIVE } })
+            const { data } = await instance.get('/updates', { params: { view } })
             const { movies, tv } = data.results
             if (cancelled) return
 
@@ -130,15 +130,15 @@ function UpdatesPage() {
 
             // 2) TMDB metadata: draw from the cache at once (even stale), refresh missing/expired entries in
             // the background.
-            // The Muted view lists franchises even when nothing is new (that's where they are un-muted), and no series.
-            const isShown = (row) => row.kind === 'collection'
-                ? isCollectionVisible(view, row, mutedRef.current) && (view === VIEWS.MUTED || row.unwatchedCount > 0)
-                : view !== VIEWS.MUTED && row.unwatchedCount > 0
+            // The "Skipped" view lists everything even when nothing is new: muted franchises (that's where they
+            // are followed again) and series from the Skipped folder.
+            const isShown = (row) => (row.kind === 'collection' ? isCollectionVisible(view, row, mutedRef.current) : true)
+                && (view === VIEWS.MUTED || row.unwatchedCount > 0)
             const rowsByKey = new Map()
             const tasks = []
             const scheduledCollections = new Set() // one collection can serve several watched parts
 
-            for (const entry of (view === VIEWS.MUTED ? [] : tv)) {
+            for (const entry of tv) {
                 const cached = cacheGet('tv', tmdbLanguage, entry.tmdbId)
                 if (cached) {
                     const row = buildTvRow(entry, cached.d)
@@ -525,15 +525,15 @@ function UpdatesPage() {
             }}>
                 <Box sx={{ minWidth: 0 }}>
                     <Typography variant="sectionTitle" color="text.main">
-                        {isDroppedView ? 'Dropped' : isMutedView ? 'Muted franchises' : 'New releases'}
+                        {isDroppedView ? 'Dropped' : isMutedView ? 'Skipped' : 'New releases'}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
                         {isWaiting
                             ? 'Loading…'
                             : sortedRows.length === 0
-                            ? (isDroppedView ? 'No dropped series with new episodes' : isMutedView ? 'No muted franchises' : 'Everything you are watching is up to date')
+                            ? (isDroppedView ? 'No dropped series with new episodes' : isMutedView ? 'Nothing is muted or skipped' : 'Everything you are watching is up to date')
                             : isMutedView
-                            ? `${sortedRows.length} ${sortedRows.length === 1 ? 'franchise' : 'franchises'}${refresh ? ' · updating…' : ''}`
+                            ? `${sortedRows.length} ${sortedRows.length === 1 ? 'title' : 'titles'}${refresh ? ' · updating…' : ''}`
                             : `${totalNew} new in ${titlesWithNew} ${titlesWithNew === 1 ? 'title' : 'titles'}${refresh ? ' · updating…' : ''}`}
                     </Typography>
                 </Box>
@@ -545,7 +545,7 @@ function UpdatesPage() {
                     options={[
                         { value: VIEWS.ACTIVE, label: 'New' },
                         { value: VIEWS.DROPPED, label: 'Dropped' },
-                        { value: VIEWS.MUTED, label: 'Muted' },
+                        { value: VIEWS.MUTED, label: 'Skipped' },
                     ]}
                 />
 
@@ -588,7 +588,7 @@ function UpdatesPage() {
                             </>
                         ) : isMutedView ? (
                             <>
-                                Nothing here. Movie franchises you stop following will appear here, so you can follow them again.
+                                Nothing here. Movie franchises you stop following and series from the "Skipped" folder will appear here.
                             </>
                         ) : (
                             <>
