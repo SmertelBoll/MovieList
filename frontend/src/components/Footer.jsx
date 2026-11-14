@@ -79,6 +79,7 @@ function Footer() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <Box
@@ -91,7 +92,6 @@ function Footer() {
                   borderRadius: 4,
                   bgcolor: active ? 'yellow.main' : 'transparent',
                   color: active ? 'yellow.contrastText' : 'text.main',
-                  transition: 'background-color 0.2s, color 0.2s',
                 }}
               >
                 <Current />
