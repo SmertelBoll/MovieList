@@ -25,8 +25,8 @@ function Footer() {
     {
       key: 'profile',
       label: 'Folders',
-      to: isAuth ? '/profile' : '/login',
-      active: pathname.startsWith('/profile') || (!isAuth && (pathname === '/login' || pathname === '/register')),
+      to: isAuth ? '/folders' : '/login',
+      active: pathname.startsWith('/folders') || (!isAuth && (pathname === '/login' || pathname === '/register')),
       Icon: FolderIcon,
       IconOff: FolderOutlinedIcon,
     },
