@@ -22,6 +22,11 @@ const savedSlice = createSlice({
   initialState,
   reducers: {
     clearSaved: () => initialState,
+    // The last known index, shown while the server (possibly asleep) hasn't answered yet. Never over a fresh one.
+    hydrateSaved: (state, action) => {
+      if (state.isLoaded) return;
+      state.byKey = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchSaved.fulfilled, (state, action) => {
@@ -37,5 +42,5 @@ const EMPTY = [];
 export const selectSavedCopies = (mediaType, tmdbId) => (state) =>
   state.saved.byKey[savedKey(mediaType, tmdbId)] || EMPTY;
 
-export const { clearSaved } = savedSlice.actions;
+export const { clearSaved, hydrateSaved } = savedSlice.actions;
 export const savedReducer = savedSlice.reducer;

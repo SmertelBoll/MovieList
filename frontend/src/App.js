@@ -22,12 +22,15 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import UpdatesPage from "./pages/Updates/UpdatesPage";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAuthMe } from "./redux/slices/AuthSlice";
-import { fetchSaved, clearSaved } from "./redux/slices/SavedSlice";
+import { fetchSaved, clearSaved, hydrateSaved } from "./redux/slices/SavedSlice";
 import { SAVED_CHANGED_EVENT } from "./axios";
 import { setMode, setLanguage, setDateFormat } from "./redux/slices/ConfigSlice";
 import { isDateFormat } from "./utils/dateFormats";
 import ContainerCustom from './components/_customMUI/ContainerCustom';
 import CenteredState from './components/CenteredState'
+import SyncStatus from './components/SyncStatus'
+import { kvGet, kvSet } from './utils/idb'
+import { setSyncUser } from './utils/sync'
 
 function App() {
   const dispatch = useDispatch();
@@ -53,25 +56,52 @@ function App() {
   // Saved-items index: where each movie/tv lives. Loaded after login, refreshed on every folder/item change
   // (axios fires an event).
   const isAuth = Boolean(authData);
+  const userId = authData?._id;
+
+  // Unsent changes go out under the logged-in account only
+  useEffect(() => {
+    setSyncUser(userId);
+  }, [userId]);
+
   useEffect(() => {
     if (!isAuth) {
       dispatch(clearSaved());
       return;
     }
-    dispatch(fetchSaved());
+
+    let cancelled = false;
+    let retryTimer = null;
+    const key = `saved:${userId}`;
+
+    // The index is also kept on disk: the last known one shows while the server wakes up. If the server doesn't
+    // answer, retry a few times (about a minute covers a cold start).
+    kvGet(key).then((saved) => {
+      if (!cancelled && saved) dispatch(hydrateSaved(saved));
+    });
+    const load = (attempt = 0) => {
+      dispatch(fetchSaved())
+        .unwrap()
+        .then((fresh) => kvSet(key, fresh))
+        .catch(() => {
+          if (!cancelled && attempt < 8) retryTimer = setTimeout(() => load(attempt + 1), 8000);
+        });
+    };
+    load();
 
     // Batch several requests in a row (e.g. move + update) into one refresh.
     let timer = null;
     const onChanged = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => dispatch(fetchSaved()), 300);
+      timer = setTimeout(() => load(), 300);
     };
     window.addEventListener(SAVED_CHANGED_EVENT, onChanged);
     return () => {
+      cancelled = true;
       clearTimeout(timer);
+      clearTimeout(retryTimer);
       window.removeEventListener(SAVED_CHANGED_EVENT, onChanged);
     };
-  }, [isAuth, dispatch]);
+  }, [isAuth, userId, dispatch]);
 
   const { mode, dateFormat } = useSelector((state) => state.config);
 
@@ -123,6 +153,7 @@ function App() {
         </main>
         <Footer />
         <ScrollToTopButton />
+        <SyncStatus />
       </div>
     </ThemeProvider >
   )

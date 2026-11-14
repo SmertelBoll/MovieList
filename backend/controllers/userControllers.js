@@ -12,6 +12,12 @@ import { destroyImage } from "./imageControllers.js";
 const bcrypt_salt = process.env.BCRYPT_SALT;
 const jwt_key = process.env.JWT_KEY;
 
+// The user document without the password hash: it goes to the browser (and its local storage).
+const toPublicUser = (user) => {
+  const { passwordHash, ...rest } = user._doc;
+  return rest;
+};
+
 export const registerUser = async (req, res) => {
   try {
     console.log(req.body);
@@ -54,7 +60,7 @@ export const registerUser = async (req, res) => {
     );
 
     res.json({
-      ...user._doc,
+      ...toPublicUser(user),
       token,
     });
   } catch (error) {
@@ -90,7 +96,7 @@ export const loginUser = async (req, res) => {
     );
 
     res.json({
-      ...user._doc,
+      ...toPublicUser(user),
       token,
     });
   } catch (error) {
@@ -108,7 +114,7 @@ export const getMe = async (req, res) => {
     }
 
     res.json({
-      ...user._doc,
+      ...toPublicUser(user),
     });
   } catch (error) {
     console.log(error);

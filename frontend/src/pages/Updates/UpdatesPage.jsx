@@ -25,6 +25,8 @@ import {
 } from './buildRows'
 import { tmdbGet as tmdbRequest } from '../../utils/tmdbApi'
 import CenteredState from '../../components/CenteredState'
+import { enqueue, getPendingOps, readThrough, updateCached, SYNC_FAILED_EVENT } from '../../utils/sync'
+import { applyPendingToUpdates, episodeDeleteOp, episodeSetOp, seasonWatchedOp } from '../../utils/offlineOps'
 
 
 // TMDB has no batch endpoint, so every movie/series is its own request; concurrency is capped to stay under
@@ -64,6 +66,7 @@ const SORT_COMPARATORS = {
 function UpdatesPage() {
     const dispatch = useDispatch()
     const isAuth = useSelector(selectIsAuth)
+    const userId = useSelector((state) => state.auth.data?._id)
     const { language, typeTMDB, customTypes, viewMode } = useSelector((state) => state.config)
     const tmdbLanguage = getTmdbLanguage(language)
     // Where each copy lives (saved index): needed to compute a part's status after an edit
@@ -107,20 +110,31 @@ function UpdatesPage() {
 
     const [refresh, setRefresh] = useState(null)
 
+    // A queued change was rejected by the server for good: reload so the page shows what is really saved.
+    const [reloadTick, setReloadTick] = useState(0)
+    useEffect(() => {
+        const onFailed = () => setReloadTick((tick) => tick + 1)
+        window.addEventListener(SYNC_FAILED_EVENT, onFailed)
+        return () => window.removeEventListener(SYNC_FAILED_EVENT, onFailed)
+    }, [])
+
     useEffect(() => {
         if (!isAuth) { setIsLoading(false); return }
 
         let cancelled = false
         let flushTimer = null
+        let freshStarted = false
+        let renderedOnce = false
         setIsLoading(true)
         setRefresh(null)
 
-        const load = async () => {
-            // 1) User-saved data (watched, folders, ratings) always comes fresh from the backend and is never
-            // cached.
-            const { data } = await instance.get('/updates', { params: { view } })
+        // stale: the last known answer, shown while the server is asleep or slow. It is drawn from the TMDB cache only.
+        const render = async (serverData, { stale }) => {
+            // Changes not yet sent to the server are applied on top, so a mark never "un-marks" itself on reload.
+            const data = applyPendingToUpdates(serverData, await getPendingOps(userId))
+            if (cancelled || (stale && freshStarted)) return
+            if (!stale) freshStarted = true
             const { movies, tv } = data.results
-            if (cancelled) return
 
             const savedByTmdbId = new Map(movies.map((m) => [m.tmdbId, m]))
 
@@ -164,10 +178,12 @@ function UpdatesPage() {
 
             const hadCache = rowsByKey.size > 0
             setRows([...rowsByKey.values()])
-            setLoadVersion((v) => v + 1)
+            // The fresh answer after a saved one keeps the order already on screen
+            if (!renderedOnce) setLoadVersion((v) => v + 1)
+            renderedOnce = true
             setHasLoadedOnce(true)
             setIsLoading(false)
-            if (!tasks.length) return
+            if (stale || !tasks.length) return
 
             // 3) Background refresh: rows are batched into state, existing ones update in place (order untouched), new
             // ones go last.
@@ -234,7 +250,14 @@ function UpdatesPage() {
             flush()
         }
 
-        load().catch((err) => {
+        // 1) User-saved data (watched, folders, ratings) comes from the backend; its last answer is kept on the device
+        // and shown first, so the page opens at once even while the backend is still waking up.
+        readThrough({
+            key: `updates:${userId}:${view}`,
+            request: () => instance.get('/updates', { params: { view } }).then((res) => res.data),
+            onData: render,
+            isCancelled: () => cancelled,
+        }).catch((err) => {
             if (cancelled) return
             console.warn(err)
             alertError(err, 'Failed to load updates')
@@ -245,7 +268,7 @@ function UpdatesPage() {
             cancelled = true
             clearTimeout(flushTimer)
         }
-    }, [isAuth, tmdbGet, view, tmdbLanguage])
+    }, [isAuth, userId, tmdbGet, view, tmdbLanguage, reloadTick])
 
     // Row order is fixed only on load or when the user changes sort/filter; local edits leave it alone so a row doesn't
     // jump.
@@ -430,13 +453,20 @@ function UpdatesPage() {
         }))
     }, [movieDialog, savedIndex, patchMoviePart])
 
-    const handleEpisodeMark = useCallback(async (row, seasonNumber, episodeNumber) => {
+    // Episode changes show up at once and go to the server through the outbox: if the server is still waking up they
+    // wait there and are sent by themselves.
+    const sendChange = useCallback((op) => {
+        Object.values(VIEWS).forEach((v) => {
+            updateCached(`updates:${userId}:${v}`, (data) => applyPendingToUpdates(data, [op])).catch((err) => console.warn(err))
+        })
+        enqueue(userId, op).catch((err) => console.warn(err))
+    }, [userId])
+
+    const handleEpisodeMark = useCallback((row, seasonNumber, episodeNumber) => {
         const data = { dateAdded: toDateOnlyISO(new Date()), watchedCount: 1, rating: null, comment: '' }
-        try {
-            await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/episode/${episodeNumber}`, data)
-            patchEpisodes(row.key, seasonNumber, { [String(episodeNumber)]: data })
-        } catch (err) { console.warn(err); alertError(err) }
-    }, [patchEpisodes])
+        patchEpisodes(row.key, seasonNumber, { [String(episodeNumber)]: data })
+        sendChange(episodeSetOp(row.mongoId, seasonNumber, episodeNumber, data))
+    }, [patchEpisodes, sendChange])
 
     // Mark all unwatched episodes of a season in one request. Bulk and only reversible per episode, so a dialog asks
     // for the watch date first.
@@ -447,49 +477,43 @@ function UpdatesPage() {
         setMarkDialog({ row, seasonNumber, episodeNumbers })
     }, [])
 
-    const handleConfirmMarkAll = useCallback(async (dateAdded) => {
+    const handleConfirmMarkAll = useCallback((dateAdded) => {
         if (!markDialog) return
         const { row, seasonNumber, episodeNumbers } = markDialog
         setMarkDialog(null)
         const data = { dateAdded, watchedCount: 1, rating: null, comment: '' }
-        try {
-            await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/watched`, { episodes: episodeNumbers, dateAdded })
-            patchEpisodes(
-                row.key,
-                seasonNumber,
-                Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
-            )
-        } catch (err) { console.warn(err); alertError(err) }
-    }, [markDialog, patchEpisodes])
+        patchEpisodes(
+            row.key,
+            seasonNumber,
+            Object.fromEntries(episodeNumbers.map((n) => [String(n), data]))
+        )
+        sendChange(seasonWatchedOp(row.mongoId, seasonNumber, episodeNumbers, dateAdded))
+    }, [markDialog, patchEpisodes, sendChange])
 
     const handleEpisodeEdit = useCallback((row, seasonNumber, episodeNumber, initial) => {
         setEpisodeDialog({ row, seasonNumber, episodeNumber, initial })
     }, [])
 
-    const handleEpisodeSave = useCallback(async (values) => {
+    const handleEpisodeSave = useCallback((values) => {
         if (!episodeDialog) return
         const { row, seasonNumber, episodeNumber } = episodeDialog
-        try {
-            await instance.patch(`/tv/${row.mongoId}/season/${seasonNumber}/episode/${episodeNumber}`, values)
-            patchEpisodes(row.key, seasonNumber, {
-                [String(episodeNumber)]: {
-                    ...values,
-                    dateAdded: values.dateAdded ? new Date(values.dateAdded).toISOString() : null,
-                },
-            })
-            setEpisodeDialog(null)
-        } catch (err) { console.warn(err); alertError(err) }
-    }, [episodeDialog, patchEpisodes])
+        patchEpisodes(row.key, seasonNumber, {
+            [String(episodeNumber)]: {
+                ...values,
+                dateAdded: values.dateAdded ? new Date(values.dateAdded).toISOString() : null,
+            },
+        })
+        sendChange(episodeSetOp(row.mongoId, seasonNumber, episodeNumber, values))
+        setEpisodeDialog(null)
+    }, [episodeDialog, patchEpisodes, sendChange])
 
-    const handleEpisodeDelete = useCallback(async () => {
+    const handleEpisodeDelete = useCallback(() => {
         if (!episodeDialog) return
         const { row, seasonNumber, episodeNumber } = episodeDialog
-        try {
-            await instance.delete(`/tv/${row.mongoId}/season/${seasonNumber}/episode/${episodeNumber}`)
-            patchEpisodes(row.key, seasonNumber, {}, [String(episodeNumber)])
-            setEpisodeDialog(null)
-        } catch (err) { console.warn(err); alertError(err) }
-    }, [episodeDialog, patchEpisodes])
+        patchEpisodes(row.key, seasonNumber, {}, [String(episodeNumber)])
+        sendChange(episodeDeleteOp(row.mongoId, seasonNumber, episodeNumber))
+        setEpisodeDialog(null)
+    }, [episodeDialog, patchEpisodes, sendChange])
 
     if (!isAuth) {
         return (
