@@ -9,8 +9,8 @@ import HomeIcon from '@mui/icons-material/Home';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
-import PersonIcon from '@mui/icons-material/Person';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import FolderIcon from '@mui/icons-material/Folder';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 
 // Mobile bottom nav height (px): drives the bottom spacing and the scroll-to-top position.
 export const BOTTOM_NAV_HEIGHT = 56;
@@ -24,11 +24,11 @@ function Footer() {
     { key: 'new', label: 'New releases', to: '/updates', active: pathname.startsWith('/updates'), Icon: NewReleasesIcon, IconOff: NewReleasesOutlinedIcon },
     {
       key: 'profile',
-      label: 'Profile',
+      label: 'Folders',
       to: isAuth ? '/profile' : '/login',
       active: pathname.startsWith('/profile') || (!isAuth && (pathname === '/login' || pathname === '/register')),
-      Icon: PersonIcon,
-      IconOff: PersonOutlineIcon,
+      Icon: FolderIcon,
+      IconOff: FolderOutlinedIcon,
     },
   ];
 
